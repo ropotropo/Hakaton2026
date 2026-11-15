@@ -269,3 +269,13 @@
 .mc-flight.is-rollout .mc-command > p,
 .mc-flight.is-rollout .mc-command-buttons > :not([data-action="skip-rollout"]) { display: none; }
 .mc-flight.is-rollout .mc-command-buttons { grid-column: 1 / -1; }
+
+/* Keep the crew and flag visible beneath the successful-contact debrief. */
+.mc-outcome[data-outcome="success"] {
+  inset: 18px 18px auto auto; width: min(310px, calc(100% - 36px));
+  grid-template-columns: 1fr; padding: 18px; gap: 11px; align-content: start;
+  background: #080809df; border: 1px solid #303034; border-radius: 7px;
+}
+.mc-outcome[data-outcome="success"] h2 { font-size: 24px; max-width: none; }
+.mc-outcome[data-outcome="success"] p { font-size: 12px; margin: 0; }
+.mc-outcome[data-outcome="success"] button { grid-column: 1; }

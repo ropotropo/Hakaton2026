@@ -252,7 +252,9 @@ export function createFlightSky(celestials){
       const length=Math.hypot(...vector);object.position.copy(local(vector).normalize().multiplyScalar(D));
       object.scale.setScalar(D*Math.min(.9996,radius/Math.max(radius+1,length))/baseRadius);return length;
     };
-    put(earth,[-p[0],-p[1],0],6371000,1900);earth.visible=surface||['transfer','docking'].includes(view.mode)||(view.altitude||0)>3500;
+    // The globe fills beyond the finite local terrain from liftoff onward.
+    // Hiding it below 3.5 km exposed a blue gap as the pad left the camera.
+    put(earth,[-p[0],-p[1],0],6371000,1900);earth.visible=true;
     // Put the named launch site's latitude/longitude under the initial local
     // vertical. A Y-axis-only spin previously put the camera over a pole,
     // making an ocean/coast view look like a featureless gray cap.

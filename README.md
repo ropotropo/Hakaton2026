@@ -8,11 +8,11 @@ See [authorship](AUTHORS.md).
 The site menu's **About the author** page shows **Микита Борисов**, Ukraine,
 with the project spacesuit portrait.
 
-## Play v0.4.2
+## Play v0.4.3
 
 Open **[the browser game](https://ropotropo.github.io/Hakaton2026/kinetic-core/)**
 or download the portable HTML from the
-**[v0.4.2 release](https://github.com/ropotropo/Hakaton2026/releases/tag/v0.4.2)**.
+**[v0.4.3 release](https://github.com/ropotropo/Hakaton2026/releases/tag/v0.4.3)**.
 The portable `dist/Kineti-Core.html` includes the renderer and local textures;
 open the downloaded file directly. The core game needs no account or backend.
 The optional **Earth / free flight** map mode needs internet.
