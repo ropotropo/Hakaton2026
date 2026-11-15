@@ -10,6 +10,8 @@ requirement alone.
 
 - `src/`, `index.html`, `public/assets/` and its image provenance/credits.
 - `package.json`, the exact `package-lock.json`, `scripts/` and project skills.
+- `desktop/` and `android/` wrapper source, their lockfiles/configuration and
+  notices. Native build output, SDK caches and signing keys stay outside Git.
 - `dist/`: optimized static game, portable HTML and dependency notices.
 - `docs/`, `README.md`, `AUTHORS.md` and project instructions.
 - A source ZIP and SHA-256 manifest tied to the exact reviewed commit.
@@ -43,6 +45,6 @@ origins remains a separate future feature.
 
 Check the source manifest, clean-room build, offline portable play, notices,
 authorship, chosen code license, destination links and ownership of the new
-repository. Publish only the tested snapshot. Windows/Android installers and
-app-store identities are separate release work, described in
+repository. Publish only the tested snapshot. Windows/Android preview installers are available from v0.4.4. Production signing,
+app-store identities and real-device acceptance remain separate work, described in
 [DISTRIBUTION.md](DISTRIBUTION.md).

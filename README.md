@@ -8,11 +8,11 @@ See [authorship](AUTHORS.md).
 The site menu's **About the author** page shows **Микита Борисов**, Ukraine,
 with the project spacesuit portrait.
 
-## Play v0.4.3
+## Play v0.4.4
 
 Open **[the browser game](https://ropotropo.github.io/Hakaton2026/kinetic-core/)**
 or download the portable HTML from the
-**[v0.4.3 release](https://github.com/ropotropo/Hakaton2026/releases/tag/v0.4.3)**.
+**[v0.4.4 release](https://github.com/ropotropo/Hakaton2026/releases/tag/v0.4.4)**.
 The portable `dist/Kineti-Core.html` includes the renderer and local textures;
 open the downloaded file directly. The core game needs no account or backend.
 The optional **Earth / free flight** map mode needs internet.
@@ -127,4 +127,4 @@ geometry are illustrative fictional hardware. No NASA affiliation or endorsement
 
 Completed versions are tested, built, committed and pushed with a portable build
 and a pull request requesting **@ropotropo** review, without automatic merging.
-Native `.exe`/`.apk` packages are not included yet.
+Windows `.exe` and Android `.apk` previews are available in the [v0.4.4 release](https://github.com/ropotropo/Hakaton2026/releases/tag/v0.4.4). See [installation and platform limits](docs/DISTRIBUTION.md); these initial native packages have not been acceptance-tested on Windows or an Android device.
