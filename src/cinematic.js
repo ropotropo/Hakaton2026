@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { FLAG_SVG } from './brand.js';
 
 /** Presentation-only surface EVA after the simulation has confirmed contact. */
 export function createSurfaceFinale(materials,reducedMotion=false){
@@ -20,12 +21,14 @@ export function createSurfaceFinale(materials,reducedMotion=false){
   }
   const flag=new THREE.Group();flag.position.set(8,0,3);root.add(flag);
   add(flag,new THREE.CylinderGeometry(.025,.034,2.9,12),metal,[0,1.45,0]);
-  const canvas=document.createElement('canvas');canvas.width=1024;canvas.height=512;
-  const ctx=canvas.getContext('2d');ctx.fillStyle='#f2f3f0';ctx.fillRect(0,0,1024,512);ctx.fillStyle='#121416';ctx.font='600 105px Arial';ctx.textAlign='left';ctx.fillText('Kinetic',90,215);ctx.fillText('Core',90,345);
-  ctx.strokeStyle='#aab2b2';ctx.lineWidth=3;ctx.strokeRect(28,28,968,456);
+  const canvas=document.createElement('canvas');canvas.width=1500;canvas.height=900;
+  const ctx=canvas.getContext('2d');ctx.fillStyle='#000';ctx.fillRect(0,0,1500,900);
   const map=new THREE.CanvasTexture(canvas);map.colorSpace=THREE.SRGBColorSpace;
+  let disposed=false;
+  const artwork=new Image();artwork.onload=()=>{if(disposed)return;ctx.drawImage(artwork,0,0,1500,900);map.needsUpdate=true;};
+  artwork.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(FLAG_SVG);
   const cloth=new THREE.MeshStandardMaterial({map,side:THREE.DoubleSide,roughness:.95,metalness:0});
-  add(flag,new THREE.PlaneGeometry(1.8,.9),cloth,[.91,2.35,0]);
+  add(flag,new THREE.PlaneGeometry(1.8,1.08),cloth,[.91,2.26,0]);
   add(flag,new THREE.CylinderGeometry(.014,.014,1.82,8),metal,[.91,2.8,0]).rotation.z=Math.PI/2;
   let age=0,active=false;
   function reset(){age=0;active=false;root.visible=false;}
@@ -37,7 +40,7 @@ export function createSurfaceFinale(materials,reducedMotion=false){
     limbs.forEach((limb,i)=>{limb.rotation.x=!reducedMotion&&progress>0&&progress<1?Math.sin(age*6.7+(i%2)*Math.PI)*.32:0;});
     flag.visible=age>(reducedMotion?3:8.5);
   }
-  function dispose(){root.traverse(o=>o.geometry?.dispose());visor.dispose();cloth.dispose();map.dispose();}
+  function dispose(){disposed=true;artwork.onload=null;root.traverse(o=>o.geometry?.dispose());visor.dispose();cloth.dispose();map.dispose();}
   return {root,update,reset,dispose,get age(){return age;}};
 }
 

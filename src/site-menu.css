@@ -133,3 +133,7 @@
   .site-biography { scroll-behavior: auto; }
   .site-menu-dialog::backdrop { backdrop-filter: none; }
 }
+
+.site-menu-heading h2,.site-menu-brand {display:flex;align-items:center;gap:13px;}
+.menu-kc {display:block;width:42px;flex:0 0 42px;}
+.menu-kc .kc-mark {max-height:26px;}

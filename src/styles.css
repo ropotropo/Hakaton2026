@@ -649,3 +649,9 @@ body .flight-center:has(.ascent-controls) .viewport { min-height: 0; }
     height: min(38dvh, 320px); min-height: min(38dvh, 320px);
   }
 }
+
+/* Final KC mark uses the approved vector at every display density. */
+.brand-symbol { display:flex;align-items:center;justify-content:center;min-width:44px;width:44px; }
+.kc-mark {display:block;width:100%;height:auto;max-height:32px;}
+.guide-content .quickstart-steps {padding-left:20px;line-height:1.8;}
+.guide-content .quickstart-steps li {margin:8px 0;}

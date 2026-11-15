@@ -185,3 +185,10 @@ portrait; keep provenance in the asset credits rather than visible captions.
 Use calm type, one authorship line and a visible Back to game action, without
 invented biography or repeated explanations. The burger and its anchored black
 menu use quiet lines, clear labels and 44 px targets.
+
+## Final branding
+
+Kinetic Core is the confirmed name. Use the approved Latin KC vector from
+public/assets/branding in the interface, menu and post-contact flag. Keep only
+Created by Mykyta Borisov as the game authorship line. How to play introduces
+the full Moon mission before detailed controls.
