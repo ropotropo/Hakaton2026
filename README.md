@@ -1,14 +1,28 @@
 # Kineti Core
 
-**Build a rocket. Reach Earth orbit. Dock by hand.**
+**Design a mission. Fly its critical moments.**
 
-An original spaceflight game concept by **Nikita**, developed in collaboration with Andrii. The first playable contains modular vehicle selection, a physically integrated two-stage launch, manual stage separation and a six-degree-of-freedom terminal docking scenario.
+An original spaceflight game concept by **Nikita**, developed in collaboration with Andrii. Version 0.2 adds a survey of 12 Solar System moons, finite-fuel manual terminal landing exercises, NASA image maps, a new black instrument design language and flight debriefs to modular assembly, ascent, staging and manual docking.
 
 ## Play the built version
 
-Download **[dist/Kineti-Core.html](dist/Kineti-Core.html)** using GitHub's **Download raw file** button, then open the downloaded HTML file in Safari, Chrome or Edge. The portable build includes the game, graphics library and Earth texture; it needs no account, installation or local server.
+Play **[the browser version](https://ropotropo.github.io/Hakaton2026/)** or get **[the v0.2 release](https://github.com/ropotropo/Hakaton2026/releases/tag/v0.2.0)**.
+
+Download **[dist/Kineti-Core.html](dist/Kineti-Core.html)** using GitHub's **Download raw file** button, then open the downloaded HTML file in Safari, Chrome or Edge. The portable build includes the game, graphics library and all celestial textures; it needs no account, installation or local server.
 
 Alternatively, serve `dist/` as a static website. `dist/index.html` is the normal optimized web build. No external API or runtime asset requests are required. The existing `.openai/hosting.json` continues to point to `dist`.
+
+## Surface destinations
+
+Choose **Moon, Phobos, Deimos, Io, Europa, Ganymede, Callisto, Titan, Enceladus, Rhea, Iapetus or Triton**. Inspect a textured globe and its parent planet, compare gravity and surface hazards, then start a local landing exercise. Each uses its own gravitational parameter and mean radius. Titan adds a simplified near-surface drag model; other atmospheres are neglected.
+
+Landing uses a **standard fictional training lander**, independent of the assembled launch vehicle. The game clearly skips the transfer to this exercise. Terrain, radiation, extreme temperatures and sampling methods are planning context; they are not survival or sample-collection mechanics yet. Low-gravity Phobos/Deimos exercises start lower/slower with a limited-thrust engine mode. Maps are credited NASA resources; local terrain is illustrative.
+
+W/S changes throttle, A/D (or left/right arrows) tilts, B toggles a propellant-consuming upright hold, and Space cuts the engine. Touch tilt buttons and a throttle slider are available. Land inside ±25 m of the pad center below 2 m/s vertical, 1.5 m/s lateral, 8° tilt and 3°/s rotation. These tolerances are game values. Check the hover-power hint and use the descent camera to inspect the landing zone.
+
+## Direction of flight
+
+Read the **[North Star and version roadmap](docs/NORTH-STAR.md)**, **[design language](docs/DESIGN.md)**, **[reusable design skill](skills/kineti-design/SKILL.md)** and **[installation plan for Windows/macOS/Android](docs/DISTRIBUTION.md)**. The next proposed stage is a coherent Moon mission; native `.exe`/`.apk` packages are not included in this release.
 
 ## Develop
 
@@ -66,7 +80,7 @@ See **[docs/PHYSICS.md](docs/PHYSICS.md)** for sources, equations, numerical ver
 
 ## Sources, assets and assistance
 
-NASA/JPL physical references and the local NASA Blue Marble Earth image are credited in [docs/PHYSICS.md](docs/PHYSICS.md) and [public/assets/SOURCES.md](public/assets/SOURCES.md). Three.js is MIT licensed. Dependency notices are included in dist/THIRD_PARTY_NOTICES.txt and inside the portable HTML build. NASA is not affiliated with this game and does not endorse it.
+NASA/JPL physical references and the local NASA Blue Marble Earth image are credited in [docs/PHYSICS.md](docs/PHYSICS.md), [docs/DESTINATIONS.md](docs/DESTINATIONS.md) and [public/assets/SOURCES.md](public/assets/SOURCES.md). Three.js is MIT licensed. Dependency notices are included in dist/THIRD_PARTY_NOTICES.txt and inside the portable HTML build. NASA is not affiliated with this game and does not endorse it.
 
 The original idea belongs to Nikita. Code, procedural graphics and documentation were assisted by Codex and specialist agents. The project does not use AI-generated NASA branding.
 

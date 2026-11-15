@@ -1,9 +1,11 @@
 // AI-assisted implementation. Original game concept: Nikita.
 import { createLaunch, createDocking, orbitalElements, validateState } from './physics.js';
 import { DEFAULT_CONFIG, resolveConfig } from './catalog.js';
+import { DESTINATIONS } from './destinations.js';
+import { validateLandingState, restoreLandingState } from './landing.js';
 export const SAVE_VERSION = 1;
 export const SAVE_KEY = 'kineti-core.checkpoint.v1';
-const PHASES = new Set(['assembly', 'launch', 'orbit', 'docking', 'docked']);
+const PHASES = new Set(['assembly', 'launch', 'orbit', 'docking', 'docked', 'landing', 'landed']);
 const UNSAFE_KEYS = new Set(['__proto__', 'prototype', 'constructor']);
 
 function finiteTree(value, depth = 0) {
@@ -20,11 +22,16 @@ function finiteTree(value, depth = 0) {
 export function validateCheckpoint(value, validateConfig = () => true) {
   if (!value || value.version !== SAVE_VERSION || !PHASES.has(value.phase)) return false;
   if (!value.config || !finiteTree(value) || !validateConfig(value.config)) return false;
+  if (value.destination !== undefined && !DESTINATIONS.some(d => d.id === value.destination)) return false;
   if (!Number.isFinite(Date.parse(value.savedAt))) return false;
   if (!Array.isArray(value.log) || value.log.length > 80) return false;
   if (!value.log.every(entry => entry && typeof entry === 'object' && Number.isFinite(entry.time) && entry.time >= 0 && typeof entry.message === 'string' && entry.message.length <= 2000)) return false;
   if (value.phase === 'assembly') return value.flight === null;
   const flight = value.flight;
+  if (value.phase === 'landing' || value.phase === 'landed') {
+    return validateLandingState(flight) && flight.phase === value.phase &&
+      (value.destination === undefined || value.destination === flight.destination);
+  }
   if (!validateState(flight)) return false;
   if (!flight || !Array.isArray(flight.position) || !Array.isArray(flight.velocity)) return false;
   const dimensions = ['docking', 'docked'].includes(value.phase) ? 3 : 2;
@@ -59,6 +66,7 @@ export function restoreCheckpointFlight(snapshot, validateConfig) {
   if (!validateCheckpoint(snapshot, validateConfig)) throw new Error('Invalid checkpoint.');
   if (snapshot.phase === 'assembly') return null;
   const raw = snapshot.flight;
+  if (raw.kind === 'landing') return restoreLandingState(raw);
   if (raw.kind === 'docking') {
     const flight = createDocking(snapshot.config, { position: raw.position, velocity: raw.velocity, orientation: raw.orientation, angularVelocity: raw.angularVelocity, fuel: raw.fuel });
     if (raw.fuel > flight.initialFuel) throw new Error('Invalid propellant reserve.');
@@ -78,8 +86,8 @@ export function restoreCheckpointFlight(snapshot, validateConfig) {
   return flight;
 }
 
-export function makeCheckpoint(config, phase, flight, log = []) {
-  return structuredClone({ version: SAVE_VERSION, savedAt: new Date().toISOString(), config, phase, flight, log: log.slice(-80) });
+export function makeCheckpoint(config, phase, flight, log = [], destination = flight?.destination ?? 'moon') {
+  return structuredClone({ version: SAVE_VERSION, savedAt: new Date().toISOString(), config, destination, phase, flight, log: log.slice(-80) });
 }
 
 export function readCheckpoint(storage, validateConfig) {

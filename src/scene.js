@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import { createCelestials, VISUAL_PROFILES } from './celestial.js';
+import { getDestination } from './destinations.js';
 
 // Presentation only. SI simulation stays in physics.js; camera and celestial
 // background use a local origin so GPU float precision never drives the flight.
@@ -301,6 +303,172 @@ function makeStation(materials) {
   return station;
 }
 
+function makeLander(materials) {
+  // Feet touch y=0. The local upright axis is +Y, matching landing.js.
+  const lander=new THREE.Group(),attitudeJets=[];
+  const foil=new THREE.MeshStandardMaterial({color:0xb69a60,metalness:.77,roughness:.44,flatShading:true});
+  const paleFoil=new THREE.MeshStandardMaterial({color:0xc5c3af,metalness:.69,roughness:.37,flatShading:true});
+  cylinder(lander,1.45,1.8,1.7,[0,2.12,0],foil,8);
+  cylinder(lander,1.57,1.57,.15,[0,3.04,0],materials.darkMetal,8);
+  for(let i=0;i<8;i++){
+    const a=i*TAU/8;
+    const panel=box(lander,[.89,1.31,.08],[Math.sin(a)*1.52,2.15,Math.cos(a)*1.52],i%3===0?paleFoil:foil);panel.rotation.y=a;
+    beam(lander,[Math.sin(a)*1.5,1.45,Math.cos(a)*1.5],[Math.sin(a)*1.4,2.91,Math.cos(a)*1.4],.035,materials.titanium);
+  }
+  const cabin=cylinder(lander,1.07,1.36,1.78,[0,3.98,0],materials.white,8);cabin.rotation.y=Math.PI/8;
+  cylinder(lander,.64,1.08,.45,[0,5.08,0],materials.thermal,8);
+  cylinder(lander,.43,.43,.12,[0,5.34,0],materials.darkMetal,24);
+  ring(lander,.47,.035,[0,5.41,0],materials.titanium);
+  for(const x of [-.53,.53]){
+    box(lander,[.62,.5,.08],[x,4.23,1.08],materials.darkMetal,[.17,0,0]);
+    box(lander,[.51,.39,.085],[x,4.25,1.13],materials.glass,[.17,0,0]);
+  }
+  box(lander,[.72,1.04,.13],[0,3.47,1.31],materials.titanium);
+  box(lander,[.56,.84,.08],[0,3.49,1.4],materials.thermal);
+  for(let i=0;i<9;i++)box(lander,[.67,.045,.09],[0,.35+i*.34,1.8],materials.titanium);
+  for(const x of [-.39,.39])beam(lander,[x,.2,1.8],[x,3.14,1.8],.035,materials.titanium);
+  for(let i=0;i<4;i++){
+    const a=Math.PI/4+i*Math.PI/2;
+    const foot=[Math.sin(a)*3.6,.13,Math.cos(a)*3.6];
+    beam(lander,[Math.sin(a)*1.3,2.77,Math.cos(a)*1.3],foot,.095,materials.titanium);
+    beam(lander,[Math.sin(a)*1.4,1.54,Math.cos(a)*1.4],[foot[0]*.9,.57,foot[2]*.9],.07,materials.darkMetal);
+    beam(lander,[Math.sin(a)*1.95,1.95,Math.cos(a)*1.95],[foot[0]*.88,.7,foot[2]*.88],.11,materials.copper);
+    cylinder(lander,.55,.62,.17,foot,materials.titanium,24);
+    const pod=new THREE.Group();pod.position.set(Math.sin(a)*1.39,4.55,Math.cos(a)*1.39);pod.rotation.y=a;lander.add(pod);
+    box(pod,[.32,.25,.31],[0,0,0],materials.darkMetal);
+    const jet=cylinder(pod,.05,.1,.2,[0,.18,0],materials.nozzle,12);jet.rotation.z=Math.PI/2;
+  }
+  for(const sign of [-1,1]){
+    const tank=new THREE.Mesh(new THREE.SphereGeometry(.43,24,16),paleFoil);tank.position.set(sign*1.4,3.38,0);lander.add(tank);
+    beam(lander,[sign*1.2,3.07,-.55],[sign*1.2,4.03,-.55],.035,materials.copper);
+  }
+  // Opposed pairs provide a visible torque without inventing translation.
+  // Positive simulation torque tilts clockwise: upper exhaust points -X,
+  // lower exhaust +X. Flames respond to the actual torque, including hold.
+  for(const torqueSign of [-1,1])for(const upper of [true,false]){
+    const outward=(upper?-1:1)*torqueSign;
+    const pod=new THREE.Group();pod.position.set(outward*1.62,upper?4.48:1.72,.68);lander.add(pod);
+    box(pod,[.23,.2,.22],[0,0,0],materials.darkMetal);
+    const nozzle=cylinder(pod,.045,.09,.17,[outward*.16,0,0],materials.nozzle,12);nozzle.rotation.z=-outward*Math.PI/2;
+    const flame=new THREE.Mesh(new THREE.ConeGeometry(.085,.66,12),materials.rcsFlame);
+    flame.rotation.z=outward*Math.PI/2;flame.position.x=outward*.52;flame.visible=false;pod.add(flame);
+    flame.userData.torqueSign=torqueSign;attitudeJets.push(flame);
+  }
+  makeNozzle(lander,.57,.75,[0,.47,0],materials);
+  const plume=new THREE.Mesh(new THREE.CylinderGeometry(.23,1.7,5.5,32,1,true),materials.exhaustVacuum);plume.position.y=-2.2;plume.visible=false;lander.add(plume);
+  const hot=new THREE.Mesh(new THREE.CylinderGeometry(.12,.4,1.9,24,1,true),materials.exhaustCore);hot.position.y=-.3;hot.visible=false;lander.add(hot);
+  const antenna=new THREE.Group();antenna.position.set(-.8,5.08,-.5);lander.add(antenna);
+  beam(antenna,[0,0,0],[0,1.1,0],.025,materials.titanium);
+  const dish=new THREE.Mesh(new THREE.SphereGeometry(.43,24,12,0,TAU,0,.55),materials.white);dish.rotation.set(.9,0,.3);dish.position.y=1.14;antenna.add(dish);
+  box(lander,[1.3,.055,.83],[1.9,4.8,-.3],materials.solar,[0,0,-.18]);
+  beam(lander,[1,4.7,-.3],[2.5,4.7,-.3],.025,materials.titanium);
+  lander.userData={plume,hot,foil,paleFoil,attitudeJets};
+  return lander;
+}
+
+function makeSurface(destination,materials) {
+  const profile=VISUAL_PROFILES[destination.id]||VISUAL_PROFILES.moon;
+  const ice=profile.kind.includes('ice'),titan=destination.id==='titan';
+  const group=new THREE.Group();
+  let seed=destination.id.split('').reduce((n,c)=>n+c.charCodeAt(0),131);
+  const rand=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;};
+  const surfaceMap=canvasTexture((ctx,w,h)=>{
+    // Canvas pixel channels are sRGB, whereas THREE.Color stores linear RGB.
+    const image=ctx.createImageData(w,h),base=new THREE.Color(profile.color).convertLinearToSRGB();
+    for(let i=0;i<image.data.length;i+=4){
+      const noise=(rand()-.5)*27;
+      image.data[i]=clamp(base.r*255+noise,0,255);image.data[i+1]=clamp(base.g*255+noise,0,255);image.data[i+2]=clamp(base.b*255+noise,0,255);image.data[i+3]=255;
+    }
+    ctx.putImageData(image,0,0);
+    if(ice){
+      for(let i=0;i<65;i++){
+        const x=rand()*w,y=rand()*h;ctx.beginPath();ctx.moveTo(x,y);
+        for(let n=1;n<7;n++)ctx.lineTo(x+(n/6-.1)*w*.7,y+Math.sin(n*.7+i)*h*.08+rand()*18);
+        ctx.strokeStyle=destination.id==='europa'?'rgba(94,80,68,.44)':'rgba(62,77,80,.31)';ctx.lineWidth=1+rand()*4;ctx.stroke();
+      }
+    }else{
+      for(let i=0;i<100;i++){
+        const x=rand()*w,y=rand()*h,r=2+rand()*25;
+        ctx.beginPath();ctx.arc(x,y,r,0,TAU);ctx.strokeStyle='rgba(16,17,18,.12)';ctx.lineWidth=1;ctx.stroke();
+      }
+    }
+  },1024,1024);
+  surfaceMap.wrapS=surfaceMap.wrapT=THREE.RepeatWrapping;surfaceMap.repeat.set(140,140);
+  const groundMaterial=new THREE.MeshStandardMaterial({map:surfaceMap,color:0xffffff,roughness:ice?.88:1,metalness:0,envMapIntensity:0});
+  const geometry=new THREE.PlaneGeometry(12000,12000,144,144);geometry.rotateX(-Math.PI/2);
+  const vertices=geometry.attributes.position;
+  for(let i=0;i<vertices.count;i++){
+    const x=vertices.getX(i),z=vertices.getZ(i),r=Math.hypot(x,z);
+    const fade=clamp((r-600)/1200,0,1);
+    let h=Math.sin(x*.0031)*Math.cos(z*.0027)*42+Math.sin(x*.0012+z*.0018)*80+Math.sin(x*.0073-z*.0039)*13;
+    if(ice)h*=.4;if(titan)h*=.65;
+    vertices.setY(i,h*fade-.035);
+  }
+  geometry.computeVertexNormals();
+  const ground=new THREE.Mesh(geometry,groundMaterial);ground.receiveShadow=true;group.add(ground);
+  const rockGeometry=new THREE.DodecahedronGeometry(1,0),rockMaterial=new THREE.MeshStandardMaterial({color:profile.color,roughness:.97,metalness:0,envMapIntensity:0});
+  const rocks=new THREE.InstancedMesh(rockGeometry,rockMaterial,190),dummy=new THREE.Object3D();
+  for(let i=0;i<190;i++){
+    const a=rand()*TAU,r=34+rand()*410,size=.18+rand()**3*2.1;
+    dummy.position.set(Math.cos(a)*r,size*.32,Math.sin(a)*r);dummy.rotation.set(rand(),rand()*TAU,rand());dummy.scale.set(size*(1+rand()),size*.55,size);dummy.updateMatrix();rocks.setMatrixAt(i,dummy.matrix);
+  }
+  rocks.castShadow=true;rocks.receiveShadow=true;group.add(rocks);
+  // Survey beacons mark a real-scale 25 m zone on unpaved terrain. These are
+  // fictional training equipment, not a claim of existing lunar infrastructure.
+  const beacons=[];
+  for(let i=0;i<8;i++){
+    const a=i*TAU/8,x=Math.cos(a)*25,z=Math.sin(a)*25;
+    cylinder(group,.08,.13,.75,[x,.37,z],materials.darkMetal,12);
+    const light=new THREE.Mesh(new THREE.SphereGeometry(.15,12,8),new THREE.MeshBasicMaterial({color:0xc6d6bf}));light.position.set(x,.83,z);group.add(light);beacons.push(light);
+  }
+  group.userData={surfaceMap,groundMaterial,rockMaterial,beacons,kind:profile.kind};
+  return group;
+}
+
+function makeMissionEffects(materials,reducedMotion) {
+  const group=new THREE.Group(),count=reducedMotion?28:120;
+  const positions=new Float32Array(count*3),colors=new Float32Array(count*3),particleGeometry=new THREE.BufferGeometry();
+  particleGeometry.setAttribute('position',new THREE.BufferAttribute(positions,3));particleGeometry.setAttribute('color',new THREE.BufferAttribute(colors,3));
+  const dustMaterial=new THREE.PointsMaterial({size:.23,vertexColors:true,transparent:true,opacity:0,depthWrite:false,sizeAttenuation:true});
+  const dust=new THREE.Points(particleGeometry,dustMaterial);group.add(dust);
+  const bits=[];
+  for(let i=0;i<(reducedMotion?5:16);i++){
+    const fragment=new THREE.Mesh(new THREE.BoxGeometry(.3+i%3*.17,.1,.38),i%3===0?materials.copper:materials.titanium);fragment.visible=false;fragment.castShadow=true;group.add(fragment);bits.push(fragment);
+  }
+  const flash=new THREE.Mesh(new THREE.SphereGeometry(1,24,16),new THREE.MeshBasicMaterial({color:0xffdaa1,transparent:true,opacity:0,depthWrite:false}));group.add(flash);
+  let event=null,age=100;
+  const velocity=[];
+  function trigger(type,origin,color,gravity=1.62){
+    event={type,origin:origin.clone(),color:new THREE.Color(color),gravity};age=0;flash.position.copy(origin);
+    for(let i=0;i<count;i++){
+      const a=i*2.399963,radial=(type==='impact'?3.5:1.3)+(i%13)*.35;
+      velocity[i]=new THREE.Vector3(Math.cos(a)*radial,(type==='impact'?2.8:1)+(i%7)*.25,Math.sin(a)*radial);
+      colors.set(event.color.toArray(),i*3);
+    }
+    particleGeometry.attributes.color.needsUpdate=true;
+    bits.forEach((bit,i)=>{bit.visible=type==='impact';bit.position.copy(origin);bit.rotation.set(i*.3,i*.6,i*.2);bit.userData.velocity=new THREE.Vector3(Math.cos(i*2.4)*(3+i%3),2+i%5,Math.sin(i*2.4)*(3+i%4));});
+  }
+  function update(dt){
+    if(!event)return;age+=dt;
+    for(let i=0;i<count;i++){
+      const v=velocity[i];const p=event.origin.clone().addScaledVector(v,age);p.y-=.5*event.gravity*age*age;
+      if(event.type==='touchdown'||event.type==='impact')p.y=Math.max(.05,p.y);
+      positions.set(p.toArray(),i*3);
+    }
+    particleGeometry.attributes.position.needsUpdate=true;
+    dustMaterial.opacity=Math.max(0,(event.type==='impact'?.72:.38)*(1-age/5));
+    bits.forEach((bit,i)=>{
+      if(!bit.visible)return;bit.position.copy(event.origin).addScaledVector(bit.userData.velocity,age);bit.position.y=Math.max(.08,bit.position.y-.5*event.gravity*age*age);
+      if(!reducedMotion)bit.rotation.set(i*.3+age*(.8+i*.03),i*.6+age*.3,i*.2+age*.6);
+      bit.visible=age<6;
+    });
+    const impact=event.type==='impact';flash.material.opacity=impact?Math.max(0,(reducedMotion?.12:.46)*(1-age/.55)):0;flash.scale.setScalar(.2+age*(reducedMotion?4:11));
+    if(age>6){event=null;dustMaterial.opacity=0;flash.material.opacity=0;}
+  }
+  function clear(){event=null;age=100;dustMaterial.opacity=0;flash.material.opacity=0;bits.forEach(bit=>bit.visible=false);}
+  return {group,trigger,update,clear,getAge:()=>age};
+}
+
 function disposeGeometries(root) {
   const geometries=new Set();root.traverse(object=>{if(object.geometry)geometries.add(object.geometry);});
   geometries.forEach(geometry=>geometry.dispose());
@@ -354,7 +522,7 @@ export function createScene(canvas, options = {}) {
   const environment=new THREE.CubeTexture(envFaces);environment.colorSpace=THREE.SRGBColorSpace;environment.needsUpdate=true;scene.environment=environment;
   const hemi=new THREE.HemisphereLight(0xc9dbea,0x222a2a,1.65);scene.add(hemi);
   const key=new THREE.DirectionalLight(0xffead5,3.3);key.position.set(35,65,45);key.castShadow=true;
-  key.shadow.mapSize.set(2048,2048);key.shadow.camera.left=-48;key.shadow.camera.right=48;key.shadow.camera.top=64;key.shadow.camera.bottom=-22;key.shadow.camera.near=1;key.shadow.camera.far=160;key.shadow.normalBias=.04;scene.add(key);
+  key.shadow.mapSize.set(2048,2048);key.shadow.camera.left=-48;key.shadow.camera.right=48;key.shadow.camera.top=64;key.shadow.camera.bottom=-22;key.shadow.camera.near=1;key.shadow.camera.far=160;key.shadow.normalBias=.04;scene.add(key);scene.add(key.target);
   const fill=new THREE.DirectionalLight(0xa4c8e0,1.7);fill.position.set(-30,25,-20);scene.add(fill);
   const rim=new THREE.DirectionalLight(0xf2f3e7,1.5);rim.position.set(15,25,-45);scene.add(rim);
   const engineLight=new THREE.PointLight(0xff8c45,0,65,2);engineLight.position.set(0,3,0);scene.add(engineLight);
@@ -378,10 +546,17 @@ export function createScene(canvas, options = {}) {
   const docking=new THREE.Group();scene.add(docking);docking.visible=false;
   const station=makeStation(materials);docking.add(station);
   let dockingCraft=makeSpacecraft(materials,vehicle);dockingCraft.rotation.x=-Math.PI/2;const craftAttitude=new THREE.Group();craftAttitude.add(dockingCraft);docking.add(craftAttitude);
-  const earth=new THREE.Mesh(new THREE.SphereGeometry(1900,64,48),new THREE.MeshStandardMaterial({map:textures.earthFallback,color:0xa9c7dd,roughness:.9,metalness:0,emissive:0x0b1b26,emissiveIntensity:.25}));earth.position.set(-650,-1760,-1700);earth.rotation.set(.2,2.6,-.3);earth.visible=false;scene.add(earth);
-  const earthAtmosphere=new THREE.Mesh(new THREE.SphereGeometry(1913,48,32),new THREE.MeshBasicMaterial({color:0x75b9e6,transparent:true,opacity:.13,side:THREE.BackSide,depthWrite:false}));earthAtmosphere.position.copy(earth.position);earthAtmosphere.visible=false;scene.add(earthAtmosphere);
-  const loader=new THREE.TextureLoader();
-  loader.load(new URL('assets/earth-blue-marble.jpg',document.baseURI).href,texture=>{texture.colorSpace=THREE.SRGBColorSpace;texture.anisotropy=Math.min(renderer.capabilities.getMaxAnisotropy(),8);earth.material.map=texture;earth.material.needsUpdate=true;textures.earth=texture;},undefined,()=>{options.onAssetWarning?.('Earth texture unavailable; using schematic fallback.');});
+  const reducedMotion=options.reducedMotion??window.matchMedia?.('(prefers-reduced-motion: reduce)').matches??false;
+  const celestials=createCelestials(renderer,options),earth=celestials.earth,earthAtmosphere=celestials.earthAtmosphere;
+  earth.position.set(-650,-1760,-1700);earth.rotation.set(.2,2.6,-.3);earth.visible=false;scene.add(earth);
+  const destinationPreview=celestials.preview;destinationPreview.visible=false;scene.add(destinationPreview);
+  let selectedDestination='moon';
+  const landing=new THREE.Group();landing.visible=false;scene.add(landing);
+  let surface=makeSurface(getDestination('moon'),materials);landing.add(surface);
+  const lander=makeLander(materials);landing.add(lander);
+  const landingParent=celestials.parentContext.clone(true);landingParent.visible=false;scene.add(landingParent);
+  const effects=makeMissionEffects(materials,reducedMotion);scene.add(effects.group);
+  const captureGlow=new THREE.Mesh(new THREE.TorusGeometry(1.47,.026,8,72),new THREE.MeshBasicMaterial({color:0xadd8ba,transparent:true,opacity:0,depthWrite:false}));captureGlow.position.z=.08;station.add(captureGlow);
   const starPositions=[];let seed=43921;
   const random=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;};
   for(let i=0;i<1600;i++) {
@@ -390,12 +565,17 @@ export function createScene(canvas, options = {}) {
   }
   const starsGeo=new THREE.BufferGeometry();starsGeo.setAttribute('position',new THREE.Float32BufferAttribute(starPositions,3));
   const stars=new THREE.Points(starsGeo,new THREE.PointsMaterial({color:0xc4d3df,size:2.1,sizeAttenuation:true,transparent:true,opacity:.75,depthWrite:false}));scene.add(stars);stars.visible=false;
-  let mode='assembly',previousStage=0,disposed=false,elapsed=0,dragging=false,dragX=0,rotation=.18,zoom=1;
+  let mode='assembly',previousStage=0,previousPhase=null,previousMissionTime=null,phaseAt=0,destructiveFailure=false,disposed=false,elapsed=0,dragging=false,dragX=0,rotation=.18,zoom=1;
   const look=new THREE.Vector3(0,26,0),desiredLook=new THREE.Vector3(),desiredCamera=new THREE.Vector3();
   const cameraPoint=new THREE.Vector3(),targetProjection=new THREE.Vector3();
   const debris=[];
   camera.position.set(72,40,94);camera.lookAt(look);
 
+  function resetOutcomeVisuals(){
+    effects.clear();destructiveFailure=false;captureGlow.material.opacity=0;
+    materials.portLight.color.set(0xc9e7de);
+    surface.userData.beacons.forEach(beacon=>beacon.material.color.set(0xc6d6bf));
+  }
   function clearDebris(){for(const d of debris)scene.remove(d.object);debris.length=0;}
   function separateVisual(stage,time){
     const source=stage===0?rocket.userData.core:rocket.userData.upper;
@@ -404,15 +584,31 @@ export function createScene(canvas, options = {}) {
     debris.push({object,start:time,base:object.position.clone(),rotation:object.quaternion.clone()});
   }
   function setMode(next){
-    if(!['assembly','launch','docking'].includes(next)||next===mode)return;
-    mode=next;clearDebris();previousStage=0;
-    assembly.visible=mode==='assembly';launchEnvironment.visible=mode==='launch';rocketRoot.visible=mode!=='docking';docking.visible=mode==='docking';
-    earth.visible=earthAtmosphere.visible=stars.visible=mode==='docking';
+    if(!['assembly','launch','docking','destination','landing'].includes(next)||next===mode)return;
+    mode=next;clearDebris();resetOutcomeVisuals();previousStage=0;previousPhase=null;previousMissionTime=null;
+    assembly.visible=mode==='assembly';launchEnvironment.visible=mode==='launch';rocketRoot.visible=mode==='assembly'||mode==='launch';docking.visible=mode==='docking';
+    destinationPreview.visible=mode==='destination';landing.visible=mode==='landing';landingParent.visible=mode==='landing'&&selectedDestination!=='titan';
+    earth.visible=earthAtmosphere.visible=mode==='docking';stars.visible=['docking','destination','landing'].includes(mode);
     camera.up.set(0,1,0);
     if(mode==='assembly'){rocketRoot.rotation.set(0,rotation,0);rocketRoot.position.set(0,0,0);camera.position.set(72*zoom,40,94*zoom);look.set(0,rocket.userData.height*.48,0);}
     if(mode==='launch'){rocketRoot.rotation.set(0,0,0);rocketRoot.position.set(0,0,0);camera.position.set(92,36,118);look.set(0,27,0);}
     if(mode==='docking'){camera.position.set(13,7,102);look.set(0,0,35);}
+    if(mode==='destination'){camera.position.set(0,7,69);look.set(0,0,0);}
+    if(mode==='landing'){camera.position.set(28,28,52);look.set(0,6,0);}
     camera.lookAt(look);
+  }
+  function setDestination(next='moon'){
+    const id=typeof next==='string'?next:next?.id;
+    if(!getDestination(id)||id===selectedDestination)return false;
+    selectedDestination=id;celestials.setDestination(id);
+    landing.remove(surface);disposeGeometries(surface);
+    surface.userData.surfaceMap.dispose();surface.userData.groundMaterial.dispose();surface.userData.rockMaterial.dispose();
+    surface.userData.beacons.forEach(beacon=>beacon.material.dispose());
+    surface=makeSurface(getDestination(id),materials);landing.add(surface);
+    landingParent.scale.copy(celestials.parentContext.scale);landingParent.rotation.copy(celestials.parentContext.rotation);
+    landingParent.children.forEach((child,i)=>{child.visible=celestials.parentContext.children[i]?.visible??true;});
+    resetOutcomeVisuals();previousPhase=null;
+    return true;
   }
   function setVehicle(next={}){
     vehicle=next;clearDebris();rocketRoot.remove(rocket);disposeGeometries(rocket);rocket=makeRocket(materials,vehicle);rocketRoot.add(rocket);
@@ -421,11 +617,38 @@ export function createScene(canvas, options = {}) {
   }
   function update(view={},dt=1/60){
     if(disposed)return;
+    if(view.destination)setDestination(view.destination);
     if(view.mode)setMode(view.mode);
     const frameDt=clamp(Number.isFinite(dt)?dt:1/60,0,.1);elapsed+=frameDt;
     const t=Number.isFinite(view.time)?view.time:elapsed;
     const smooth=1-Math.exp(-frameDt*5.2);
     engineLight.intensity=0;
+    key.position.set(35,65,45);key.color.set(0xffead5);key.target.position.set(0,0,0);camera.up.set(0,1,0);
+    // stage() sends a partial rendering update without a phase or mission
+    // clock. It must not look like a new mission or advance rewind tracking.
+    const phase=view.phase||previousPhase||mode;
+    const missionTime=Number.isFinite(view.time)?view.time:null;
+    const rewound=missionTime!==null&&previousMissionTime!==null&&missionTime<previousMissionTime-1e-7;
+    const restarted=['failed','docked','landed','orbit'].includes(previousPhase)&&['launch','docking','landing'].includes(phase);
+    if(rewound||restarted){
+      resetOutcomeVisuals();clearDebris();phaseAt=elapsed;
+      previousStage=Number.isFinite(view.stageIndex)?clamp(Math.floor(view.stageIndex),0,2):0;
+    }
+    if(missionTime!==null)previousMissionTime=missionTime;
+    if(phase!==previousPhase){
+      previousPhase=phase;phaseAt=elapsed;
+      if(phase==='docked')materials.portLight.color.set(0xa5d4b4);
+      if(phase==='landed'){const pos=view.position||[0,0];effects.trigger('touchdown',new THREE.Vector3(pos[0],.1,0),VISUAL_PROFILES[selectedDestination].color,getDestination(selectedDestination).gravity);}
+      if(phase==='failed'){
+        if(mode==='landing'){
+          const pos=view.position||[0,0],speed=view.impact?.speed??view.maxImpact??0;
+          if(pos[1]<2&&speed>3){destructiveFailure=true;effects.trigger('impact',new THREE.Vector3(pos[0],1.3,0),VISUAL_PROFILES[selectedDestination].color,getDestination(selectedDestination).gravity);}
+          else if(pos[1]<2)effects.trigger('touchdown',new THREE.Vector3(pos[0],.1,0),VISUAL_PROFILES[selectedDestination].color,getDestination(selectedDestination).gravity);
+        }else if(mode==='docking'&&(view.position?.[2]??100)<5){destructiveFailure=true;effects.trigger('impact',new THREE.Vector3(...(view.position||[0,0,0])),0x9faeb1,0);}
+        else if(mode==='launch'){destructiveFailure=true;effects.trigger('impact',new THREE.Vector3(0,rocket.userData.height*.45,0),0xb3a999,(view.altitude||0)<100?9.81:0);}
+      }
+    }
+    celestials.update(elapsed,rotation,reducedMotion);
     if(mode==='assembly'){
       scene.background=new THREE.Color(0x1a2229);scene.fog=new THREE.Fog(0x1a2229,115,260);
       rocket.userData.core.visible=rocket.userData.upper.visible=true;rocket.userData.engines.forEach(e=>e.visible=false);rocket.userData.upperPlume.visible=false;
@@ -444,7 +667,7 @@ export function createScene(canvas, options = {}) {
       scene.fog=space<.65?new THREE.Fog(scene.background,140+altitude*.015,800+altitude*.035):null;
       stars.visible=space>.65;stars.material.opacity=clamp((space-.65)*2,.0,.75);
       earth.visible=earthAtmosphere.visible=altitude>14000;
-      earth.position.set(-650,-1915+space*195,-1750);earthAtmosphere.position.copy(earth.position);
+      earth.position.set(-650,-1915+space*195,-1750);
       launchEnvironment.position.y=-Math.min(altitude,7000);launchEnvironment.visible=altitude<5500;
       // Rocket positions are local to its active stage. This frame follows the
       // vehicle, while the actual altitude is represented by atmosphere/ground.
@@ -457,10 +680,11 @@ export function createScene(canvas, options = {}) {
       camera.position.lerp(desiredCamera,smooth*.45);look.lerp(desiredLook,smooth*.6);camera.lookAt(look);
       hemi.intensity=mix(1.7,.58,space);key.intensity=mix(3.7,4.6,space);fill.intensity=mix(.9,.3,space);rim.intensity=1;scene.environmentIntensity=mix(.8,.35,space);
       for(const d of debris){const age=Math.max(0,t-d.start);d.object.position.copy(d.base).add(new THREE.Vector3(age*.8,-age*3-age*age*.75,0));d.object.rotateZ(frameDt*.26);d.object.visible=age<45;}
-    }else{
+      rocketRoot.visible=phase!=='failed'||elapsed-phaseAt<.28;
+    }else if(mode==='docking'){
       scene.background=new THREE.Color(0x03080d);scene.fog=null;
-      earth.visible=earthAtmosphere.visible=stars.visible=true;earth.position.set(-650,-1760,-1700);earthAtmosphere.position.copy(earth.position);earth.rotation.y=2.6+t*.0000729;
-      hemi.intensity=.68;key.intensity=4.6;fill.intensity=.5;rim.intensity=.8;scene.environmentIntensity=.35;
+      earth.visible=earthAtmosphere.visible=stars.visible=true;earth.position.set(-650,-1760,-1700);earth.rotation.y=2.6+t*.0000729;
+      hemi.intensity=.23;key.color.set(0xfffaf2);key.intensity=4.6;fill.intensity=.15;rim.intensity=.5;scene.environmentIntensity=.35;
       const position=Array.isArray(view.position)?view.position:[0,0,80];
       craftAttitude.position.set(Number(position[0])||0,Number(position[1])||0,Number(position[2])||0);
       const orientation=view.quaternion||view.orientation;
@@ -468,7 +692,7 @@ export function createScene(canvas, options = {}) {
       const firing=view.firing||[0,0,0];const firingLevel=Math.abs(firing[0]||0)+Math.abs(firing[1]||0)+Math.abs(firing[2]||0);
       dockingCraft.userData.jets.forEach((jet,i)=>{jet.visible=firingLevel>.01&&i%3===Math.floor(elapsed*16)%3;});
       const cockpit=['port','cockpit','docking'].includes(view.cameraMode);
-      dockingCraft.visible=!cockpit;
+      dockingCraft.visible=!cockpit&&(!destructiveFailure||elapsed-phaseAt<.28);
       if(cockpit){
         cameraPoint.set(0,.1,-.2).applyQuaternion(craftAttitude.quaternion).add(craftAttitude.position);camera.position.copy(cameraPoint);
         desiredLook.set(0,0,-1).applyQuaternion(craftAttitude.quaternion).add(camera.position);camera.up.set(0,1,0).applyQuaternion(craftAttitude.quaternion);camera.lookAt(desiredLook);
@@ -479,7 +703,52 @@ export function createScene(canvas, options = {}) {
         desiredLook.copy(craftAttitude.position).multiplyScalar(clamp(range/160,.0,.6));desiredLook.z-=2;
         camera.position.lerp(desiredCamera,smooth);look.lerp(desiredLook,smooth);camera.lookAt(look);
       }
+      const captured=phase==='docked';captureGlow.material.opacity=captured?.36+.14*Math.exp(-(elapsed-phaseAt))*Math.sin((elapsed-phaseAt)*7):0;
+      if(!captured)materials.portLight.color.set(0xc9e7de);
+    }else if(mode==='destination'){
+      scene.background=new THREE.Color(0x020509);scene.fog=null;stars.visible=true;stars.material.opacity=.65;
+      hemi.intensity=.035;key.position.set(-60,25,45);key.color.set(0xfffaf2);key.intensity=4.3;fill.intensity=.015;rim.intensity=0;scene.environmentIntensity=0;
+      camera.position.set(0,5,69*clamp(zoom,.78,1.3));look.set(0,0,0);camera.lookAt(look);
+    }else if(mode==='landing'){
+      const destination=getDestination(selectedDestination),titan=selectedDestination==='titan',ice=VISUAL_PROFILES[selectedDestination].kind.includes('ice');
+      const position=view.position||[0,800],x=Number(position[0])||0,height=Math.max(0,Number(position[1])||0),angle=Number(view.angle)||0;
+      const throttle=phase==='landing'?clamp(Number(view.throttle)||0,0,1):0;
+      scene.background=new THREE.Color(titan?0x44382a:0x020407);scene.fog=titan?new THREE.FogExp2(0x8d7454,.0018):null;
+      stars.visible=!titan;stars.material.opacity=.62;
+      key.target.position.set(x,height+2,0);key.position.copy(key.target.position).add(new THREE.Vector3(-65,100,75));key.color.set(ice?0xf5f8ff:0xfff8ec);key.intensity=titan?1.55:4.1;
+      hemi.intensity=titan?.75:.09;fill.intensity=titan?.18:.045;rim.intensity=.15;scene.environmentIntensity=.12;
+      lander.position.set(x,height,0);lander.rotation.z=-angle;lander.visible=true;
+      lander.userData.plume.visible=lander.userData.hot.visible=throttle>.015;
+      lander.userData.plume.scale.set(.5+throttle*.65,.35+throttle*.8,.5+throttle*.65);
+      lander.userData.hot.scale.setScalar(.45+throttle*.55);
+      const torque=Number(view.torque)||0;
+      lander.userData.attitudeJets.forEach(jet=>{
+        jet.visible=phase==='landing'&&!view.paused&&Math.abs(torque)>5&&Math.sign(torque)===jet.userData.torqueSign;
+        jet.scale.setScalar(.4+.6*clamp(Math.abs(torque)/900,0,1));
+      });
+      engineLight.position.copy(lander.position).add(new THREE.Vector3(0,1.4,0));engineLight.intensity=throttle*(titan?12:5);
+      const terminal=1-THREE.MathUtils.smoothstep(height,70,200);
+      const descentCamera=['cockpit','port','docking'].includes(view.cameraMode)&&phase==='landing';
+      if(descentCamera){
+        lander.visible=false;camera.position.set(x,Math.max(8,height+3),.08);camera.up.set(0,0,-1);camera.lookAt(new THREE.Vector3(0,0,0));
+      }else{
+        desiredCamera.set(x+mix(18,Math.max(15,height*.12),terminal),height+mix(11,Math.max(11,height*.25),terminal),mix(32,Math.max(30,height*1.6+30),terminal));
+        desiredLook.set(mix(x,x*.5,terminal),mix(height+2,Math.max(3,height*.52),terminal),0);
+        if(Math.abs(camera.position.y-height)>200){camera.position.copy(desiredCamera);look.copy(desiredLook);}
+        camera.position.lerp(desiredCamera,smooth);look.lerp(desiredLook,smooth);camera.lookAt(look);
+      }
+      // Context is composed in camera space, rather than pretending to be an
+      // ephemeris. Keep the complete silhouette inside the upper-left view.
+      landingParent.visible=!titan;landingParent.position.copy(camera.position).add(new THREE.Vector3(-2500,1600,-11000).applyQuaternion(camera.quaternion));
+      const parentScale=clamp(VISUAL_PROFILES[selectedDestination].parentSize*35,100,VISUAL_PROFILES[selectedDestination].parent==='saturn'?310:650);
+      landingParent.scale.setScalar(parentScale);
+      if(phase==='landed')surface.userData.beacons.forEach(beacon=>beacon.material.color.set(0x9dcba9));
+      else if(phase==='failed')surface.userData.beacons.forEach(beacon=>beacon.material.color.set(0xd0a17d));
+      else surface.userData.beacons.forEach(beacon=>beacon.material.color.set(0xc6d6bf));
+      if(phase==='failed'&&view.impact?.speed>3){lander.rotation.z=-angle+Math.min(1.1,(elapsed-phaseAt)*.45);lander.position.y=Math.max(.1,height-(elapsed-phaseAt)*.4);}
     }
+    celestials.setSunDirection(new THREE.Vector3().subVectors(key.position,key.target.position));
+    effects.update(frameDt);
     renderer.render(scene,camera);
     targetProjection.set(0,0,0).project(camera);
     return {targetX:(targetProjection.x+1)/2,targetY:(1-targetProjection.y)/2,targetVisible:Math.abs(targetProjection.x)<=1&&Math.abs(targetProjection.y)<=1&&targetProjection.z>=-1&&targetProjection.z<=1};
@@ -490,17 +759,17 @@ export function createScene(canvas, options = {}) {
     const height=Math.max(1,canvas.clientHeight||canvas.parentElement?.clientHeight||640);
     renderer.setSize(width,height,false);camera.aspect=width/height;camera.updateProjectionMatrix();
   }
-  function onPointerDown(event){if(mode!=='assembly')return;dragging=true;dragX=event.clientX;canvas.setPointerCapture?.(event.pointerId);}
-  function onPointerMove(event){if(!dragging||mode!=='assembly')return;rotation+=(event.clientX-dragX)*.007;dragX=event.clientX;}
+  function onPointerDown(event){if(!['assembly','destination'].includes(mode))return;dragging=true;dragX=event.clientX;canvas.setPointerCapture?.(event.pointerId);}
+  function onPointerMove(event){if(!dragging||!['assembly','destination'].includes(mode))return;rotation+=(event.clientX-dragX)*.007;dragX=event.clientX;}
   function onPointerUp(){dragging=false;}
-  function onWheel(event){if(mode!=='assembly')return;event.preventDefault();zoom=clamp(zoom+event.deltaY*.0006,.72,1.45);}
+  function onWheel(event){if(!['assembly','destination'].includes(mode))return;event.preventDefault();zoom=clamp(zoom+event.deltaY*.0006,.72,1.45);}
   canvas.addEventListener('pointerdown',onPointerDown);canvas.addEventListener('pointermove',onPointerMove);canvas.addEventListener('pointerup',onPointerUp);canvas.addEventListener('pointercancel',onPointerUp);canvas.addEventListener('wheel',onWheel,{passive:false});
   const observer=typeof ResizeObserver!=='undefined'?new ResizeObserver(resize):null;observer?.observe(canvas);
   resize();update({mode:'assembly'},1/60);
   function dispose(){
     if(disposed)return;disposed=true;observer?.disconnect();clearDebris();
     canvas.removeEventListener('pointerdown',onPointerDown);canvas.removeEventListener('pointermove',onPointerMove);canvas.removeEventListener('pointerup',onPointerUp);canvas.removeEventListener('pointercancel',onPointerUp);canvas.removeEventListener('wheel',onWheel);
-    disposeGeometries(scene);const allMaterials=new Set();scene.traverse(o=>{if(o.material){(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>allMaterials.add(m));}});allMaterials.forEach(m=>m.dispose());Object.values(textures).forEach(t=>t.dispose());environment.dispose();renderer.dispose();
+    disposeGeometries(scene);const allMaterials=new Set();scene.traverse(o=>{if(o.material){(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>allMaterials.add(m));}});allMaterials.forEach(m=>m.dispose());Object.values(textures).forEach(t=>t.dispose());surface.userData.surfaceMap.dispose();celestials.dispose();environment.dispose();renderer.dispose();
   }
-  return {setMode,setVehicle,update,resize,dispose,renderer,scene,camera};
+  return {setMode,setVehicle,setDestination,update,resize,dispose,renderer,scene,camera};
 }

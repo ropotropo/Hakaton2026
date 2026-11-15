@@ -118,3 +118,9 @@ Checked November 14, 2026.
 - [NASA NTRS report 20090013858](https://ntrs.nasa.gov/api/citations/20090013858/downloads/20090013858.pdf) — near-circular, short-range Hill/Clohessy–Wiltshire assumptions.
 
 The sources inform the numerical model. This game has no live NASA telemetry, real mission authority or NASA endorsement.
+
+## v0.2 surface descent
+
+The new terminal exercises use a separate 2D lander in SI units. See [DESTINATIONS.md](DESTINATIONS.md) for sourced physical parameters, environment approximations and contact rules. The exercises are not connected by a continuous transfer to the Earth launch. A selected moon does not silently change the assembled rocket's performance.
+
+Checkpoint schema v1 remains backward compatible with launch/docking saves. Destination is additive; landing states receive their own strict validation. Restore reconstructs gravitational, lander, thrust-mode and contact constants from the trusted catalog, then copies only validated motion and resource state. Engine and held inputs are released on restoration.
