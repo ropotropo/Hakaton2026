@@ -1,4 +1,4 @@
-# Kineti Core design language
+# Kinetic Core design language
 
 ## Optical bench
 
@@ -8,7 +8,7 @@ precise control. This direction follows Andrii's brief for Apple-like clarity
 combined with aerospace technology and restrained science fiction. It is a
 working direction for Mykyta's game, not a claim of final author approval.
 
-Kineti Core has its own identity. Do not import Malibu Wired's brass, TRD's
+Kinetic Core has its own identity. Do not import Malibu Wired's brass, TRD's
 dashboard components, a generic neon cockpit, or a marketing-site hero.
 
 ## Palette
@@ -47,7 +47,7 @@ are no decorative grids, scan lines or repeated glowing borders.
 ## Composition
 
 ```
-Kineti Core / original game by Mykyta                   Guide / pause
+Kinetic Core / original game by Mykyta                   Guide / pause
 Assembly                 Ascent                 Docking / landing
 Destination        Sunlit vehicle or world        SI instruments
 Module sequence    Real maneuver / real contact    Readiness / fuel
