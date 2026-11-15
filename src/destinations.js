@@ -4,6 +4,8 @@ export const DESTINATION_SOURCE = 'https://ssd.jpl.nasa.gov/sats/phys_par/sep.ht
 export const DESTINATIONS_CHECKED_ON = '2026-11-15';
 
 const facts = [
+  { id:'mercury', name:'Mercury', parent:'Mercury', radiusKm:2439.4, muKm:22031.86855, atmosphere:'No useful atmosphere; powered descent required', surface:'Illustrative cratered rock and dust', hazard:'No aerodynamic braking; thermal survival is not simulated', sampleMethod:'Proposed: rock and regolith sampling', color:'#91867b', factSource:'https://science.nasa.gov/mercury/facts/' },
+  { id:'mars', name:'Mars', parent:'Mars', radiusKm:3389.5, muKm:42828.375214, atmosphere:'Simplified thin near-surface atmosphere; no entry or parachute simulation', surface:'Illustrative basaltic rock and rust-colored dust', hazard:'Higher gravity than the Moon; limited thrust margin', sampleMethod:'Proposed: sealed regolith and rock core', color:'#ae7051', factSource:'https://science.nasa.gov/mars/facts/' },
   { id: 'moon', name: 'Moon', parent: 'Earth', radiusKm: 1737.4, muKm: 4902.800,
     atmosphere: 'Extremely tenuous exosphere; no useful aerodynamic braking', surface: 'Rock, regolith and impact craters', hazard: 'Vacuum, abrasive dust and large temperature contrasts', sampleMethod: 'Proposed: scoop regolith and collect a shallow rock core', color: '#a9adb1', factSource: 'https://science.nasa.gov/moon/facts/' },
   { id: 'phobos', name: 'Phobos', parent: 'Mars', radiusKm: 11.08, muKm: 0.0007087,
@@ -32,7 +34,7 @@ const facts = [
 
 export const DESTINATIONS = Object.freeze(facts.map(({ radiusKm, muKm, ...item }) => {
   const radius = radiusKm * 1000, mu = muKm * 1e9;
-  return Object.freeze({ ...item, radius, mu, gravity: mu / radius ** 2, source: DESTINATION_SOURCE, playable: true });
+  return Object.freeze({ ...item, radius, mu, gravity: mu / radius ** 2, source: ['mars','mercury'].includes(item.id)?'https://ssd.jpl.nasa.gov/astro_par.html':DESTINATION_SOURCE, playable: true });
 }));
 
 export function getDestination(id = 'moon') {

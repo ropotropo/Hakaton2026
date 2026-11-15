@@ -24,6 +24,8 @@ export const BODY_TEXTURE_PATHS = Object.freeze({
 });
 
 export const VISUAL_PROFILES = Object.freeze({
+  mercury: { parent:'earth', color:'#91867b', kind:'regolith', parentSize:2 },
+  mars: { parent:'earth', color:'#ae7051', kind:'regolith', parentSize:2 },
   moon: { parent: 'earth', color: '#97938d', kind: 'regolith', parentSize: 2.4 },
   phobos: { parent: 'mars', color: '#7b7367', kind: 'regolith', parentSize: 28, shape: [1.28, 1.03, .83] },
   deimos: { parent: 'mars', color: '#8b8074', kind: 'regolith', parentSize: 14, shape: [1.2, .94, .86] },
@@ -134,10 +136,10 @@ export function createCelestials(renderer, options = {}) {
     earthSurface.material.roughness=1;earthSurface.material.roughnessMap=roughness;earthSurface.material.needsUpdate=true;
   }
   const cloudsMap=cloudTexture();resources.push(cloudsMap);
-  const earthClouds=new THREE.Mesh(new THREE.SphereGeometry(1903.8,128,64),new THREE.MeshStandardMaterial({
-    map:cloudsMap,transparent:true,opacity:.72,roughness:1,metalness:0,envMapIntensity:0,depthWrite:false,
+  const earthClouds=new THREE.Mesh(new THREE.SphereGeometry(1924,128,80),new THREE.MeshStandardMaterial({
+    map:cloudsMap,transparent:true,opacity:.28,roughness:1,metalness:0,envMapIntensity:0,depthWrite:false,
   }));earthClouds.renderOrder=2;earth.add(earthClouds);
-  const earthAtmosphere=atmosphere(1916,0x74b3e0,.24);earthAtmosphere.renderOrder=3;earth.add(earthAtmosphere);
+  const earthAtmosphere=atmosphere(1950,0x74b3e0,.16);earthAtmosphere.renderOrder=3;earth.add(earthAtmosphere);
 
   const preview=new THREE.Group();
   const bodyPivot=new THREE.Group();preview.add(bodyPivot);
@@ -159,7 +161,7 @@ export function createCelestials(renderer, options = {}) {
     const id=typeof next==='string'?next:next?.id;
     if(!VISUAL_PROFILES[id]||id===destination&&body.material.map)return false;
     destination=id;const profile=VISUAL_PROFILES[id];
-    body.material.map=getTexture(id);body.material.color.set(0xffffff);
+    body.material.map=getTexture(id);body.material.color.set(body.material.map?0xffffff:profile.color);
     body.material.bumpMap=id==='moon'?getTexture('moonHeight'):null;
     body.material.bumpScale=id==='moon'?.085:0;
     body.material.roughness=1;body.material.needsUpdate=true;

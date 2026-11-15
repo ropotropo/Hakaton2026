@@ -9,13 +9,18 @@ import {
 const clamp = (value, low, high) => Math.max(low, Math.min(high, value));
 const close = (actual, expected, tolerance) => assert.ok(Math.abs(actual - expected) <= tolerance, `${actual} vs ${expected} (±${tolerance})`);
 const clone = value => JSON.parse(JSON.stringify(value));
+test('planet exercises have enough thrust to brake and Mars has thin atmospheric drag',()=>{
+  for(const id of ['mars','mercury']){const s=createLanding(id);assert.ok(s.scenario.thrustLimit/(LANDER.dryMass+s.fuel)>s.gravity);assert.ok(s.gravity>3.6&&s.gravity<3.9);}
+  assert.ok(landingAtmosphere('mars',0)>0&&landingAtmosphere('mars',0)<.03);
+  assert.equal(landingAtmosphere('mercury',0),0);
+});
 function advance(state, seconds, input = {}, dt = 1 / 60) {
   for (let i = 0; i < Math.round(seconds / dt) && state.phase === 'landing'; i++) stepLanding(state, input, dt);
 }
 
-test('12 curated moons have correctly scaled, finite physical parameters and primary sources', () => {
-  assert.equal(DESTINATIONS.length, 12);
-  assert.equal(new Set(DESTINATIONS.map(d => d.id)).size, 12);
+test('14 landing destinations have correctly scaled, finite physical parameters and primary sources', () => {
+  assert.equal(DESTINATIONS.length, 14);
+  assert.equal(new Set(DESTINATIONS.map(d => d.id)).size, 14);
   for (const destination of DESTINATIONS) {
     for (const key of ['radius', 'mu', 'gravity']) assert.ok(Number.isFinite(destination[key]) && destination[key] > 0);
     close(destination.gravity, destination.mu / destination.radius ** 2, 1e-12);
@@ -170,7 +175,7 @@ function feasibilityInput(state) {
   };
 }
 
-test('all 12 destinations can be landed using coarse ordinary control inputs', () => {
+test('all 14 destinations can be landed using coarse ordinary control inputs', () => {
   for (const destination of DESTINATIONS) {
     const state = createLanding(destination.id);
     for (let i = 0; i < 9000 && state.phase === 'landing'; i++) stepLanding(state, feasibilityInput(state), 0.1);
