@@ -1,9 +1,11 @@
 // AI-assisted code. The original game concept is Nikita's.
 import './styles.css';
+import './solar-view.css';
 import { CATALOG, DEFAULT_CONFIG, resolveConfig } from './catalog.js';
 import { evaluateVehicle, createLaunch, stepLaunch, separateStage, getLaunchTelemetry, createDocking, stepDocking, getDockingTelemetry, orbitalElements, validateState } from './physics.js';
 import { createScene } from './scene.js';
 import { installNavigation } from './navigation.js';
+import { createSolarView } from './solar-view.js';
 import { DESTINATIONS } from './destinations.js';
 import { createLanding, stepLanding, getLandingTelemetry } from './landing.js';
 import { makeCheckpoint, readCheckpoint, writeCheckpoint, validateCheckpoint, restoreCheckpointFlight } from './storage.js';
@@ -293,8 +295,8 @@ function renderFrame(now) {
 
 const controlledCodes = new Set(['KeyW', 'KeyS', 'KeyA', 'KeyD', 'KeyR', 'KeyF', 'KeyQ', 'KeyE', 'KeyG', 'KeyB', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'ShiftLeft', 'ShiftRight']);
 window.addEventListener('keydown', e => {
-  if (e.code === 'Escape') { if (!$('guide-dialog').open && !$('confirm-dialog').open && !$('destination-dialog').open && !e.repeat) { e.preventDefault(); pause(); } return; }
-  if (!activeFlight() || $('guide-dialog').open || $('confirm-dialog').open || $('destination-dialog').open || /INPUT|SELECT|TEXTAREA/.test(document.activeElement?.tagName)) return;
+  if (e.code === 'Escape') { if (!navigation.dialog.open && !$('guide-dialog').open && !$('confirm-dialog').open && !$('destination-dialog').open && !e.repeat) { e.preventDefault(); pause(); } return; }
+  if (!activeFlight() || navigation.dialog.open || $('guide-dialog').open || $('confirm-dialog').open || $('destination-dialog').open || /INPUT|SELECT|TEXTAREA/.test(document.activeElement?.tagName)) return;
   if (controlledCodes.has(e.code)) { e.preventDefault(); if (state.paused) return; if (e.code.startsWith('Shift')) keys.add('Shift'); else keys.add(e.code); }
   if (e.repeat) return;
   if (e.code === 'Space' && state.phase === 'launch') stage();
@@ -327,6 +329,12 @@ const navigation = installNavigation({state,selectDestination(id){state.destinat
 let mapWasPaused=false;
 document.getElementById('open-map').addEventListener('click',()=>{mapWasPaused=state.paused;clearInputs();pause(true);});
 navigation.dialog.addEventListener('close',()=>{clearInputs();if(!mapWasPaused)pause(false);});
+let solarWasPaused=false;
+const solar=createSolarView({onOpen(){solarWasPaused=state.paused;clearInputs();pause(true);},onClose(){clearInputs();if(!solarWasPaused)pause(false);},onLanding(id){state.destination=id;renderer?.setDestination(id);updateDestinationLabels();beginLanding();}});
+const solarButton=document.createElement('button');solarButton.className='primary-button';solarButton.textContent='Explore Solar System';solarButton.onclick=()=>solar.open();document.querySelector('.navigation-tools').prepend(solarButton);
+const localPause=document.createElement('button');localPause.className='quiet-button';localPause.textContent='Pause / resume';localPause.onclick=()=>pause();document.querySelector('.navigation-tools').append(localPause);
+const localGuide=document.createElement('button');localGuide.className='quiet-button';localGuide.textContent='Flight guide';localGuide.onclick=()=>openGuide();document.querySelector('.navigation-tools').append(localGuide);
+window.addEventListener('blur',()=>{mapWasPaused=guideWasPaused=solarWasPaused=true;});
 requestAnimationFrame(renderFrame);
 try { if (typeof ResizeObserver === 'function') new ResizeObserver(() => renderer?.resize()).observe($('viewport')); } catch (error) { console.warn('Optional viewport observer unavailable:', error); }
 
