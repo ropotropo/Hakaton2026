@@ -1,4 +1,5 @@
 import { DESTINATIONS } from './destinations.js';
+import { SATELLITES, SYSTEMS, SATELLITE_SOURCE } from './satellite-catalog.js';
 
 // Layout coordinates are schematic, never ephemerides or transfer trajectories.
 export function installNavigation({ state, selectDestination, resetCamera }) {
@@ -6,26 +7,35 @@ export function installNavigation({ state, selectDestination, resetCamera }) {
   bar.className = 'navigation-tools';
   bar.innerHTML = '<button class="quiet-button" id="open-map">Flight map</button><button class="quiet-button" id="reset-orbit">Reset camera</button><small>Drag: 360° view · Scroll: zoom</small>';
   document.querySelector('.flight-center').prepend(bar);
+  const expand=document.createElement('button');expand.className='secondary-button';expand.textContent='Expand flight view';bar.prepend(expand);
+  expand.onclick=()=>{const expanded=document.querySelector('.flight-center').classList.toggle('expanded-flight');expand.textContent=expanded?'Restore layout':'Expand flight view';window.dispatchEvent(new Event('resize'));};
   const dialog = document.createElement('dialog');
   dialog.className = 'guide-dialog navigation-map';
   dialog.innerHTML = `<div class="dialog-header"><div><p class="eyebrow">Nikita / navigation branch</p><h2>Mission map</h2></div><button class="icon-button" aria-label="Close flight map">×</button></div><div class="guide-content"><p>Choose a destination system, then inspect its moons. System positions are a schematic itinerary, not current astronomical positions. Continuous interplanetary transfer is not simulated yet.</p><div class="map-systems" role="group" aria-label="Destination systems"></div><label>Target moon <select id="map-target"></select></label><p id="map-route"></p><canvas id="local-map" width="760" height="380" aria-label="Live local position, velocity and target diagram"></canvas><p id="map-telemetry" role="status"></p><button class="primary-button" id="map-select">Set mission destination</button><p id="map-note"></p></div>`;
   document.body.append(dialog);
-  const systems=['Earth','Mars','Jupiter','Saturn','Neptune'];
+  const systems=SYSTEMS;
+  const catalog=SATELLITES.map((s,i)=>{const playable=DESTINATIONS.find(d=>d.name===s.name&&d.parent===s.parent);return {...s,id:playable?.id??`catalog-${i}`,playable:!!playable};});
+  systems.forEach(s=>catalog.push({id:`planet-${s}`,name:s,parent:s,planet:true,playable:false}));
+  const search=document.createElement('input');search.type='search';search.placeholder='Search planet, moon or provisional designation';search.setAttribute('aria-label','Search Solar System');dialog.querySelector('.map-systems').before(search);
+  const results=document.createElement('div');results.className='catalog-results';search.after(results);
+  search.oninput=()=>{const term=search.value.trim().toLowerCase();results.replaceChildren();if(!term)return;catalog.filter(b=>(b.name+' '+b.parent+' '+b.designation).toLowerCase().includes(term)).slice(0,60).forEach(b=>{const button=document.createElement('button');button.className='quiet-button';button.textContent=`${b.parent} / ${b.name}`;button.onclick=()=>{planned=b.id;chooseSystem(b.parent);};results.append(button);});};
+  const summary=document.createElement('p');summary.textContent=`8 planets + Pluto · ${SATELLITES.length} satellite entries · JPL snapshot: 15 November 2026. Newly discovered bodies may be absent from this snapshot.`;search.before(summary);
+  const source=document.createElement('a');source.href=SATELLITE_SOURCE;source.textContent='JPL satellite catalog and discovery records';source.target='_blank';source.rel='noopener';dialog.querySelector('.guide-content').append(source);
   const systemsNode=dialog.querySelector('.map-systems');
   const select=dialog.querySelector('select'), route=dialog.querySelector('#map-route');
   const set=dialog.querySelector('#map-select'), note=dialog.querySelector('#map-note');
   let planned=state.destination;
   function chooseSystem(system){
-    const moons=DESTINATIONS.filter(d=>d.parent===system);
+    const moons=catalog.filter(d=>d.parent===system);
     if(!moons.some(d=>d.id===planned))planned=moons[0].id;
-    select.innerHTML=moons.map(d=>`<option value="${d.id}">${d.name}</option>`).join('');select.value=planned;
+    select.replaceChildren(...moons.map(d=>{const o=document.createElement('option');o.value=d.id;o.textContent=`${d.name}${d.planet?' — '+(d.name==='Pluto'?'dwarf planet':'planet'):d.playable?' — landing available':' — survey only'}`;return o;}));select.value=planned;
     systemsNode.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.textContent===system)));
     updateRoute();
   }
   systemsNode.innerHTML=systems.map(s=>`<button class="secondary-button">${s}</button>`).join('');
   systemsNode.querySelectorAll('button').forEach(b=>b.onclick=()=>chooseSystem(b.textContent));
   select.onchange=()=>{planned=select.value;updateRoute();};
-  function updateRoute(){const d=DESTINATIONS.find(d=>d.id===planned);route.textContent=`Earth launch → ${d.parent} system → ${d.name}`;}
+  function updateRoute(){const d=catalog.find(d=>d.id===planned);route.textContent=`Earth launch → ${d.parent} system${d.planet?'':` → ${d.name}`} · ${d.playable?'Landing exercise available':'Survey target — landing model unavailable'}`;}
   document.getElementById('open-map').onclick=()=>{planned=state.destination;chooseSystem(DESTINATIONS.find(d=>d.id===planned).parent);dialog.showModal();};
   document.getElementById('reset-orbit').onclick=resetCamera;
   dialog.querySelector('[aria-label="Close flight map"]').onclick=()=>dialog.close();
@@ -34,7 +44,9 @@ export function installNavigation({ state, selectDestination, resetCamera }) {
   function draw(){
     if(!dialog.open)return;
     const f=state.flight,kind=f?.kind;
-    set.disabled=state.phase!=='assembly';note.textContent=set.disabled?'Target changes are available in vehicle assembly. Local navigation below follows your active exercise.':'Set a target, then use Surface landing practice to fly the separate descent exercise.';
+    const selected=catalog.find(d=>d.id===planned);
+    set.disabled=state.phase!=='assembly'||!selected?.playable;
+    note.textContent=!selected?.playable?'This body is in the survey catalog. A verified landing exercise is not available. Giant planets have no solid landing surface; missing moon parameters are not invented.':state.phase!=='assembly'?'Target changes are available in vehicle assembly.':'Set a target, then use Surface landing practice to fly the separate descent exercise.';
     ctx.fillStyle='#050506';ctx.fillRect(0,0,760,380);
     ctx.strokeStyle='#242429';ctx.lineWidth=1;
     for(let x=40;x<760;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,380);ctx.stroke();}
@@ -54,7 +66,7 @@ export function installNavigation({ state, selectDestination, resetCamera }) {
     }else if(f?.position?.length===2){
       const r=Math.hypot(...f.position),s=r/130;ctx.strokeStyle='#a1a1a8';ctx.beginPath();ctx.arc(380,190,6371000/s,0,Math.PI*2);ctx.stroke();marker(380+f.position[0]/s,190-f.position[1]/s,'Spacecraft','#f5f5f7');description='Earth-centred launch map · altitude '+Math.round((r-6371000)/1000)+' km. Interplanetary transfer is not active.';
     }else{
-      systems.forEach((s,i)=>{marker(70+i*150,180,s,s===DESTINATIONS.find(d=>d.id===planned).parent?'#9bcaff':'#a1a1a8');});description='Destination planner · illustrative system layout, distances not to scale. Launch starts at Earth. Select a system above to choose a moon.';
+      systems.forEach((s,i)=>{const x=60+(i%5)*145,y=i<5?105:255;marker(x,y,s,s===selected.parent?'#9bcaff':'#a1a1a8');ctx.fillStyle='#a1a1a8';ctx.fillText(`${SATELLITES.filter(m=>m.parent===s).length} moons`,x,y+30);});description=`Selected: ${selected.name} / ${selected.parent}. Schematic Solar System, not to scale; positions are not ephemerides. Mercury and Venus have no natural moons. Pluto is a dwarf planet.`;
     }
     dialog.querySelector('#map-telemetry').textContent=description;
   }
