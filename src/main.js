@@ -32,6 +32,7 @@ const state = { phase: 'assembly', config: { ...DEFAULT_CONFIG }, destination: '
 const keys = new Set();
 let rolloutReady=false;
 let orbitOverview=false;
+let earthViewOpen=false;
 function syncOrbitView(){
   if(state.phase!=='orbit')orbitOverview=false;
   const button=$('orbit-overview-button');
@@ -289,7 +290,7 @@ function renderFrame(now) {
   const realDt = Math.min((now - lastFrame) / 1000, 0.1); lastFrame = now;
   if (state.countdown > 0 && !state.paused) { state.countdown = Math.max(0, state.countdown - realDt); $('countdown').hidden = state.countdown <= 0; setText('countdown-number', Math.ceil(state.countdown)); }
   if (activeFlight() && !state.paused && state.countdown <= 0) { accumulator += realDt * (state.flight?.kind === 'launch' ? state.warp : 1); let safety = 0; while (accumulator >= 1 / 60 && safety++ < 120) { simulate(1 / 60); accumulator -= 1 / 60; if (!activeFlight()) { accumulator = 0; break; } } }
-  if (renderer) {
+  if (renderer && !earthViewOpen) {
     const dock = state.flight?.kind === 'docking', land = state.flight?.kind === 'landing';
     const t = state.flight ? land ? getLandingTelemetry(state.flight) : dock ? getDockingTelemetry(state.flight) : getLaunchTelemetry(state.flight) : {};
     const projection = renderer.update({ mode: state.phase === 'assembly' ? state.preview ? 'destination' : 'assembly' : land ? 'landing' : dock ? 'docking' : 'launch', ...t,
@@ -357,8 +358,8 @@ navigation.dialog.addEventListener('close',()=>{clearInputs();if(!mapWasPaused)p
 let solarWasPaused=false;
 const solar=createSolarView({onOpen(){solarWasPaused=state.paused;clearInputs();pause(true);},onClose(){clearInputs();if(!solarWasPaused)pause(false);},onLanding(id){state.destination=id;renderer?.setDestination(id);updateDestinationLabels();beginLanding();}});
 const solarButton=document.createElement('button');solarButton.className='primary-button';solarButton.textContent='Explore Solar System';solarButton.onclick=()=>solar.open();document.querySelector('.navigation-tools').prepend(solarButton);
-const onlineEarth=createOnlineEarth({onOpen(){clearInputs();pause(true);},onClose(){clearInputs();pause(true);}});
-const earthButton=document.createElement('button');earthButton.className='secondary-button';earthButton.textContent='Earth / real cities';earthButton.onclick=()=>onlineEarth.open();document.querySelector('.navigation-tools').append(earthButton);
+const onlineEarth=createOnlineEarth({onOpen(){earthViewOpen=true;clearInputs();pause(true);},onClose(){earthViewOpen=false;clearInputs();pause(true);}});
+const earthButton=document.createElement('button');earthButton.className='secondary-button';earthButton.textContent='Earth / free flight';earthButton.onclick=()=>onlineEarth.open();document.querySelector('.navigation-tools').append(earthButton);
 const localPause=document.createElement('button');localPause.className='quiet-button';localPause.textContent='Pause / resume';localPause.onclick=()=>pause();document.querySelector('.navigation-tools').append(localPause);
 const localGuide=document.createElement('button');localGuide.className='quiet-button';localGuide.textContent='Flight guide';localGuide.onclick=()=>openGuide();document.querySelector('.navigation-tools').append(localGuide);
 const orbitButton=document.createElement('button');orbitButton.id='orbit-overview-button';orbitButton.className='secondary-button';orbitButton.onclick=()=>{if(state.phase!=='orbit')return;orbitOverview=!orbitOverview;syncOrbitView();renderer?.resetOrbit();notify(orbitOverview?'Trajectory inspection: white spacecraft, amber stages, blue illustrative station reference. Use Return to spacecraft or Reset camera to leave.':'Spacecraft camera restored. Orbital motion continues.');};document.querySelector('.navigation-tools').append(orbitButton);syncOrbitView();
