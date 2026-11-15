@@ -12,4 +12,4 @@
 
 * [Play the game]({{GAME_URL}})
 * [Submitted PDF]({{PRESENTATION_URL}})
-* [Video — being revised]({{VIDEO_URL}})
+* [Gameplay film]({{VIDEO_URL}})

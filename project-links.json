@@ -5,10 +5,11 @@
   "canonicalRepository": "ropotropo/Kinetic-Core-2026",
   "gameURL": "https://ropotropo.github.io/Hakaton2026/kinetic-core/",
   "canonicalGameURL": "https://ropotropo.github.io/Kinetic-Core-2026/",
-  "videoURL": "https://ropotropo.github.io/Kinetic-Core-2026/demo/",
-  "videoSourceURL": "https://github.com/ropotropo/Kinetic-Core-2026/blob/main/presentation/video/Kinetic-Core-Gameplay.mp4",
+  "videoURL": "https://ropotropo.github.io/Hakaton2026/demo/",
+  "videoSourceURL": "https://github.com/ropotropo/Hakaton2026/blob/codex/final-presentations/presentation/video/Kinetic-Core-Gameplay-v2.mp4",
   "sourceRef": "codex/author-installers",
   "materialsRef": "codex/final-presentations",
   "presentationURL": "https://github.com/ropotropo/Hakaton2026/blob/codex/final-presentations/presentation/Kinetic-Core-EN.pdf",
-  "submittedPresentationURL": "https://github.com/ropotropo/Hakaton2026/blob/codex/final-presentations/presentation/Kinetic-Core-EN.pdf"
+  "submittedPresentationURL": "https://github.com/ropotropo/Hakaton2026/blob/codex/final-presentations/presentation/Kinetic-Core-EN.pdf",
+  "videoNotesURL": "https://github.com/ropotropo/Hakaton2026/blob/codex/final-presentations/presentation/video/README.md"
 }

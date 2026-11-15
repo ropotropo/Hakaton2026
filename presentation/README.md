@@ -26,4 +26,4 @@ Rebuild with Python, ReportLab and Pillow using `python source/build_pdfs.py`. O
 
 [design-kit/](design-kit/) retains editable drafts, earlier cover options, logos, flag artwork, design tokens and screenshot tools. These are supporting authoring materials, not alternative final PDFs. Use the PDF links above for judging. Image provenance and source records remain with the kit.
 
-The canonical video viewer is [https://ropotropo.github.io/Kinetic-Core-2026/demo/](https://ropotropo.github.io/Kinetic-Core-2026/demo/). Video edits and their publication remain separate from this preparation. This source-tree preparation intentionally does not copy, overwrite or freeze the video folder while it is being revised.
+The canonical video viewer is [https://ropotropo.github.io/Kinetic-Core-2026/demo/](https://ropotropo.github.io/Kinetic-Core-2026/demo/). Video edits and their publication remain separate from this preparation. This source-tree preparation intentionally does not copy, overwrite or freeze the video folder while it is maintained independently.

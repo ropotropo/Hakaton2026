@@ -2,7 +2,7 @@
 
 **Game:** v0.4.4 development preview · **Author:** Mykyta Borisov · **Review preparation:** 15 November 2026 (America/Los_Angeles).
 
-The game's reviewed source is commit [`b772085`](https://github.com/ropotropo/Hakaton2026/commit/b77208515f0398a0a57263db7c6b45641fb26bdc). This preparation combines that game with the existing presentation PDFs and their supporting source. It does not change mission physics, gameplay, dependencies or built game files. This is the development archive; the publication repository is [Kinetic-Core-2026](https://github.com/ropotropo/Kinetic-Core-2026). Video is being revised independently and is linked through [VIDEO.md](../VIDEO.md).
+The game's reviewed source is commit [`b772085`](https://github.com/ropotropo/Hakaton2026/commit/b77208515f0398a0a57263db7c6b45641fb26bdc). This preparation combines that game with the existing presentation PDFs and their supporting source. It does not change mission physics, gameplay, dependencies or built game files. This is the development archive; the publication repository is [Kinetic-Core-2026](https://github.com/ropotropo/Kinetic-Core-2026). Video is published independently and is linked through [VIDEO.md](../VIDEO.md).
 
 ## Implemented behavior
 

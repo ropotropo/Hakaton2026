@@ -16,7 +16,7 @@ Build a modular spacecraft, see how engineering choices change its performance, 
 | Archive game | [Existing submitted/archive playable](https://ropotropo.github.io/Hakaton2026/kinetic-core/) |
 | Submitted presentation | **[English PDF — original submitted link](https://github.com/ropotropo/Hakaton2026/blob/codex/final-presentations/presentation/Kinetic-Core-EN.pdf)** |
 | Project guide | **[Read the Wiki](https://github.com/ropotropo/Hakaton2026/wiki)** |
-| Gameplay video | **[Video and update status](VIDEO.md)** — being revised separately |
+| Gameplay video | **[Video and update status](VIDEO.md)** — completed film, maintained separately |
 | Portable game and preview installers | [v0.4.4 downloads](https://github.com/ropotropo/Hakaton2026/releases/tag/v0.4.4) |
 
 **Current game: v0.4.4, a development preview.** The PDF keeps its original URL and bytes. Video revisions use one stable file path; they do not change this game's version.

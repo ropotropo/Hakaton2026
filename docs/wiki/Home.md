@@ -16,10 +16,10 @@ Kinetic Core is a playable spaceflight and spacecraft-design prototype. Players 
 | Presentation | **[English PDF in this repository]({{PRESENTATION_URL}})** |
 | Original submitted presentation | [Exact URL already sent to the judges]({{SUBMITTED_PDF_URL}}) |
 | Current game source | [v0.4.4 source snapshot]({{SOURCE_TREE_URL}}) |
-| Gameplay film | [Current published video]({{VIDEO_URL}}) — a revision is in progress |
+| Gameplay film | [Current published video]({{VIDEO_URL}}) — completed film, maintained separately |
 | Downloads | [Portable game and Windows/Android previews]({{REPOSITORY_URL}}/releases/tag/v0.4.4) |
 
-The game's current version is **v0.4.4, a development preview**. The original submitted PDF is preserved. The film is maintained separately behind the publication repository’s stable video viewer, so its media can be replaced without changing the link. Its current recording notes describe what each shot actually demonstrates.
+The game's current version is **v0.4.4, a development preview**. The original submitted PDF is preserved. The film is maintained separately behind a stable video viewer, so its media can be replaced without changing the link. Its current recording notes describe what each shot actually demonstrates.
 
 ## Explore the project
 

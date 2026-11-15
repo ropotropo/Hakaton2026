@@ -14,7 +14,7 @@ Both games are independent static deployments. Their current game source/build c
 - Keep [the original submitted PDF](https://github.com/ropotropo/Hakaton2026/blob/codex/final-presentations/presentation/Kinetic-Core-EN.pdf) at its current branch/path and preserve its bytes. Do not delete `codex/final-presentations`, rename the archive repository or make it private while those links are in use.
 - Keep both existing game URLs reachable. Do not replace a playable with a redirect or assume that the judges have received the new address.
 - Keep published releases and notices with their own repository. Metadata can label an old version as historical; it should not reassign commit authors or claim identical future versions.
-- Video is being revised independently. The canonical watch link is **[https://ropotropo.github.io/Kinetic-Core-2026/demo/](https://ropotropo.github.io/Kinetic-Core-2026/demo/)**. Publishing a replacement media file at its existing site path retains the viewer URL. This preparation does not edit either video or its deployment.
+- Video is published independently. The publication watch link is **[https://ropotropo.github.io/Kinetic-Core-2026/demo/](https://ropotropo.github.io/Kinetic-Core-2026/demo/)**. The archive’s latest-film viewer is **[https://ropotropo.github.io/Hakaton2026/demo/](https://ropotropo.github.io/Hakaton2026/demo/)**. These are separate deployments: synchronize the completed media and its notes explicitly when transferring. Publishing a replacement media file at its existing site path retains the viewer URL. This preparation does not edit either video or its deployment.
 
 ## Portable Wiki and documentation
 

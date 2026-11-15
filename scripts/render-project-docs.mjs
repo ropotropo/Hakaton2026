@@ -18,7 +18,7 @@ if (!['development-archive', 'publication'].includes(config.role)) throw new Err
 for (const key of ['sourceRef', 'materialsRef']) {
   if (typeof config[key] !== 'string' || !/^[A-Za-z0-9_./-]+$/.test(config[key]) || config[key].split('/').includes('..')) throw new Error(`Invalid ${key}.`);
 }
-for (const key of ['gameURL', 'canonicalGameURL', 'videoURL', 'videoSourceURL', 'presentationURL', 'submittedPresentationURL']) {
+for (const key of ['gameURL', 'canonicalGameURL', 'videoURL', 'videoSourceURL', 'videoNotesURL', 'presentationURL', 'submittedPresentationURL']) {
   const url = new URL(config[key]);
   if (url.protocol !== 'https:' || url.username || url.password) throw new Error(`Invalid HTTPS ${key}.`);
 }
@@ -33,7 +33,7 @@ const values = {
   CANONICAL_GAME_URL: config.canonicalGameURL,
   VIDEO_URL: config.videoURL,
   VIDEO_SOURCE_URL: config.videoSourceURL,
-  VIDEO_NOTES_URL: `${canonical}/blob/main/presentation/video/README.md`,
+  VIDEO_NOTES_URL: config.videoNotesURL,
   PRESENTATION_URL: config.presentationURL,
   SUBMITTED_PDF_URL: config.submittedPresentationURL,
   SOURCE_TREE_URL: `${repository}/tree/${config.sourceRef}`,
@@ -84,7 +84,7 @@ for (const filename of (await readdir(templates)).filter(n => n.endsWith('.md'))
 }
 const links = `# Kinetic Core publication links\n\nRepository role: **${values.ROLE_LABEL}**.\n\n| Material | URL |\n| --- | --- |\n| This repository | ${repository} |\n| Current publication | ${canonical} |\n| This repository's game | ${config.gameURL} |\n| Publication game | ${config.canonicalGameURL} |\n| Wiki | ${values.WIKI_URL} |\n| Presentation | ${config.presentationURL} |\n| Original submitted PDF | ${config.submittedPresentationURL} |\n| Stable video viewer | ${config.videoURL} |\n| Video source | ${config.videoSourceURL} |\n\nEach game remains a separate self-contained deployment. No automatic synchronization is implied. Preserve original submitted URLs while judges may use them. Browser saves are origin/device-local.\n`;
 rendered.push(['PROJECT-LINKS.md', links]);
-rendered.push(['VIDEO.md', `# Kinetic Core gameplay video\n\n**[Open the video](${config.videoURL})**\n\nA revision is in progress. This stable viewer belongs to the publication repository. Replacing its published media at the same path keeps the viewer URL unchanged. This renderer does not upload, copy or freeze a video.\n\n[Video source](${config.videoSourceURL}) · [Publication repository](${canonical}) · [Presentation](${config.presentationURL})\n\nRefer to the current video's accompanying notes for its exact scenes and evidence. A montage of local landing and separate docking does not establish an uninterrupted Earth-to-Moon flight.\n`]);
+rendered.push(['VIDEO.md', `# Kinetic Core gameplay video\n\n**[Open the video](${config.videoURL})**\n\nThe completed film is available through this stable viewer. Replacing the published media at the same path keeps the viewer URL unchanged. Each repository deploys its own media copy; a source push alone does not update another site. This renderer does not upload or alter a video.\n\n[Video source](${config.videoSourceURL}) · [Publication repository](${canonical}) · [Presentation](${config.presentationURL})\n\nRefer to the current video's accompanying notes for its exact scenes and evidence. A montage of local landing and separate docking does not establish an uninterrupted Earth-to-Moon flight.\n`]);
 for (const [filename, text] of rendered) {
   const path = join(output, filename);
   await rejectSymlinks(path);
