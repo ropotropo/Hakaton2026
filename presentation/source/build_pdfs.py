@@ -35,8 +35,8 @@ def pic(c,key,x,y,w,h,cover=False):
     dw,dh=iw*scale,ih*scale
     c.saveState();clip=c.beginPath();clip.rect(x,H-y-h,w,h);c.clipPath(clip,stroke=0,fill=0)
     c.drawImage(ImageReader(str(p)),x+(w-dw)/2,H-y-h+(h-dh)/2,dw,dh,mask='auto');c.restoreState()
-def footer(c,i):
-    txt(c,'Kinetic Core',64,682,10,color='#a1a1a8');txt(c,f'{i} / 7',1170,682,10,width=60,color='#a1a1a8')
+def footer(c,i,total):
+    txt(c,'Kinetic Core',64,682,10,color='#a1a1a8');txt(c,f'{i} / {total}',1170,682,10,width=60,color='#a1a1a8')
 def head(c,s):
     end=txt(c,s['title'],64,46,40,bold=True,leading=45)
     txt(c,s['lead'],64,max(108,end+10),23,color='#a1a1a8')
@@ -47,10 +47,15 @@ for lang in ['en','uk']:
     output=ROOT/('Kinetic-Core-EN.pdf' if lang=='en' else 'Kinetic-Core-UA.pdf')
     c=canvas.Canvas(str(output),pagesize=(W,H),pageCompression=1)
     c.setTitle('Kinetic Core - NASA Space Apps Challenge 2026'+(' - Ukrainian' if lang=='uk' else ' - English'))
-    c.setAuthor('Mykyta Borisov');c.setSubject('Seven-slide, 280-second project presentation. Game captures and documented educational physics model.')
+    c.setAuthor('Mykyta Borisov');c.setSubject('Fourteen-slide, 280-second project presentation. Seven complete-screen game captures and documented educational physics model.')
     slides=data[lang]
-    for i,s in enumerate(slides,1):
+    sequence=data['sequence']
+    for slide_number,entry in enumerate(sequence,1):
+        i=entry['infoIndex'];s=slides[i-1]
         c.setFillColor(HexColor('#000000'));c.rect(0,0,W,H,fill=1,stroke=0)
+        if entry.get('imageKey'):
+            pic(c,entry['imageKey'],0,0,W,H)
+            c.showPage();continue
         if i==1:
             pic(c,'hero',0,0,W,H,True)
             txt(c,'NASA Space Apps Challenge 2026',64,64,18,bold=True)
@@ -80,16 +85,15 @@ for lang in ['en','uk']:
             points(c,s['points'],792,219,424,23,30)
             limit='Educational model: 2D patched-conic lunar flight; docking is a separate local 3D exercise.' if lang=='en' else 'Навчальна модель: місячний політ у 2D за методом спряжених конік; стикування є окремою локальною 3D-вправою.'
             txt(c,limit,64,627,14,width=1152,color='#a1a1a8')
-            c.linkURL('https://github.com/ropotropo/Hakaton2026/blob/c96a5bc/docs/PHYSICS.md',(64,39,1180,94),relative=0,thickness=0)
         elif i==7:
             pic(c,'logo',760,124,414,414)
             txt(c,'Thank you' if lang=='en' else 'Дякую за увагу',64,195,62,width=690,bold=True)
             txt(c,'Kinetic Core',64,304,38,bold=True)
             txt(c,s['points'][0],64,375,23,width=680,color='#a1a1a8')
-            txt(c,'github.com/ropotropo/Hakaton2026',64,514,18,color='#9bcaff')
-            c.linkURL('https://github.com/ropotropo/Hakaton2026',(64,180,600,220),relative=0,thickness=0)
-        footer(c,i);c.showPage()
+        footer(c,slide_number,len(sequence));c.showPage()
     c.save();print(output)
     notes=[]
-    for i,s in enumerate(slides,1):notes.append(f"## {i}. {s['title']} ({s['seconds']} s)\n\n{s['speech']}\n")
+    for i,entry in enumerate(sequence,1):
+        s=entry['notes'][lang]
+        notes.append(f"## {i}. {s['title']} ({entry['seconds']} s)\n\n{s['speech']}\n")
     (ROOT/'source'/f'speaker-notes-{lang}.md').write_text('# Kinetic Core - 280-second rehearsal\n\n'+'\n'.join(notes))

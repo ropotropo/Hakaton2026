@@ -5,7 +5,9 @@ Sole author: **Mykyta Borisov**.
 - [English PDF](Kinetic-Core-EN.pdf)
 - [Ukrainian PDF](Kinetic-Core-UA.pdf)
 
-Both final PDFs contain seven widescreen slides with the same story, designed for **280 seconds (4 minutes 40 seconds)** plus a 20-second margin. The Ukrainian edition translates authored text; genuine game-interface screenshots remain in their original English.
+Both final PDFs contain fourteen widescreen slides with the same story, designed for **280 seconds (4 minutes 40 seconds)** plus a 20-second margin. The Ukrainian edition translates authored text; genuine game-interface screenshots remain in their original English.
+
+The seven original information slides are retained, with seven separate full-screen gameplay views interleaved. Full-screen views preserve the entire image and all telemetry, using black margins only when required by the original aspect ratio. No website URL or hyperlink is included in either final PDF.
 
 The story covers audience, spacecraft design, Earth rollout, lunar flight, landing, separate manual docking, physical calculations and thanks. Images are real recorded game captures, except the fictional cinematic cover portrait and logo. Captures are not new gameplay tests. The mathematical model's explicit approximations remain visible. Historical QA is distinguished from certification or a universal accuracy percentage.
 

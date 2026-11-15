@@ -196,6 +196,21 @@
       "pauseOverlay": false,
       "visibleOldAuthorNames": [],
       "recommendedFit": "contain; preserve the complete UI and telemetry"
+    },
+    {
+      "id": "descent",
+      "path": "outputs/v0.4.0/qa/corrected-lunar-horizon.jpg",
+      "use": "Full-screen final lunar descent",
+      "width": 1728,
+      "height": 997,
+      "sha256": "630b2428768a4d1e18e852308684a3175e4b959ad9753d7a743523651f7b452c",
+      "classification": "existing recorded game capture; visually inspected, not freshly captured or rerun",
+      "pauseOverlay": false,
+      "visibleOldAuthorNames": [],
+      "recommendedFit": "contain; preserve the complete UI and telemetry",
+      "notes": [
+        "Final descent with engine plume. Sticky checkpoint log is historical; do not narrate it as current engine-zero state."
+      ]
     }
   ],
   "rejectedOrLimited": [
