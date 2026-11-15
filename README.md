@@ -1,75 +1,65 @@
-# Kineti Core
+# Kinetic Core
 
-**Build a rocket. Reach Earth orbit. Dock by hand.**
+**Design a mission. Fly its critical moments.**
 
-An original spaceflight game concept by **Nikita**, developed in collaboration with Andrii. The first playable contains modular vehicle selection, a physically integrated two-stage launch, manual stage separation and a six-degree-of-freedom terminal docking scenario.
+> **Development archive.** The author-owned publication repository is **[Kinetic-Core-2026](https://github.com/ropotropo/Kinetic-Core-2026)**. This archive stays available for the original submitted PDF, historical sources and its existing playable.
 
-## Play the built version
+Created by **Mykyta Borisov** · **NASA Space Apps Challenge 2026** · Challenge: **Space Mission Design Game**
 
-Download **[dist/Kineti-Core.html](dist/Kineti-Core.html)** using GitHub's **Download raw file** button, then open the downloaded HTML file in Safari, Chrome or Edge. The portable build includes the game, graphics library and Earth texture; it needs no account, installation or local server.
+Build a modular spacecraft, see how engineering choices change its performance, and fly a continuous Earth-to-Moon landing mission. Practice docking and surface landings as clearly separate exercises.
 
-Alternatively, serve `dist/` as a static website. `dist/index.html` is the normal optimized web build. No external API or runtime asset requests are required. The existing `.openai/hosting.json` continues to point to `dist`.
+## Start here
 
-## Develop
+| Review material | Link |
+| --- | --- |
+| Publication game | **[Open Kinetic Core](https://ropotropo.github.io/Kinetic-Core-2026/)** |
+| Archive game | [Existing submitted/archive playable](https://ropotropo.github.io/Hakaton2026/kinetic-core/) |
+| Submitted presentation | **[English PDF — original submitted link](https://github.com/ropotropo/Hakaton2026/blob/codex/final-presentations/presentation/Kinetic-Core-EN.pdf)** |
+| Project guide | **[Read the Wiki](https://github.com/ropotropo/Hakaton2026/wiki)** |
+| Gameplay video | **[Video and update status](VIDEO.md)** — completed film, maintained separately |
+| Portable game and preview installers | [v0.4.4 downloads](https://github.com/ropotropo/Hakaton2026/releases/tag/v0.4.4) |
 
-Node.js **22.12 or newer** is required.
+**Current game: v0.4.4, a development preview.** The PDF keeps its original URL and bytes. Video revisions use one stable file path; they do not change this game's version.
+
+![Recorded Kinetic Core gameplay](docs/media/v04-custom-moon-touchdown.jpg)
+
+*Recorded gameplay from the documented guided Moon-mission check. This image is historical test evidence, not a new run of the final build.*
+
+## Try the first mission
+
+1. Open **Modes → Rocket workshop** and load the **Lunar demonstrator**.
+2. Choose **Start Flight → Moon**, select an approach and start the mission.
+3. Keep **Powered guidance** on initially. Separate depleted stages when prompted and use time warp for long coasts.
+
+For a quick maneuver, choose **Modes → Manual docking** or **Modes → Surface landing**. See [How to play](docs/GETTING-STARTED.md) for controls, checkpoints and recovery.
+
+## What the prototype demonstrates
+
+- The same assembled spacecraft carries its mass, finite propellant and flight state through Earth launch, staging, orbit, lunar departure, capture and touchdown.
+- Dimensions and hardware choices change mass, thrust, fuel and performance. Powered guidance and RCS assistance spend the available propellant.
+- A separate manual docking exercise offers external, docking and cockpit cameras. Other-world surface rehearsals explicitly skip interplanetary transfers.
+
+The mission model uses **2D patched conics, ideal engine pointing and a synthetic circular Moon epoch**. Terrain and spacecraft are illustrative. Sampling, lunar ascent, return and complete interplanetary transfers are future work. Desktop keyboard is the primary precision-control baseline; real-phone performance and Windows/Android device acceptance remain unverified.
+
+## Evidence and source
+
+[Current scope and verification](docs/CURRENT-VERSION.md) · [Physics and references](docs/PHYSICS.md) · [Documentation index](docs/README.md) · [Presentation materials](presentation/README.md) · [Archive/publication continuity](docs/MIGRATION.md)
+
+The current numerical suite contains **86 tests**. Build checks and historical browser evidence are identified separately in the documentation; a passing suite is not certification or a universal accuracy score.
+
+To run locally with Node.js **22.12+** and npm:
 
 ```sh
 npm ci
-npm run dev
-```
-
-Open the local URL printed by Vite.
-
-```sh
 npm test
 npm run build
 npm run preview
 ```
 
-The build produces both the regular static web app and `dist/Kineti-Core.html` for portable testing.
+For a portable copy, download `Kineti-Core.html` from the [v0.4.4 release](https://github.com/ropotropo/Hakaton2026/releases/tag/v0.4.4) and open the downloaded file. The legacy filename is retained for compatibility. The core Moon game has bundled assets; optional online Earth flight needs internet. Browser saves stay local to the current origin and device.
 
-## First flight
+## Authorship and credits
 
-1. Choose a capsule, service module, core and upper stage. Launch mass, liftoff thrust-to-weight and ideal delta-v are computed from the design. Hardware specifications are plausible **fictional inputs**, not NASA vehicle specifications.
-2. Begin the launch sequence. Leave guidance on for the first flight. Guidance steers using actual thrust and is limited by the player's throttle ceiling.
-3. Separate the depleted core with **Space** or the staging button. The upper stage continues toward orbit. An early separation discards remaining propellant.
-4. After the engine cuts off in a confirmed bound orbit, release the upper stage.
-5. Begin the **separate terminal-approach scenario**, or enter docking practice directly from assembly. Full long-range orbital rendezvous is not simulated in this version.
+**Mykyta Borisov is the sole game author.** Andrii relays feedback and coordinates development; Codex and specialist agents provide implementation, design and verification assistance. See [AUTHORS.md](AUTHORS.md).
 
-| Controls | Ascent | Docking |
-| --- | --- | --- |
-| W / S | Throttle up / down | Approach / retreat |
-| A / D | Pitch trim / manual pitch | Translate left / right |
-| R / F | — | Translate up / down |
-| Arrow keys | Left/right pitch | Pitch / yaw |
-| Q / E | — | Roll |
-| Space | Separate stage | Hold powered translation brake |
-| Shift | — | Fine RCS (20% thrust) |
-| G | Toggle ascent guidance | — |
-| B | — | Toggle powered attitude hold |
-| Esc | Pause | Pause |
-
-Touch translation and rotation controls are available on narrow screens. Desktop keyboard is the primary flight control scheme.
-
-Checkpoints are stored locally in your browser. They are versioned and validated; physical constants are rebuilt from trusted catalog entries when restoring. The game pauses and releases all held inputs when the browser loses focus.
-
-## Physical model and limits
-
-- Fixed-step Newtonian integration in SI units, independent of rendering FPS.
-- Inverse-square Earth gravity using a NASA/JPL gravitational parameter, rotating-atmosphere launch approximation, layered density model, aerodynamic drag and mass-flow propellant accounting.
-- Real stage mass changes and finite fuel. Orbit confirmation uses energy and apsides, not a timer or altitude-only check.
-- Local Hill relative dynamics, quaternion attitude, inertial rotation, powered RCS assists and explicit capture limits in docking. No passive vacuum damping or automatic forward approach.
-- The 2D launch, circular reference orbit, geometric capture plane, synthetic design limits and scenario handoff are deliberate first-version approximations. This is a game, not a certified mission-analysis tool.
-
-See **[docs/PHYSICS.md](docs/PHYSICS.md)** for sources, equations, numerical verification and limitations, **[docs/QA.md](docs/QA.md)** for browser checks, and **[docs/PLAYABLE-V1.md](docs/PLAYABLE-V1.md)** for scope.
-
-## Sources, assets and assistance
-
-NASA/JPL physical references and the local NASA Blue Marble Earth image are credited in [docs/PHYSICS.md](docs/PHYSICS.md) and [public/assets/SOURCES.md](public/assets/SOURCES.md). Three.js is MIT licensed. Dependency notices are included in dist/THIRD_PARTY_NOTICES.txt and inside the portable HTML build. NASA is not affiliated with this game and does not endorse it.
-
-The original idea belongs to Nikita. Code, procedural graphics and documentation were assisted by Codex and specialist agents. The project does not use AI-generated NASA branding.
-
-## Version review
-
-Each completed, checked version is committed and pushed. Development versions use a feature branch and a pull request requesting review from **@ropotropo**. The playable portable build is included so Nikita can download and test without a development environment. Feature branches are not merged automatically.
+NASA/JPL/USGS references and imagery retain their [source credits](public/assets/SOURCES.md). Dependency licenses are included in [THIRD_PARTY_NOTICES.txt](dist/THIRD_PARTY_NOTICES.txt). Generated cover artwork is documented separately from actual gameplay. No NASA affiliation or endorsement is implied. A new public license for the original game has not been selected; third-party license terms continue to apply.

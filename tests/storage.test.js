@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { SAVE_KEY, makeCheckpoint, validateCheckpoint, readCheckpoint, writeCheckpoint, restoreCheckpointFlight } from '../src/storage.js';
 import { createLaunch, createDocking } from '../src/physics.js';
 import { DEFAULT_CONFIG } from '../src/catalog.js';
+import { createLanding, stepLanding, LANDER } from '../src/landing.js';
 
 const config = { ...DEFAULT_CONFIG };
 const validConfig = c => c.capsule === 'pioneer';
@@ -70,4 +71,34 @@ test('malformed flight log entries cannot break the restored interface', () => {
     assert.equal(validateCheckpoint({ ...checkpoint, log: [entry] }, validConfig), false);
   }
   assert.equal(validateCheckpoint({ ...checkpoint, log: [{ time: 12.5, message: 'Stage separated.' }] }, validConfig), true);
+});
+
+test('landing checkpoints preserve the destination and rebuild trusted lander parameters', () => {
+  const flight = createLanding('europa');
+  stepLanding(flight, { throttle: .5, turn: .2 }, 1);
+  const checkpoint = makeCheckpoint(config, 'landing', flight);
+  assert.equal(validateCheckpoint(checkpoint, validConfig), true);
+  checkpoint.flight.dryMass = 1;
+  checkpoint.flight.scenario.thrustLimit = 1e12;
+  const restored = restoreCheckpointFlight(checkpoint, validConfig);
+  assert.equal(restored.destination, 'europa');
+  assert.equal(restored.dryMass, LANDER.dryMass);
+  assert.equal(restored.scenario.thrustLimit, createLanding('europa').scenario.thrustLimit);
+  assert.deepEqual(restored.position, flight.position);
+  assert.equal(restored.fuel, flight.fuel);
+  assert.equal(restored.thrust, 0);
+  assert.equal(restored.commandedThrottle, 0);
+});
+
+test('landing saves reject invalid destinations, missing motion and phase mismatches', () => {
+  const checkpoint = makeCheckpoint(config, 'landing', createLanding('titan'));
+  assert.equal(validateCheckpoint({ ...checkpoint, destination: 'jupiter' }, validConfig), false);
+  assert.equal(validateCheckpoint({ ...checkpoint, destination: 'moon' }, validConfig), false);
+  for (const field of [{ position: [0] }, { velocity: [0, NaN] }, { fuel: -1 }, { phase: 'landed' }, { destination: 'unknown' }, { holdAttitude: 'yes' }]) {
+    assert.equal(validateCheckpoint({ ...checkpoint, flight: { ...checkpoint.flight, ...field } }, validConfig), false);
+  }
+  // Additive destination data does not invalidate the existing v1 launch schema.
+  const oldSave = makeCheckpoint(config, 'launch', createLaunch(config));
+  delete oldSave.destination;
+  assert.equal(validateCheckpoint(oldSave, validConfig), true);
 });

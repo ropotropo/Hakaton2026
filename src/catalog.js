@@ -1,3 +1,5 @@
+import { validateVehicleDesign, deriveVehicleParts } from './vehicle-design.js';
+
 /**
  * Fictional, physically plausible training hardware. These are design inputs,
  * not NASA-certified vehicle specifications. SI units throughout.
@@ -38,10 +40,20 @@ export function normalizeConfig(config = {}) {
     const candidate = config[category] ?? DEFAULT_CONFIG[category];
     result[category] = CATALOG[category].some(item => item.id === candidate) ? candidate : DEFAULT_CONFIG[category];
   }
+  if (config.design !== undefined) result.design = validateVehicleDesign(config.design);
   return result;
 }
 
 export function resolveConfig(config = {}) {
   const normalized = normalizeConfig(config);
-  return Object.fromEntries(Object.keys(DEFAULT_CONFIG).map(key => [key, CATALOG[key].find(item => item.id === normalized[key])]));
+  const parts = Object.fromEntries(Object.keys(DEFAULT_CONFIG).map(key => [key, CATALOG[key].find(item => item.id === normalized[key])]));
+  if (normalized.design) {
+    const derived = deriveVehicleParts(normalized.design);
+    Object.assign(parts, { capsule: derived.capsule, service: derived.service, core: derived.core, upper: derived.upper, layout: derived.layout });
+  }
+  return parts;
+}
+
+export function createVehicleConfig(design, options = {}) {
+  return normalizeConfig({ ...DEFAULT_CONFIG, ...options, design: validateVehicleDesign(design) });
 }

@@ -1,6 +1,8 @@
-# Physical models in the first playable
+# Kinetic Core physical models
 
-Game concept: Nikita. Physics implementation and tests: AI-assisted development with Codex, November 14, 2026. This is an educational game model, not flight software or a NASA-certified simulator.
+> Current game: **v0.4.4**. The opening ascent/docking sections record the initial model; the **v0.4 continuous Moon mission** section below documents the connected Earth–Moon route. Read [Current version](CURRENT-VERSION.md) for the complete implemented scope and current verification boundaries.
+
+Game concept: Mykyta. Physics implementation and tests: AI-assisted development with Codex, November 14, 2026. This is an educational game model, not flight software or a NASA-certified simulator.
 
 ## Scope and honest transitions
 
@@ -118,3 +120,65 @@ Checked November 14, 2026.
 - [NASA NTRS report 20090013858](https://ntrs.nasa.gov/api/citations/20090013858/downloads/20090013858.pdf) — near-circular, short-range Hill/Clohessy–Wiltshire assumptions.
 
 The sources inform the numerical model. This game has no live NASA telemetry, real mission authority or NASA endorsement.
+
+## v0.2 surface descent
+
+The new terminal exercises use a separate 2D lander in SI units. See [DESTINATIONS.md](DESTINATIONS.md) for sourced physical parameters, environment approximations and contact rules. The exercises are not connected by a continuous transfer to the Earth launch. A selected moon does not silently change the assembled rocket's performance.
+
+Checkpoint schema v1 remains backward compatible with launch/docking saves. Destination is additive; landing states receive their own strict validation. Restore reconstructs gravitational, lander, thrust-mode and contact constants from the trusted catalog, then copies only validated motion and resource state. Engine and held inputs are released on restoration.
+
+## v0.4 continuous Moon mission
+
+The separate `lunar-mission.js` controller connects the typed-slot custom
+spacecraft's Earth ascent to lunar contact. It does not replace the preserved
+legacy ascent/docking exercises. The builder, geometry, save and solver resolve
+one canonical design; imported files cannot supply their own engine constants.
+Stage release removes the actual stage and remaining fuel. Attached stages are
+retained until an explicit pilot separation, including at a depletion pause.
+
+The launch retains 1/60 s substeps. Long coasts use bounded phase-specific
+velocity-Verlet substeps (up to 30 s), with shorter powered/periapsis steps and
+contact crossing-time solving near the surface. Fuel flow is thrust divided by
+Isp × standard gravity; midstep mass supplies thrust acceleration. Time warp
+advances those physical substeps rather than interpolating between worlds.
+
+Moon radius is 1,737,400 m, GM is 4.9028 × 10¹² m³/s², mean orbital distance is
+384,400,000 m and the synthetic orbit is circular/coplanar. The Earth frame
+changes to a Moon-centered frame inside a 66,100,000 m sphere of influence.
+World position, velocity, time, fuel and mass are continuous at that coordinate
+change; the patched-conic **acceleration field is an approximation**. It omits
+simultaneous three-body gravity, lunar eccentricity/inclination, oblateness,
+mascons, Sun perturbations and current ephemerides.
+
+Guidance waits for a modeled departure window, burns finite fuel, targets lunar
+periapsis, coasts ballistically, brakes into lunar orbit and descends toward the
+chosen longitude. All four NASA-reference sites are projected into the same
+2D plane; their latitude is reference metadata, not a modeled plane change.
+Powered guidance points an ideal engine; manual attitude is kinematic in this
+integrated model, not the rigid-body six-degree-of-freedom docking model.
+This ideal pointing does not account for attitude-control propellant or torque.
+Translational burns spend main propellant; there is no passive translational braking.
+
+The default lunar demonstrator is fictional high-performance hardware. A
+numerical reference mission takes roughly 4.85 days and retains about 2 t of
+main propellant after contact. This is a model result, not a real mission
+performance prediction. Contact must meet the game speed, offset, tilt and leg
+rules; a hard or unsuitable landing can fail. Earth re-entry/heat recovery,
+sampling, life support, lunar ascent and return are not implemented.
+
+New mission checkpoints validate phase/frame, finite motion, trusted hardware,
+tank limits, discarded mass, propellant ledger, navigation plan and terminal
+contact. Restored engine power is zero and the UI remains paused. Invalid saves
+do not replace the last trusted in-memory checkpoint. Local custom rehearsals
+accept active descent saves only and are explicitly separate from transfers.
+
+`landing-assist.js` adds powered guidance to the legacy standard training
+lander through its normal throttle/torque interface. It obeys the power ceiling
+and consumes propellant. This is distinct from its upright-attitude hold.
+Custom surface rehearsals instead use their actual retained custom hardware;
+a vehicle without sufficient thrust is not silently upgraded.
+
+Moon/site references: [JPL satellite parameters](https://ssd.jpl.nasa.gov/sats/phys_par/sep.html),
+[JPL astrodynamic parameters](https://ssd.jpl.nasa.gov/astro_par.html) and
+[NASA lunar landing sites](https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_sites.html).
+Map limits and processing are documented in [asset credits](../public/assets/SOURCES.md).

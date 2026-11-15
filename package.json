@@ -1,14 +1,16 @@
 {
   "name": "kineti-core",
-  "version": "0.1.0",
+  "version": "0.4.4",
   "private": true,
   "type": "module",
-  "description": "Nikita's modular spacecraft and orbital flight game",
+  "description": "Mykyta's modular spacecraft and orbital flight game",
+  "author": "Mykyta Borisov (Микита Борисов; ropotropo)",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
     "build": "node scripts/build.mjs",
     "preview": "vite preview --host 127.0.0.1",
-    "test": "node --test tests/*.test.js"
+    "test": "node --test tests/*.test.js",
+    "export": "node scripts/export-project.mjs"
   },
   "dependencies": {
     "three": "0.187.0"
