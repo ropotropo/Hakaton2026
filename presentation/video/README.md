@@ -1,8 +1,8 @@
 # Kinetic Core gameplay film
 
-**Finished MP4:** `Kinetic-Core-Gameplay.mp4`  
-**Runtime:** 88 seconds  
-**Format:** 1920 × 1080, 30 fps, H.264 with AAC audio  
+**Finished MP4:** `Kinetic-Core-Gameplay.mp4`
+**Runtime:** 88 seconds
+**Format:** 1920 × 1080, 30 fps, H.264 with AAC audio
 **Sole author:** Mykyta Borisov
 
 The film uses newly recorded moving gameplay from the actual local v0.4.4 game build, an editable Remotion timeline, the approved portrait and KC identity, short English titles, and an original synthesized ambient sound bed. The final file is approximately 9.6 MB. It is a feature montage: the standard local Moon landing and separate docking exercise are identified explicitly.

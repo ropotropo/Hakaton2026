@@ -405,8 +405,8 @@
     },
     {
       "file": "video/README.md",
-      "sha256": "61a5279ba2eb30993637d2cf347aa7bb78e99254d5e81a867251f112ea17177e",
-      "bytes": 5622
+      "sha256": "249698fd75838cdbc4cf8df5604251675a1eb97d486f58b899de9d9ca71903ef",
+      "bytes": 5616
     },
     {
       "file": "video/capture-manifest.json",
