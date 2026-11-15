@@ -633,6 +633,8 @@ export function createScene(canvas, options = {}) {
   const launchGround=new THREE.Mesh(new THREE.PlaneGeometry(80000,80000),new THREE.MeshStandardMaterial({map:textures.coastalGround,color:0xffffff,roughness:1}));launchGround.rotation.x=-Math.PI/2;launchGround.position.set(-39080,-1.6,0);launchGround.receiveShadow=true;launchEnvironment.add(launchGround);
   const ocean=new THREE.Mesh(new THREE.PlaneGeometry(80000,80000),new THREE.MeshStandardMaterial({color:0x295d72,roughness:.42,metalness:.03}));ocean.rotation.x=-Math.PI/2;ocean.position.set(41000,-2.2,-100);launchEnvironment.add(ocean);
   const shore=new THREE.Mesh(new THREE.PlaneGeometry(80,80000),new THREE.MeshStandardMaterial({color:0xa49e82,roughness:1}));shore.rotation.x=-Math.PI/2;shore.position.set(960,-1.8,0);launchEnvironment.add(shore);
+  const localGroundMaterials=[launchGround,ocean,shore].map(mesh=>mesh.material);
+  localGroundMaterials.forEach(material=>{material.transparent=true;material.depthWrite=false;});
   for(const x of [-48,48])box(launchEnvironment,[9,.12,600],[x,-1.3,190],materials.concrete);
   box(launchEnvironment,[34,.08,1900],[0,-1.42,1120],materials.grate);
   const waterTank=new THREE.Group();waterTank.position.set(-95,-1.6,-70);launchEnvironment.add(waterTank);
@@ -754,7 +756,7 @@ export function createScene(canvas, options = {}) {
     dockingCockpit.root.visible=false;
     const cockpitView=mode==='docking'&&view.cameraMode==='cockpit'&&!freeOrbit;
     const desiredFov=cockpitView?55:mode==='docking'&&['port','docking'].includes(view.cameraMode)&&!freeOrbit?42:38;
-    const desiredFar=['landing','finale'].includes(mode)?300000:15000,desiredNear=cockpitView?.03:.1;
+    const desiredFar=['landing','finale','launch','rollout'].includes(mode)?300000:15000,desiredNear=cockpitView?.03:.1;
     if(camera.fov!==desiredFov||camera.far!==desiredFar||camera.near!==desiredNear){camera.fov=desiredFov;camera.far=desiredFar;camera.near=desiredNear;camera.updateProjectionMatrix();}
     engineLight.intensity=0;
     key.position.set(35,65,45);key.color.set(0xffead5);key.target.position.set(0,0,0);camera.up.set(0,1,0);
@@ -795,6 +797,7 @@ export function createScene(canvas, options = {}) {
       hemi.intensity=1.6;key.intensity=3.3;fill.intensity=1.7;rim.intensity=1.5;scene.environmentIntensity=.85;
     }else if(mode==='rollout'){
       scene.background=new THREE.Color(0x87aabd);scene.fog=new THREE.Fog(0x87aabd,800,8500);
+      localGroundMaterials.forEach(material=>{material.opacity=1;});
       const progress=clamp(Number(view.rolloutProgress??view.cinematicProgress??((elapsed-phaseAt)/3)),0,1);
       const travel=90*(1-THREE.MathUtils.smoothstep(progress,0,1));
       rocketRoot.position.set(0,1.2,travel);rocketRoot.rotation.set(0,0,0);rocketRoot.visible=true;
@@ -811,7 +814,7 @@ export function createScene(canvas, options = {}) {
       rocket.userData.core.visible=stage===0;rocket.userData.upper.visible=stage<2;
       const space=THREE.MathUtils.smoothstep(altitude,7000,80000);
       scene.background=new THREE.Color(0x87aabd).lerp(new THREE.Color(0x000000),space);
-      scene.fog=space<.7?new THREE.Fog(scene.background,700+altitude*.12,Math.min(14000,6500+altitude*.5)):null;
+      scene.fog=space<.7?new THREE.Fog(scene.background,700+altitude*1.8,Math.max(18000,altitude*35)):null;
       stars.visible=space>.65;stars.material.opacity=clamp((space-.65)*2,.0,.75);
       earth.visible=earthAtmosphere.visible=altitude>14000;
       const longitude=Array.isArray(view.positionSI)?Math.atan2(view.positionSI[1],view.positionSI[0]):0;
@@ -828,7 +831,10 @@ export function createScene(canvas, options = {}) {
         const ground=inertialToLocal([6371000*Math.cos(a),6371000*Math.sin(a)],view.positionSI);
         launchEnvironment.position.set(ground[0],ground[1],0);
       }else launchEnvironment.position.set(0,-altitude,0);
-      launchEnvironment.visible=altitude<14500;crawler.visible=false;
+      // Blend the local site into the always-present globe, without a blue gap.
+      const groundOpacity=1-THREE.MathUtils.smoothstep(altitude,6000,24000);
+      localGroundMaterials.forEach(material=>{material.opacity=groundOpacity;});
+      launchEnvironment.visible=altitude<26000;crawler.visible=false;
       // Rocket positions are local to its active stage. This frame follows the
       // vehicle, while the actual altitude is represented by atmosphere/ground.
       const pivot=rocket.userData.height*.48;
@@ -986,9 +992,12 @@ export function createScene(canvas, options = {}) {
       else surface.userData.beacons.forEach(beacon=>beacon.material.color.set(0xc6d6bf));
       if(phase==='failed'&&view.impact?.speed>3){lander.rotation.z=-angle+Math.min(1.1,(elapsed-phaseAt)*.45);lander.position.y=terrainY+Math.max(.1,height-(elapsed-phaseAt)*.4);}
       surfaceThrust.update(frameDt,{throttle,height,x,groundY:terrainY,paused:view.paused,vacuum:!titan,gravity:destination.gravity,color:VISUAL_PROFILES[selectedDestination].color});
-      finale.update(frameDt,{active:custom&&view.crewEnabled===true&&selectedDestination==='moon'&&(phase==='landed'||mode==='finale'),x});
-      if(custom&&view.crewEnabled===true&&(phase==='landed'||mode==='finale')&&!freeOrbit){
-        desiredLook.set(x+3,craftHeight*.37,1);desiredCamera.set(x+Math.max(18,craftHeight*1.4),Math.max(10,craftHeight*.8),Math.max(30,craftHeight*2.6));
+      const moonCeremony=selectedDestination==='moon'&&(phase==='landed'||mode==='finale')&&(view.crewEnabled===true||!custom);
+      finale.update(view.paused?0:frameDt,{active:moonCeremony,x});
+      if(moonCeremony&&!freeOrbit){
+        const focus=THREE.MathUtils.smoothstep(finale.age,1,5);
+        desiredLook.set(x+3,craftHeight*.37,1).lerp(new THREE.Vector3(x+7,1.5,3),focus);
+        desiredCamera.set(x+Math.max(18,craftHeight*1.4),Math.max(10,craftHeight*.8),Math.max(30,craftHeight*2.6)).lerp(new THREE.Vector3(x+12,5.5,17),focus);
         camera.position.copy(desiredCamera);look.copy(desiredLook);camera.up.set(0,1,0);camera.lookAt(look);
       }
     }

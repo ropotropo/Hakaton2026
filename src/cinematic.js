@@ -19,6 +19,8 @@ export function createSurfaceFinale(materials,reducedMotion=false){
     const arm=new THREE.Group();arm.position.set(side*.33,1.36,0);crew.add(arm);
     add(arm,new THREE.CapsuleGeometry(.09,.42,4,12),white,[0,-.24,0]);limbs.push(arm);
   }
+  const companion=crew.clone(true);root.add(companion);
+  const companionLimbs=limbs.map(limb=>companion.children[crew.children.indexOf(limb)]);
   const flag=new THREE.Group();flag.position.set(8,0,3);root.add(flag);
   add(flag,new THREE.CylinderGeometry(.025,.034,2.9,12),metal,[0,1.45,0]);
   const canvas=document.createElement('canvas');canvas.width=1500;canvas.height=900;
@@ -38,6 +40,9 @@ export function createSurfaceFinale(materials,reducedMotion=false){
     const progress=THREE.MathUtils.smoothstep(age,1.5,reducedMotion?3.5:10);
     crew.position.set(2+progress*5.6,0,2.8);crew.rotation.y=Math.PI/2;
     limbs.forEach((limb,i)=>{limb.rotation.x=!reducedMotion&&progress>0&&progress<1?Math.sin(age*6.7+(i%2)*Math.PI)*.32:0;});
+    companion.position.set(crew.position.x-1.25,0,4.4);companion.rotation.y=Math.PI/2;
+    companionLimbs.forEach((limb,i)=>{limb.rotation.x=!reducedMotion&&progress>0&&progress<1?Math.sin(age*6.7+(i%2)*Math.PI+1)*.28:0;});
+    if(progress>.7)limbs[3].rotation.x=-THREE.MathUtils.smoothstep(progress,.7,.95);
     flag.visible=age>(reducedMotion?3:8.5);
   }
   function dispose(){disposed=true;artwork.onload=null;root.traverse(o=>o.geometry?.dispose());visor.dispose();cloth.dispose();map.dispose();}

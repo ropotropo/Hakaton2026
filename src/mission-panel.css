@@ -258,3 +258,24 @@
   .mc-scene-heading > strong { font-size: 17px; }
   .mission-control.mc-show-instruments .mc-sidebar { display: block; position: absolute; z-index: 8; top: 64px; bottom: 135px; right: 0; width: min(300px, 47vw); padding: 16px; border-left: 1px solid #60606c; background: #09090cf5; }
 }
+
+/* Give the opening vehicle transport the scene, with one unobtrusive exit. */
+.mc-flight.is-rollout .mc-map, .mc-flight.is-rollout .mc-live { visibility: hidden; }
+.mc-flight.is-rollout .mc-cinematic {
+  inset: auto 24px 24px; display: block; font-size: 20px; line-height: 1.3;
+  letter-spacing: -.025em; font-weight: 450; background: none;
+}
+.mc-flight.is-rollout .mc-command > label,
+.mc-flight.is-rollout .mc-command > p,
+.mc-flight.is-rollout .mc-command-buttons > :not([data-action="skip-rollout"]) { display: none; }
+.mc-flight.is-rollout .mc-command-buttons { grid-column: 1 / -1; }
+
+/* Keep the crew and flag visible beneath the successful-contact debrief. */
+.mc-outcome[data-outcome="success"] {
+  inset: 18px 18px auto auto; width: min(310px, calc(100% - 36px));
+  grid-template-columns: 1fr; padding: 18px; gap: 11px; align-content: start;
+  background: #080809df; border: 1px solid #303034; border-radius: 7px;
+}
+.mc-outcome[data-outcome="success"] h2 { font-size: 24px; max-width: none; }
+.mc-outcome[data-outcome="success"] p { font-size: 12px; margin: 0; }
+.mc-outcome[data-outcome="success"] button { grid-column: 1; }
