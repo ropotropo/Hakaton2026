@@ -1,6 +1,5 @@
 {
-  "version": "0.4.0",
-  "sourceCommit": "a905b19ab57a9a00152fac334b26506bdafac5e1",
-  "author": "Mykyta Borisov",
-  "portableSha256": "3ffea1704642acc4b40f3f0f44b1e43c40f885c0ef46621da68ec4dc9d7d55af"
+  "version": "0.4.1",
+  "sourceCommit": "f7912bb",
+  "author": "Mykyta Borisov"
 }
