@@ -32,6 +32,15 @@ const state = { phase: 'assembly', config: { ...DEFAULT_CONFIG }, destination: '
 const keys = new Set();
 let rolloutReady=false;
 let orbitOverview=false;
+function syncOrbitView(){
+  if(state.phase!=='orbit')orbitOverview=false;
+  const button=$('orbit-overview-button');
+  if(!button)return;
+  button.disabled=state.phase!=='orbit';
+  button.textContent=orbitOverview?'Return to spacecraft':'Orbit / trajectory view';
+  button.title=state.phase==='orbit'?'Switch between spacecraft and trajectory cameras':'Available after orbital insertion';
+  button.setAttribute('aria-pressed',String(orbitOverview));
+}
 const touch = new Set();
 let vehicleSignature = '';
 let renderer, accumulator = 0, lastFrame = performance.now(), lastUI = 0, lastEvent = '', toastTimer, separationRequested = false;
@@ -192,6 +201,7 @@ function renderCommand() {
 }
 function toggleGuidance() { state.guidance = !state.guidance; renderCommand(); }
 function renderPhase() {
+  syncOrbitView();
   const assembly = state.phase === 'assembly', docking = state.flight?.kind === 'docking', landing = state.flight?.kind === 'landing';
   $('assembly-library').hidden = !assembly; $('flight-library').hidden = assembly;
   $('model-dimensions').hidden = !assembly || state.preview; $('flight-clock').hidden = assembly;
@@ -335,7 +345,7 @@ $('flight-canvas').addEventListener('webglcontextlost', event => { event.prevent
 $('flight-canvas').addEventListener('webglcontextrestored', () => notify('Graphics restored. Resume the flight when ready.'));
 renderPhase(); if (saved.error) notify(saved.error); else if (checkpoint) setText('checkpoint-label', 'Previous checkpoint available');
 window.addEventListener('resize', () => renderer?.resize());
-const navigation = installNavigation({state,selectDestination(id){state.destination=id;renderer?.setDestination(id);updateDestinationLabels();renderPhase();},resetCamera(){renderer?.resetOrbit();}});
+const navigation = installNavigation({state,selectDestination(id){state.destination=id;renderer?.setDestination(id);updateDestinationLabels();renderPhase();},resetCamera(){orbitOverview=false;syncOrbitView();renderer?.resetOrbit();}});
 const updateLandingDirector=installLandingDirector();
 installSiteMenu({onOpen(){clearInputs();pause(true);},onClose(){clearInputs();pause(true);}});
 const rollout=createRollout({onOpen(){clearInputs();pause(true);},onClose(){clearInputs();pause(true);},onReady(){rolloutReady=true;beginLaunch();}});
@@ -351,7 +361,7 @@ const onlineEarth=createOnlineEarth({onOpen(){clearInputs();pause(true);},onClos
 const earthButton=document.createElement('button');earthButton.className='secondary-button';earthButton.textContent='Earth / real cities';earthButton.onclick=()=>onlineEarth.open();document.querySelector('.navigation-tools').append(earthButton);
 const localPause=document.createElement('button');localPause.className='quiet-button';localPause.textContent='Pause / resume';localPause.onclick=()=>pause();document.querySelector('.navigation-tools').append(localPause);
 const localGuide=document.createElement('button');localGuide.className='quiet-button';localGuide.textContent='Flight guide';localGuide.onclick=()=>openGuide();document.querySelector('.navigation-tools').append(localGuide);
-const orbitButton=document.createElement('button');orbitButton.className='secondary-button';orbitButton.textContent='Orbit / trajectory view';orbitButton.onclick=()=>{orbitOverview=!orbitOverview;orbitButton.textContent=orbitOverview?'Return to follow camera':'Orbit / trajectory view';notify(orbitOverview?'Orbit view: white spacecraft, amber stages, blue circular station reference. Markers enlarged. Active during ascent and orbit.':'Follow camera tracks the spacecraft; orbital motion continues.');};document.querySelector('.navigation-tools').append(orbitButton);
+const orbitButton=document.createElement('button');orbitButton.id='orbit-overview-button';orbitButton.className='secondary-button';orbitButton.onclick=()=>{if(state.phase!=='orbit')return;orbitOverview=!orbitOverview;syncOrbitView();renderer?.resetOrbit();notify(orbitOverview?'Trajectory inspection: white spacecraft, amber stages, blue illustrative station reference. Use Return to spacecraft or Reset camera to leave.':'Spacecraft camera restored. Orbital motion continues.');};document.querySelector('.navigation-tools').append(orbitButton);syncOrbitView();
 window.addEventListener('blur',()=>{mapWasPaused=guideWasPaused=solarWasPaused=true;});
 requestAnimationFrame(renderFrame);
 try { if (typeof ResizeObserver === 'function') new ResizeObserver(() => renderer?.resize()).observe($('viewport')); } catch (error) { console.warn('Optional viewport observer unavailable:', error); }

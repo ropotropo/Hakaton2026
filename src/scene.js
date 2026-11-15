@@ -4,6 +4,7 @@ import { getDestination } from './destinations.js';
 import { advanceBallistic, inertialToLocal, releaseBody } from './separation-motion.js';
 import { createOrbitOverview } from './orbit-overview.js';
 import { boxClearance } from './separation-contact.js';
+import { shouldShowOrbitOverview } from './flight-view.js';
 
 // Presentation only. SI simulation stays in physics.js; camera and celestial
 // background use a local origin so GPU float precision never drives the flight.
@@ -575,6 +576,7 @@ export function createScene(canvas, options = {}) {
   const look=new THREE.Vector3(0,26,0),desiredLook=new THREE.Vector3(),desiredCamera=new THREE.Vector3();
   const cameraPoint=new THREE.Vector3(),targetProjection=new THREE.Vector3();
   const debris=[];
+  let wasOverview=false;
   let orbitYaw=0,orbitPitch=0,orbitZoom=1,dragY=0,freeOrbit=false;
   function resetOrbit(){orbitYaw=orbitPitch=0;orbitZoom=1;freeOrbit=false;}
   camera.position.set(72,40,94);camera.lookAt(look);
@@ -693,7 +695,13 @@ export function createScene(canvas, options = {}) {
       rocket.userData.engines.forEach((e,i)=>{e.visible=stage===0&&throttle>.01;e.scale.set(1,mix(.45,1.35,throttle)*(1+Math.sin(elapsed*53+i)*.05),1);});
       rocket.userData.upperPlume.visible=stage===1&&throttle>.01;rocket.userData.upperPlume.scale.set(1,1+Math.sin(elapsed*43)*.045,1);
       engineLight.intensity=throttle*(stage===0?750:240);engineLight.position.set(0,stage===0?1:30,0);
-      desiredCamera.set(stage===0?88:stage===1?51:29,pivot+12,stage===0?112:stage===1?69:39);desiredLook.set(0,pivot,0);
+      // Keep the transform pivot stable, but follow the hardware that remains.
+      // A fixed full-stack camera target crops the upper stage and capsule.
+      const followedBounds=new THREE.Box3().setFromObject(rocket.userData.spacecraft);
+      if(stage<2)followedBounds.union(new THREE.Box3().setFromObject(rocket.userData.upper));
+      if(stage===0)followedBounds.union(new THREE.Box3().setFromObject(rocket.userData.core));
+      followedBounds.getCenter(desiredLook);
+      desiredCamera.copy(desiredLook).add(new THREE.Vector3(stage===0?88:stage===1?51:29,12,stage===0?112:stage===1?69:39));
       camera.position.lerp(desiredCamera,smooth*.45);look.lerp(desiredLook,smooth*.6);camera.lookAt(look);
       hemi.intensity=mix(1.7,.58,space);key.intensity=mix(3.7,4.6,space);fill.intensity=mix(.9,.3,space);rim.intensity=1;scene.environmentIntensity=mix(.8,.35,space);
       for(const d of debris){
@@ -798,6 +806,8 @@ export function createScene(canvas, options = {}) {
     }
     celestials.setSunDirection(new THREE.Vector3().subVectors(key.position,key.target.position));
     effects.update(frameDt);
+    const showOverview=shouldShowOrbitOverview({...view,mode});
+    if(wasOverview&&!showOverview){camera.position.copy(desiredCamera);look.copy(desiredLook);camera.lookAt(look);}
     if(freeOrbit){
       const center=mode==='docking'?craftAttitude.position:mode==='landing'?lander.position:mode==='destination'?new THREE.Vector3():desiredLook;
       const radius=(mode==='assembly'?120:mode==='launch'?110:mode==='destination'?69:mode==='docking'?38:38)*orbitZoom;
@@ -808,11 +818,13 @@ export function createScene(canvas, options = {}) {
       if(mode==='landing')lander.visible=true;
     }
     orbitOverview.update(view,debris);
-    if(mode==='launch'&&view.orbitOverview&&Array.isArray(view.positionSI)){
+    if(showOverview){
       rocketRoot.visible=launchEnvironment.visible=earth.visible=earthAtmosphere.visible=false;
       debris.forEach(d=>d.object.visible=false);scene.fog=null;scene.background=new THREE.Color(0x000000);stars.visible=true;
-      orbitOverview.root.visible=true;camera.up.set(0,1,0);camera.position.set(0,0,65);camera.lookAt(0,0,0);
+      orbitOverview.root.visible=true;camera.up.set(0,1,0);
+      camera.position.set(0,0,24/Math.tan(camera.fov*Math.PI/360)/Math.min(1,camera.aspect));camera.lookAt(0,0,0);
     }
+    wasOverview=showOverview;
     renderer.render(scene,camera);
     targetProjection.set(0,0,0).project(camera);
     return {targetX:(targetProjection.x+1)/2,targetY:(1-targetProjection.y)/2,targetVisible:Math.abs(targetProjection.x)<=1&&Math.abs(targetProjection.y)<=1&&targetProjection.z>=-1&&targetProjection.z<=1};
