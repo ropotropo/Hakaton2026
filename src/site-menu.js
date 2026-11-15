@@ -1,5 +1,8 @@
 import './site-menu.css';
 
+// Kept as a literal so the portable build can embed the project's portrait.
+export const AUTHOR_PORTRAIT_PATH = './assets/mykyta-portrait.jpg';
+
 let installation;
 
 /**
@@ -30,7 +33,7 @@ export function installSiteMenu({ onOpen = () => {}, onClose = () => {} } = {}) 
   dialog.id = 'kinetic-site-menu';
   dialog.className = 'site-menu-dialog';
   dialog.setAttribute('aria-labelledby', 'kinetic-menu-title');
-  dialog.innerHTML = `<header class="site-menu-heading"><h2 id="kinetic-menu-title">Kinetic Core</h2><button type="button" class="site-menu-close" aria-label="Close site menu">×</button></header><nav aria-label="Site navigation"><button type="button" data-site-game>Game<span aria-hidden="true">↗</span></button><button type="button" data-site-biography>Creator biography<span aria-hidden="true">↗</span></button></nav>`;
+  dialog.innerHTML = `<header class="site-menu-heading"><h2 id="kinetic-menu-title">Kinetic Core</h2><button type="button" class="site-menu-close" aria-label="Close site menu">×</button></header><nav aria-label="Site navigation"><button type="button" data-site-game>Game</button><button type="button" data-site-biography>About the author</button></nav>`;
 
   const biography = document.createElement('section');
   biography.className = 'site-biography';
@@ -38,7 +41,7 @@ export function installSiteMenu({ onOpen = () => {}, onClose = () => {} } = {}) 
   biography.setAttribute('role', 'dialog');
   biography.setAttribute('aria-modal', 'true');
   biography.setAttribute('aria-labelledby', 'kinetic-biography-title');
-  biography.innerHTML = `<header class="site-biography-header"><span class="site-menu-brand">Kinetic Core</span><button type="button" class="site-biography-back">← Back to game</button></header><div class="site-biography-content" lang="en"><h1 id="kinetic-biography-title" tabindex="-1">Creator biography</h1><p>Under development</p></div>`;
+  biography.innerHTML = `<header class="site-biography-header"><span class="site-menu-brand">Kinetic Core</span><button type="button" class="site-biography-back">Back to game</button></header><div class="site-biography-content" lang="en"><figure class="site-author-portrait"><div class="site-author-image"><img src="${AUTHOR_PORTRAIT_PATH}" alt="Микита Борисов in a spacesuit" width="1024" height="1536" loading="lazy" decoding="async"></div></figure><article class="site-author-copy"><h1 id="kinetic-biography-title" lang="uk" tabindex="-1">Микита Борисов</h1><p class="site-author-country"><span class="site-country-mark" aria-hidden="true"></span>Ukraine</p><p class="site-author-attribution">Created by Mykyta Borisov</p></article></div>`;
   actions.append(trigger);
   // Siblings of the game, so making the shell inert never disables the page.
   document.body.append(dialog, biography);
@@ -143,9 +146,6 @@ export function installSiteMenu({ onOpen = () => {}, onClose = () => {} } = {}) 
       const walker = document.createTreeWalker(target, NodeFilter.SHOW_TEXT);
       for (let text = walker.nextNode(); text; text = walker.nextNode()) {
         const value = text.data
-          .replace(/Nikita\s*\/\s*navigation branch/gi, 'Kinetic Core / navigation')
-          .replace(/An original game by Nikita/gi, 'Kinetic Core team')
-          .replace(/\bNikita\b/gi, 'Kinetic Core team')
           .replace(/\bKineti Core\b/g, 'Kinetic Core');
         if (value !== text.data) text.data = value;
       }
@@ -154,7 +154,7 @@ export function installSiteMenu({ onOpen = () => {}, onClose = () => {} } = {}) 
   rebrand(document);
   document.title = document.title.replace(/Kineti Core/g, 'Kinetic Core');
   const description = document.querySelector('meta[name="description"]');
-  if (description) description.content = description.content.replace(/by Nikita/gi, 'by the Kinetic Core team');
+  if (description) description.content = description.content.replace(/\bKineti Core\b/g, 'Kinetic Core');
   const observer = new MutationObserver(records => {
     for (const record of records) {
       const element = record.target.nodeType === Node.ELEMENT_NODE ? record.target : record.target.parentElement;

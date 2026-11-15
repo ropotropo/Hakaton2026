@@ -1,0 +1,16 @@
+{
+  "asset": "mykyta-portrait.jpg",
+  "subject": "Микита Борисов",
+  "authorCredit": "Created by Mykyta Borisov",
+  "country": "Ukraine",
+  "type": "AI-generated illustrative portrait",
+  "sourceFile": "mykyta-lunar-portrait-v3.png",
+  "sourceSha256": "4361a989a4c1ca80a35af24e09495428c504ae9fb76bc20e85870b5c62eecf76",
+  "outputSha256": "08d3f7d6ea0c49755e2964cb0ef5f197c8bcb52c7c9286c55bd7fadd4182ca45",
+  "dimensions": [
+    1024,
+    1536
+  ],
+  "processing": "PNG to RGB JPEG, quality92, 4:4:4; no generative edit or face change. Current v3 with no retired SH/project-name patch.",
+  "authorization": "Existing current project portrait explicitly requested for the game author page by Andrii, 2026-11-15."
+}

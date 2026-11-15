@@ -1,6 +1,6 @@
 // AI-assisted implementation. Original game concept: Nikita.
-import { createLaunch, createDocking, orbitalElements, validateState } from './physics.js';
-import { DEFAULT_CONFIG, resolveConfig } from './catalog.js';
+import { createLaunch, createDocking, evaluateVehicle, orbitalElements, validateState } from './physics.js';
+import { DEFAULT_CONFIG, normalizeConfig, resolveConfig } from './catalog.js';
 import { DESTINATIONS } from './destinations.js';
 import { validateLandingState, restoreLandingState } from './landing.js';
 export const SAVE_VERSION = 1;
@@ -20,13 +20,20 @@ function finiteTree(value, depth = 0) {
 }
 
 export function validateCheckpoint(value, validateConfig = () => true) {
+  try { return validateCheckpointTrusted(value, validateConfig); } catch { return false; }
+}
+
+function validateCheckpointTrusted(value, validateConfig) {
   if (!value || value.version !== SAVE_VERSION || !PHASES.has(value.phase)) return false;
   if (!value.config || !finiteTree(value) || !validateConfig(value.config)) return false;
+  const normalized = normalizeConfig(value.config);
+  if (!Object.keys(DEFAULT_CONFIG).every(k => value.config[k] === normalized[k])) return false;
   if (value.destination !== undefined && !DESTINATIONS.some(d => d.id === value.destination)) return false;
   if (!Number.isFinite(Date.parse(value.savedAt))) return false;
   if (!Array.isArray(value.log) || value.log.length > 80) return false;
   if (!value.log.every(entry => entry && typeof entry === 'object' && Number.isFinite(entry.time) && entry.time >= 0 && typeof entry.message === 'string' && entry.message.length <= 2000)) return false;
   if (value.phase === 'assembly') return value.flight === null;
+  if (normalized.design && !evaluateVehicle(normalized).valid) return false;
   const flight = value.flight;
   if (value.phase === 'landing' || value.phase === 'landed') {
     return validateLandingState(flight) && flight.phase === value.phase &&
@@ -38,6 +45,11 @@ export function validateCheckpoint(value, validateConfig = () => true) {
   if (flight.kind !== (dimensions === 3 ? 'docking' : 'launch')) return false;
   if (flight.phase !== value.phase) return false;
   if (!Object.keys(DEFAULT_CONFIG).every(k => flight.config[k] === value.config[k])) return false;
+  // Canonicalize attachment order before comparison; force constants still come
+  // from the dimensions, never from the serialized flight's stage objects.
+  const flightConfig = normalizeConfig(flight.config);
+  if (JSON.stringify(flightConfig.design ?? null) !== JSON.stringify(normalized.design ?? null)) return false;
+  const trusted = resolveConfig(normalized);
   if (flight.position.length !== dimensions || flight.velocity.length !== dimensions) return false;
   if (!Number.isFinite(flight.time) || flight.time < 0 || flight.time > 86400 * 100) return false;
   if (dimensions === 3) {
@@ -46,6 +58,7 @@ export function validateCheckpoint(value, validateConfig = () => true) {
     if (norm < 0.99 || norm > 1.01 || flight.position.some(v => Math.abs(v) > 100000)) return false;
     if (!Array.isArray(flight.angularVelocity) || flight.angularVelocity.length !== 3) return false;
     if (!Number.isFinite(flight.fuel) || flight.fuel < 0) return false;
+    if (flight.fuel > trusted.service.rcsFuel) return false;
     if (flight.fuelUsed !== undefined && (!Number.isFinite(flight.fuelUsed) || flight.fuelUsed < 0)) return false;
   } else {
     if (!Array.isArray(flight.stages) || flight.stages.length !== 2 || !Number.isInteger(flight.stageIndex) || flight.stageIndex < 0 || flight.stageIndex > 2) return false;
@@ -53,7 +66,7 @@ export function validateCheckpoint(value, validateConfig = () => true) {
     for (const key of ['throttle', 'commandedThrottle', 'pitch', 'pitchTrim', 'maxQ', 'dynamicPressure', 'loadG', 'fuelUsed', 'deltaVUsed', 'dragLoss']) {
       if (flight[key] !== undefined && !Number.isFinite(flight[key])) return false;
     }
-    const parts = resolveConfig(value.config);
+    const parts = trusted;
     if (!flight.stages.every((s, i) => s.fuel <= [parts.core, parts.upper][i].propellant && s.attached === (i >= flight.stageIndex))) return false;
     if (Math.hypot(...flight.position) < 6000000 || Math.hypot(...flight.position) > 1000000000 || Math.hypot(...flight.velocity) > 100000) return false;
   }

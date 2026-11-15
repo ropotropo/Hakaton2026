@@ -1,6 +1,6 @@
 # Installation and distribution
 
-Technical direction checked against primary documentation on 15 November 2026. Native installers are a future milestone; v0.2 ships a static browser game and a self-contained HTML download.
+Technical direction checked against primary documentation on 15 November 2026. Native installers are a future milestone; v0.4 ships a static browser game and a self-contained HTML download.
 
 ## Decision
 

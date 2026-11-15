@@ -1,6 +1,6 @@
 # v0.2: destination flight deck
 
-Original game concept: Nikita. This release completes a destination-survey and terminal-landing stage on top of v0.1's rocket assembly, ascent, manual staging and docking.
+Original game concept: Mykyta. This release completes a destination-survey and terminal-landing stage on top of v0.1's rocket assembly, ascent, manual staging and docking.
 
 ## Playable
 

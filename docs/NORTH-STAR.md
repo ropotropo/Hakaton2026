@@ -1,6 +1,6 @@
 # Kineti Core: direction of flight
 
-Working product direction, 15 November 2026. Original concept: Nikita. Andrii's brief and this implementation establish a proposal for Nikita to review, not a claim of his approval of every design choice.
+Working product direction, 15 November 2026. Sole game author: Mykyta. Andrii relays feedback and coordinates development. This implementation establishes a proposal for Mykyta to review, not a claim of his approval of every design choice.
 
 ## North Star
 
@@ -19,13 +19,40 @@ Only the implemented portions below are playable today. A destination picker doe
 | Version | Player outcome | Exit criteria | Deliberate boundary |
 | --- | --- | --- | --- |
 | v0.1, released | Assemble a two-stage rocket, reach a bound Earth orbit, dock manually | Fuel and mass accounting, physical orbit check, safe capture and checkpoint restore | 2D ascent; terminal docking starts as a separate scenario |
-| v0.2, this stage | Inspect 12 moon destinations and manually land a standard training lander in their local gravity | NASA image maps for Earth, 12 moons and their parent planets, distinctive black instrument design, finite-fuel descent, explicit contact limits, success/failure debrief and effects | Training lander is independent of launch design; local surface exercises do not simulate transfers, radiation or sampling |
-| v0.3, proposed | Fly one coherent Moon mission from Earth orbit to landing | Shared spacecraft state and resource ledger; translunar injection, time warp for coast, lunar sphere transition and a readable map; checkpoints at maneuvers; controllable landing hardware chosen in assembly | Moon first; no instantaneous interplanetary travel disguised as continuous physics |
-| v0.4, proposed | Collect a lunar sample, launch from the surface, rendezvous and return | Sample tool and mass budget, ascent stage, rendezvous targeting, oxygen/power reserves, entry/heat and recovery; failure explanation traces back to a decision | An achievable lunar campaign before adding many deep-space routes |
-| v0.5, proposed | Plan a genuinely different mission to an outer-system moon | Transfer windows, finite energy and propulsion, body-specific instrument packages; radiation around Jupiter, Titan atmosphere and icy sample handling; compare mission budgets | Research and validate environments individually; label speculative hardware |
+| v0.2, released | Inspect 12 moons and land a standard training lander | Local gravity, NASA maps, finite fuel and debrief | Surface exercises skip transfers, radiation and sampling |
+| v0.3, Mykyta's branch | Ground rollout, custom workshop, Mercury/Mars and online Earth flight | Preserve changes through commit d495fd7 | At that stage the workshop was independent of ascent; map flight remains separate |
+| v0.4, implementation stage | Fly the same custom vehicle from Earth to Moon touchdown | Typed points, saved designs actually fly, shared fuel, finite burns, manual staging, coast/capture/descent, four sites, direct modes and docking cameras | 2D patched conics, ideal engine pointing, synthetic Moon epoch, illustrative terrain; other worlds are local rehearsals |
+| v1, proposed release gate | A new player completes and retries the Moon expedition, then practices docking | Completion gates below pass on a frozen reproducible build; Mykyta reviews the playable | No implied return, sample mechanics, complete Solar System transfers or installers |
+| After v1: lunar return | Sample, ascend, rendezvous and return | Tool/sample mass, ascent propulsion, rendezvous targeting, reserves, entry/heat and recovery | Another coherent physics and verification stage |
+| After v1: outer system | Plan a different outer-system mission | Transfer windows, propulsion, instruments and validated body hazards | Europa research does not implement human survival or ocean sampling |
 | Distribution milestone | Install the tested game on a PC or Android device | Windows/macOS/Android smoke matrix, appropriate inputs, stable saves, signed packages where required | Packaging is not a replacement for mobile performance work |
 
-Version numbers describe order, not promised delivery dates. The next gate is a coherent lunar mission, not a longer list of decorative destinations.
+Version numbers describe order, not promised delivery dates. Complete the Moon expedition before adding more long-distance routes.
+
+## Efficient path to v1
+
+| Priority | Gate | v0.4 evidence / remaining work |
+| --- | --- | --- |
+| P0 | Complete loaded-craft mission, staging and restore | Passed a full guided Chrome Moon flight with edited/saved/loaded hardware and manual staging. Actual custom Europa success/failure/restore also checked. Keep this as the regression baseline. |
+| P0 | Find and operate each maneuver | Modes paths, three docking cameras, 360° inspection, full manual soft capture and readable landing assistance passed browser checks; desktop and 390 px covered. |
+| P1 | Believable visuals with bounded resources | Detailed lander/cockpit, steam/dust and corrected distant Moon horizon checked. Measure performance on Mykyta's actual device before v1; no mobile GPU/FPS claim yet. |
+| P1 | A first-time player completes and retries | Written first-flight steps and physical failure explanations exist. Mykyta's first-play feedback and any necessary simplification remain. |
+| P0 before v1 | Compatibility and portable handover | Record Safari and extracted-copy results in QA-V04. Direct-file/offline browser coverage must be distinguished from embedded-asset checks and HTTP portable testing. |
+| Sign-off | Mykyta approves the candidate | Review the versioned playable, resolve his blocking feedback, freeze source/archive/manifest and choose final distribution/submission requirements. |
+
+Keep more destinations, renderer changes, native wrappers and the return campaign
+outside this gate. Return would expand v1 materially; this plan focuses the first
+release on Moon landing and a distinct docking exercise. No completion rate or
+delivery date is invented. [QA-V04.md](QA-V04.md) records actual evidence; this
+plan is not a passed test.
+
+## Ownership and handover
+
+Mykyta is the sole game author in UI, metadata and [AUTHORS.md](../AUTHORS.md).
+Third-party attribution remains separate. Each reviewed candidate must be
+exportable without `.git`, scratch files, private services or forgotten textures.
+See [the transfer procedure](REPOSITORY-TRANSFER.md) for the clean-room check and
+manifest.
 
 ## Physics contract
 
@@ -37,7 +64,7 @@ The current surface scenarios are deliberate exercises using each body's mean-ra
 
 The game is an optical mission instrument: true black, disciplined white type, quiet controls and detailed spacecraft under physical light. Real engineering information earns space; decorative telemetry does not. Read [DESIGN.md](DESIGN.md) and the reusable [Kineti design skill](../skills/kineti-design/SKILL.md) for the actual language. No Malibu Wired or TRD visual system is inherited.
 
-## What to test next with Nikita
+## What to test next with Mykyta
 
 1. Does the destination survey make a different landing feel worth trying?
 2. Can a new player distinguish throttle, drift and attitude, and recover after a failed landing?

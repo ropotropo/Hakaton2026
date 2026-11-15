@@ -1,6 +1,6 @@
 # Version 0.2 independent QA
 
-Original concept: Nikita. Review date: November 15, 2026 (America/Los_Angeles).
+Original concept: Mykyta. Review date: November 15, 2026 (America/Los_Angeles).
 
 This record distinguishes observed browser behavior, numerical tests, source review and unverified scope. It does not certify flight accuracy or human safety. Source changes and release operations remain with the integration owner.
 

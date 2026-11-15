@@ -1,4 +1,4 @@
-# Nikita navigation branch
+# Mykyta navigation branch
 
 ## Solar System catalog and expanded viewport
 

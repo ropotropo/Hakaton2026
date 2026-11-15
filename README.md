@@ -2,88 +2,127 @@
 
 **Design a mission. Fly its critical moments.**
 
-An original spaceflight game concept by **Kinetic Core team**, developed in collaboration with Andrii. Version 0.2 adds a survey of 12 Solar System moons, finite-fuel manual terminal landing exercises, NASA image maps, a new black instrument design language and flight debriefs to modular assembly, ascent, staging and manual docking.
+An original spaceflight game by **Mykyta Borisov (ropotropo), the sole game author**.
+Andrii coordinates feedback; Codex and specialist agents assist development.
+See [authorship](AUTHORS.md).
+The site menu's **About the author** page shows **Микита Борисов**, Ukraine,
+with the project spacesuit portrait.
 
-## Play the built version
+## Play v0.4
 
-Play **[the browser version](https://ropotropo.github.io/Hakaton2026/)** or get **[the v0.2 release](https://github.com/ropotropo/Hakaton2026/releases/tag/v0.3.0)**.
+Open **[the browser game](https://ropotropo.github.io/Hakaton2026/kinetic-core/)**
+or download the portable HTML from the
+**[v0.4 release](https://github.com/ropotropo/Hakaton2026/releases/tag/v0.4.0)**.
+The portable `dist/Kineti-Core.html` includes the renderer and local textures;
+open the downloaded file directly. The core game needs no account or backend.
+The optional **Earth / free flight** map mode needs internet.
 
-Download **[dist/Kineti-Core.html](dist/Kineti-Core.html)** using GitHub's **Download raw file** button, then open the downloaded HTML file in Safari, Chrome or Edge. The portable build includes the game, graphics library and all celestial textures; it needs no account, installation or local server.
+**Modes** directly opens the workshop, Moon mission, Earth launch exercise,
+manual docking, assisted surface landing, online Earth flight and Solar System
+inspection. Exercises state which parts of a mission they skip.
 
-Alternatively, serve `dist/` as a static website. `dist/index.html` is the normal optimized web build. No external API or runtime asset requests are required. The existing `.openai/hosting.json` continues to point to `dist`.
+## Your first Moon mission
 
-## Surface destinations
+1. **Modes → Rocket workshop.** Start with the Lunar demonstrator, or place
+   modules at compatible attachment points. Dimensions change mass, geometry
+   and performance. Saved/imported designs are the same vehicles that fly.
+2. Select **Start Flight → Moon**, then one of four Apollo-reference approach
+   areas. Other destinations start explicitly separate local rehearsals.
+3. Start the mission: a 3 s rollout presentation and 5 s countdown precede a
+   real powered ascent. The flight director hands over at actual 100 m altitude.
+4. Keep **Powered guidance** on for the first run. Power is an engine ceiling.
+   At core depletion the game pauses: choose **Separate stage** or press
+   **Space** to release it and continue.
+5. In the confirmed Earth orbit, choose **Plan lunar departure**. Coast to the
+   burn window and separate the depleted upper stage when asked. All burns
+   use the retained craft's finite propellant.
+6. Time warp compresses the actual Earth–Moon coast. Guidance performs lunar
+   approach, capture, coast to the chosen longitude and powered descent. You
+   can change power, disable guidance or pause. The live map follows the actual
+   trajectory; a dashed bearing is not a collision-free flight plan.
+7. Safe contact produces the Moon crew/text-flag finale and physical debrief.
+   Surface samples, lunar ascent, return and atmospheric entry are future work.
 
-Choose **Moon, Phobos, Deimos, Io, Europa, Ganymede, Callisto, Titan, Enceladus, Rhea, Iapetus or Triton**. Inspect a textured globe and its parent planet, compare gravity and surface hazards, then start a local landing exercise. Each uses its own gravitational parameter and mean radius. Titan adds a simplified near-surface drag model; other atmospheres are neglected.
+The named approaches use real reference coordinates; latitude is metadata in
+this **2D** model and surface terrain is illustrative. The model uses a synthetic
+circular Moon epoch and patched conics, not live ephemerides.
 
-Landing uses a **standard fictional training lander**, independent of the assembled launch vehicle. The game clearly skips the transfer to this exercise. Terrain, radiation, extreme temperatures and sampling methods are planning context; they are not survival or sample-collection mechanics yet. Low-gravity Phobos/Deimos exercises start lower/slower with a limited-thrust engine mode. Maps are credited NASA resources; local terrain is illustrative.
+## Docking and landing controls
 
-W/S changes throttle, A/D (or left/right arrows) tilts, B toggles a propellant-consuming upright hold, and Space cuts the engine. Touch tilt buttons and a throttle slider are available. Land inside ±25 m of the pad center below 2 m/s vertical, 1.5 m/s lateral, 8° tilt and 3°/s rotation. These tolerances are game values. Check the hover-power hint and use the descent camera to inspect the landing zone.
+**Modes → Manual docking** starts a separate 70 m terminal approach. Choose
+**External chase**, **Docking camera** or **Cockpit** above the command surface.
+The nose camera supplies alignment optics; the crew-eye camera follows actual
+craft attitude. External views support mouse inspection. Changing cameras does
+not align, brake or move the craft.
 
-## Direction of flight
+| Input | Manual docking | Surface landing exercise |
+| --- | --- | --- |
+| W / S | Approach / retreat | Engine power |
+| A / D | Translate left / right | Tilt left / right |
+| R / F | Translate up / down | — |
+| Arrow keys | Pitch / yaw | Left/right tilt |
+| Q / E | Roll | — |
+| Shift | Fine RCS, 20% thrust | — |
+| Space | Hold powered translation brake | Cut engine |
+| B | Powered attitude hold | Powered upright hold |
+| Esc | Pause | Pause |
 
-Read the **[North Star and version roadmap](docs/NORTH-STAR.md)**, **[design language](docs/DESIGN.md)**, **[reusable design skill](skills/kineti-design/SKILL.md)** and **[installation plan for Windows/macOS/Android](docs/DISTRIBUTION.md)**. The next proposed stage is a coherent Moon mission; native `.exe`/`.apk` packages are not included in this release.
+Every docking assist spends RCS fuel. No passive vacuum braking or automatic
+forward motion. Keep contact below 0.15 m/s, lateral alignment within 0.35 m,
+axis error below 5° and rotation below 1°/s; these are game tolerances.
 
-## Develop
+**Modes → Surface landing** opens the standard training lander with an obvious
+**Landing assist** toggle. It is powered descent guidance, separate from upright
+hold. Commands obey the power ceiling and use fuel. Manual controls, a readable
+throttle slider and descent camera remain available.
 
-Node.js **22.12 or newer** is required.
+Phone layouts include held docking translation/rotation and Fine RCS, ascent
+pitch, integrated manual pitch/Cut engine and online Earth yaw controls. The
+docking view stays visible while reaching its touch pad. Layouts were checked
+at 390×844 and 844×390; real iPhone/Android performance and a complete manual
+phone campaign still need device testing. Desktop keyboard remains the primary
+precision-control baseline.
+
+Fourteen destinations are available: Moon, Phobos, Deimos, Io, Europa, Ganymede,
+Callisto, Titan, Enceladus, Rhea, Iapetus, Triton, Mercury and Mars. The workshop
+also starts **your own retained spacecraft** in local surface rehearsals; it
+does not simulate interplanetary transfers there. Some designs lack sufficient
+thrust on higher-gravity bodies. The planner warns rather than changing hardware.
+
+## Develop and transfer
+
+Node.js **22.12+** and npm are required. Run in the extracted project folder:
 
 ```sh
 npm ci
-npm run dev
-```
-
-Open the local URL printed by Vite.
-
-```sh
 npm test
 npm run build
 npm run preview
 ```
 
-The build produces both the regular static web app and `dist/Kineti-Core.html` for portable testing.
+`npm run dev` starts development. Build outputs are static `dist/` and portable
+`dist/Kineti-Core.html`. Relative assets support root or subpath hosting. No
+private service or developer-machine path is required.
 
-## First flight
+After committing a tested version, `npm run export` creates a source ZIP and
+SHA-256 manifest from that commit, without Git history or scratch files. Follow
+[REPOSITORY-TRANSFER.md](docs/REPOSITORY-TRANSFER.md) before moving repositories.
+Browser saves remain origin/device-local; a new URL does not inherit them.
 
-1. Choose a capsule, service module, core and upper stage. Launch mass, liftoff thrust-to-weight and ideal delta-v are computed from the design. Hardware specifications are plausible **fictional inputs**, not NASA vehicle specifications.
-2. Begin the launch sequence. Leave guidance on for the first flight. Guidance steers using actual thrust and is limited by the player's throttle ceiling.
-3. Separate the depleted core with **Space** or the staging button. The upper stage continues toward orbit. An early separation discards remaining propellant.
-4. After the engine cuts off in a confirmed bound orbit, release the upper stage.
-5. Begin the **separate terminal-approach scenario**, or enter docking practice directly from assembly. Full long-range orbital rendezvous is not simulated in this version.
+## Evidence and next milestone
 
-| Controls | Ascent | Docking |
-| --- | --- | --- |
-| W / S | Throttle up / down | Approach / retreat |
-| A / D | Pitch trim / manual pitch | Translate left / right |
-| R / F | — | Translate up / down |
-| Arrow keys | Left/right pitch | Pitch / yaw |
-| Q / E | — | Roll |
-| Space | Separate stage | Hold powered translation brake |
-| Shift | — | Fine RCS (20% thrust) |
-| G | Toggle ascent guidance | — |
-| B | — | Toggle powered attitude hold |
-| Esc | Pause | Pause |
+- [v0.4 changes and limits](docs/RELEASE-V04.md)
+- [Independent QA](docs/QA-V04.md), with numerical and browser evidence separated
+- [North Star and v1 gates](docs/NORTH-STAR.md)
+- [Physical models](docs/PHYSICS.md) and [Europa research](docs/EUROPA.md)
+- [Design language](docs/DESIGN.md) and [reusable skill](skills/kineti-design/SKILL.md)
+- [Windows/macOS/Android plan](docs/DISTRIBUTION.md)
 
-Touch translation and rotation controls are available on narrow screens. Desktop keyboard is the primary flight control scheme.
+NASA/JPL/USGS data and images retain credits in
+[public/assets/SOURCES.md](public/assets/SOURCES.md). Dependency notices ship in
+`dist/THIRD_PARTY_NOTICES.txt` and the portable HTML. Spacecraft, pad and surface
+geometry are illustrative fictional hardware. No NASA affiliation or endorsement.
 
-Checkpoints are stored locally in your browser. They are versioned and validated; physical constants are rebuilt from trusted catalog entries when restoring. The game pauses and releases all held inputs when the browser loses focus.
-
-## Physical model and limits
-
-- Fixed-step Newtonian integration in SI units, independent of rendering FPS.
-- Inverse-square Earth gravity using a NASA/JPL gravitational parameter, rotating-atmosphere launch approximation, layered density model, aerodynamic drag and mass-flow propellant accounting.
-- Real stage mass changes and finite fuel. Orbit confirmation uses energy and apsides, not a timer or altitude-only check.
-- Local Hill relative dynamics, quaternion attitude, inertial rotation, powered RCS assists and explicit capture limits in docking. No passive vacuum damping or automatic forward approach.
-- The 2D launch, circular reference orbit, geometric capture plane, synthetic design limits and scenario handoff are deliberate first-version approximations. This is a game, not a certified mission-analysis tool.
-
-See **[docs/PHYSICS.md](docs/PHYSICS.md)** for sources, equations, numerical verification and limitations, **[docs/QA.md](docs/QA.md)** for browser checks, and **[docs/PLAYABLE-V1.md](docs/PLAYABLE-V1.md)** for scope.
-
-## Sources, assets and assistance
-
-NASA/JPL physical references and the local NASA Blue Marble Earth image are credited in [docs/PHYSICS.md](docs/PHYSICS.md), [docs/DESTINATIONS.md](docs/DESTINATIONS.md) and [public/assets/SOURCES.md](public/assets/SOURCES.md). Three.js is MIT licensed. Dependency notices are included in dist/THIRD_PARTY_NOTICES.txt and inside the portable HTML build. NASA is not affiliated with this game and does not endorse it.
-
-The original idea belongs to Kinetic Core team. Code, procedural graphics and documentation were assisted by Codex and specialist agents. The project does not use AI-generated NASA branding.
-
-## Version review
-
-Each completed, checked version is committed and pushed. Development versions use a feature branch and a pull request requesting review from **@ropotropo**. The playable portable build is included so Kinetic Core team can download and test without a development environment. Feature branches are not merged automatically.
+Completed versions are tested, built, committed and pushed with a portable build
+and a pull request requesting **@ropotropo** review, without automatic merging.
+Native `.exe`/`.apk` packages are not included yet.
