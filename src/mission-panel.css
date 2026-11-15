@@ -258,3 +258,14 @@
   .mc-scene-heading > strong { font-size: 17px; }
   .mission-control.mc-show-instruments .mc-sidebar { display: block; position: absolute; z-index: 8; top: 64px; bottom: 135px; right: 0; width: min(300px, 47vw); padding: 16px; border-left: 1px solid #60606c; background: #09090cf5; }
 }
+
+/* Give the opening vehicle transport the scene, with one unobtrusive exit. */
+.mc-flight.is-rollout .mc-map, .mc-flight.is-rollout .mc-live { visibility: hidden; }
+.mc-flight.is-rollout .mc-cinematic {
+  inset: auto 24px 24px; display: block; font-size: 20px; line-height: 1.3;
+  letter-spacing: -.025em; font-weight: 450; background: none;
+}
+.mc-flight.is-rollout .mc-command > label,
+.mc-flight.is-rollout .mc-command > p,
+.mc-flight.is-rollout .mc-command-buttons > :not([data-action="skip-rollout"]) { display: none; }
+.mc-flight.is-rollout .mc-command-buttons { grid-column: 1 / -1; }

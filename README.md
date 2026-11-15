@@ -8,11 +8,11 @@ See [authorship](AUTHORS.md).
 The site menu's **About the author** page shows **Микита Борисов**, Ukraine,
 with the project spacesuit portrait.
 
-## Play v0.4.1
+## Play v0.4.2
 
 Open **[the browser game](https://ropotropo.github.io/Hakaton2026/kinetic-core/)**
 or download the portable HTML from the
-**[v0.4 release](https://github.com/ropotropo/Hakaton2026/releases/tag/v0.4.1)**.
+**[v0.4.2 release](https://github.com/ropotropo/Hakaton2026/releases/tag/v0.4.2)**.
 The portable `dist/Kineti-Core.html` includes the renderer and local textures;
 open the downloaded file directly. The core game needs no account or backend.
 The optional **Earth / free flight** map mode needs internet.
@@ -30,7 +30,7 @@ The final **KC** brand appears in the game, menu and landing flag. Open **How to
    and performance. Saved/imported designs are the same vehicles that fly.
 2. Select **Start Flight → Moon**, then one of four Apollo-reference approach
    areas. Other destinations start explicitly separate local rehearsals.
-3. Start the mission: a 3 s rollout presentation and 5 s countdown precede a
+3. Start the mission: a skippable 12 s rollout cinematic and 5 s countdown precede a
    real powered ascent. The flight director hands over at actual 100 m altitude.
 4. Keep **Powered guidance** on for the first run. Power is an engine ceiling.
    At core depletion the game pauses: choose **Separate stage** or press
