@@ -12,10 +12,10 @@ if (git('status', '--porcelain', '--untracked-files=normal')) {
 }
 const { version, author } = JSON.parse(await readFile(resolve(root, 'package.json'), 'utf8'));
 const files = git('ls-tree', '-r', '--name-only', 'HEAD').split('\n');
-for (const required of ['AUTHORS.md', 'package-lock.json', 'src/main.js', 'dist/index.html', 'dist/Kineti-Core.html', 'dist/THIRD_PARTY_NOTICES.txt', 'public/assets/SOURCES.md', 'docs/REPOSITORY-TRANSFER.md']) {
+for (const required of ['AUTHORS.md', 'package-lock.json', 'src/main.js', 'dist/index.html', 'dist/Kineti-Core.html', 'dist/THIRD_PARTY_NOTICES.txt', 'public/assets/SOURCES.md', 'docs/REPOSITORY-TRANSFER.md', 'desktop/main.cjs', 'desktop/package-lock.json', 'android/app/src/main/AndroidManifest.xml', 'android/ANDROID-NOTICES.txt']) {
   if (!files.includes(required)) throw new Error(`Export is missing ${required}.`);
 }
-if (files.some(file => /^(?:work|outputs|node_modules|\.git)\//.test(file))) {
+if (files.some(file => /(?:^|\/)(?:work|outputs|node_modules|\.git|\.gradle|\.cache)\//.test(file) || /^desktop\/(?:game|release)\//.test(file) || /^android\/.*\/build\//.test(file) || /(?:\.jks|\.keystore|(?:^|\/)local\.properties)$/.test(file))) {
   throw new Error('Private or generated working directories must not be tracked.');
 }
 const directory = resolve(root, 'outputs', `v${version}`, 'transfer');
