@@ -39,8 +39,8 @@ function makeTextures() {
     ctx.fillStyle = '#d7773f'; ctx.fillRect(0, 832, w, 9);
     ctx.fillStyle = '#2c353c';
     ctx.font = '600 38px Arial'; ctx.textAlign = 'center';
-    ctx.fillText('KINETI', 255, 340); ctx.fillText('CORE', 255, 388);
-    ctx.fillText('KINETI', 768, 340); ctx.fillText('CORE', 768, 388);
+    ctx.fillText('KINETIC', 255, 340); ctx.fillText('CORE', 255, 388);
+    ctx.fillText('KINETIC', 768, 340); ctx.fillText('CORE', 768, 388);
     ctx.font = '14px monospace';
     ctx.fillText('EXPLORATION VEHICLE', 255, 425);
     ctx.fillText('EXPLORATION VEHICLE', 768, 425);

@@ -6,8 +6,7 @@ coordinates development. Codex and specialist agents provide implementation,
 design and verification assistance; they are tools, not additional game authors.
 
 Use this authorship consistently in the game, package metadata, release notes
-and a future repository transfer. The current playable/build label is **Kinetic Core**. The final project name is
-still being coordinated; preserve existing deployment paths until that decision.
+and a future repository transfer. The confirmed final name is **Kinetic Core**, with the Latin **KC** monogram.
 
 Third-party work keeps its own attribution and license: Three.js and build
 dependencies retain their notices; NASA/JPL/USGS imagery and physical reference

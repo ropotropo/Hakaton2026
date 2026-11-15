@@ -8,11 +8,11 @@ See [authorship](AUTHORS.md).
 The site menu's **About the author** page shows **Микита Борисов**, Ukraine,
 with the project spacesuit portrait.
 
-## Play v0.4
+## Play v0.4.1
 
 Open **[the browser game](https://ropotropo.github.io/Hakaton2026/kinetic-core/)**
 or download the portable HTML from the
-**[v0.4 release](https://github.com/ropotropo/Hakaton2026/releases/tag/v0.4.0)**.
+**[v0.4 release](https://github.com/ropotropo/Hakaton2026/releases/tag/v0.4.1)**.
 The portable `dist/Kineti-Core.html` includes the renderer and local textures;
 open the downloaded file directly. The core game needs no account or backend.
 The optional **Earth / free flight** map mode needs internet.
@@ -20,6 +20,8 @@ The optional **Earth / free flight** map mode needs internet.
 **Modes** directly opens the workshop, Moon mission, Earth launch exercise,
 manual docking, assisted surface landing, online Earth flight and Solar System
 inspection. Exercises state which parts of a mission they skip.
+
+The final **KC** brand appears in the game, menu and landing flag. Open **How to play** from the header or site menu for a short first-flight guide.
 
 ## Your first Moon mission
 

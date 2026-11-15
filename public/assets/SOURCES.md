@@ -5,7 +5,7 @@
 `mykyta-portrait.jpg` is the existing AI-generated spacesuit portrait of
 **Микита Борисов**, supplied for this project and explicitly requested for the
 author page by Andrii on 15 November 2026. The image is an illustration, not
-evidence of a real lunar mission. It was encoded from the current v3 portrait PNG (no retired project-name/SH patch)
+evidence of a real lunar mission. It was encoded from the current approved KC portrait v5 PNG
 without a generative edit or facial alteration. Its source/output SHA-256,
 dimensions and encoding are recorded in `mykyta-portrait-source.json`.
 The technical provenance is documented here separately from Mykyta's
@@ -54,8 +54,14 @@ Dust/debris use brief ballistic-looking motion, not atmospheric smoke on airless
 - **Europa 4K:** `celestial-europa-hd.jpg`, 4096 × 2048, resampled from the [USGS Galileo / Voyager global 500 m mosaic](https://planetarymaps.usgs.gov/mosaic/Europa_Voyager_GalileoSSI_global_mosaic_500m.tif). Credit: NASA / JPL / USGS. The original Simple Cylindrical mosaic is 19631 × 9816 pixels. This is a **monochrome mosaic**, given mild display contrast and a warm-neutral tint; it is not measured true color or a height map. Approximately 4.25% of zero/no-data pixels were filled with a flat median value, without reconstructed surface detail. [Processing receipt](hd-sources.json) records original and derived hashes, dimensions, sizes and source URLs.
 - Desktop renderers with 4096-pixel texture support use these maps by default. When 8192-pixel textures are supported, the retained 5400 × 2700 NASA Earth source supplies the Earth's close-up color map without another download. Narrow screens retain the lighter source maps. Neither map is used as a local landing elevation model. The landing sites remain procedural illustrations and the flat contact approximation remains in the simulation module.
 
-The custom vehicle geometry is shared verbatim between the workshop and flight renderer. Its dimensions, canonical attachment positions and stage membership come from the vehicle-design model. The geometry, stages, plume shaders, finite steam/dust particles, crawler, astronaut and Kinetic Core text flag are original procedural artwork. The flag is a text placeholder, not an agency insignia. EVA presentation is enabled only after successful contact in the integrated Moon mission when the controller explicitly enables crew; Europa landing practice does not claim human radiation survival.
+The custom vehicle geometry is shared verbatim between the workshop and flight renderer. Its dimensions, canonical attachment positions and stage membership come from the vehicle-design model. The geometry, stages, plume shaders, finite steam/dust particles, crawler, astronaut and Kinetic Core text flag are original procedural artwork. The flag uses the approved Kinetic Core / KC emblem, not an agency insignia. EVA presentation is enabled only after successful contact in the integrated Moon mission when the controller explicitly enables crew; Europa landing practice does not claim human radiation survival.
 
 Flight backgrounds use a separate depth pass and floating local coordinates. Earth and Moon preserve their supplied relative bearings and angular sizes; the Moon trajectory is a modeled circular orbit, not a current ephemeris. Sun and other planets are symbolic static contextual markers, with minimum visible sizes; they do not participate in the Earth–Moon solver. Globe display orientation, ocean tonal lift, ocean roughness, cloud layer and atmosphere scattering are visualization approximations. The dated Earth composite's near-black ocean receives a restrained daylight tonal lift; it is not a new measured ocean-color product.
 
 Launchpad and coastal terrain are illustrative. Camera framing, Earth distance haze, launch steam and vacuum dust are presentation; thrust, stage release, fuel and contact state continue to come from the simulation. The surface-EVA walk and flag placement are a post-contact cinematic, not an independently modeled life-support or surface-traverse simulation.
+
+## Final Kinetic Core branding
+
+The approved KC vector, wordmark, mission emblem and 3:5 flag are stored in
+`branding/`. The interface and post-contact flag embed the original approved
+vectors. They travel with the source export; no remote logo service is used.
