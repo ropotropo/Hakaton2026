@@ -1,0 +1,22 @@
+{
+  "name": "kineti-core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Nikita's modular spacecraft and orbital flight game",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "node scripts/build.mjs",
+    "preview": "vite preview --host 127.0.0.1",
+    "test": "node --test tests/*.test.js"
+  },
+  "dependencies": {
+    "three": "0.187.0"
+  },
+  "devDependencies": {
+    "vite": "8.3.8"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  }
+}
