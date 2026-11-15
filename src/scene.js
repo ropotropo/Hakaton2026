@@ -545,6 +545,8 @@ export function createScene(canvas, options = {}) {
   let vehicle={},rocket=makeRocket(materials,vehicle);rocketRoot.add(rocket);
   const docking=new THREE.Group();scene.add(docking);docking.visible=false;
   const station=makeStation(materials);docking.add(station);
+  // Visual station reference during high ascent, not a simulated rendezvous.
+  const orbitalStation=makeStation(materials);orbitalStation.position.set(-70,36,-110);orbitalStation.visible=false;scene.add(orbitalStation);
   let dockingCraft=makeSpacecraft(materials,vehicle);dockingCraft.rotation.x=-Math.PI/2;const craftAttitude=new THREE.Group();craftAttitude.add(dockingCraft);docking.add(craftAttitude);
   const reducedMotion=options.reducedMotion??window.matchMedia?.('(prefers-reduced-motion: reduce)').matches??false;
   const celestials=createCelestials(renderer,options),earth=celestials.earth,earthAtmosphere=celestials.earthAtmosphere;
@@ -618,6 +620,7 @@ export function createScene(canvas, options = {}) {
     previousStage=0;
   }
   function update(view={},dt=1/60){
+    orbitalStation.visible=false;
     if(disposed)return;
     if(view.destination)setDestination(view.destination);
     if(view.mode)setMode(view.mode);
@@ -669,7 +672,8 @@ export function createScene(canvas, options = {}) {
       scene.fog=space<.65?new THREE.Fog(scene.background,140+altitude*.015,800+altitude*.035):null;
       stars.visible=space>.65;stars.material.opacity=clamp((space-.65)*2,.0,.75);
       earth.visible=earthAtmosphere.visible=altitude>14000;
-      earth.position.set(-650,-1915+space*195,-1750);
+      earth.position.set(-1200,-900,-3500);
+      orbitalStation.visible=altitude>100000;
       launchEnvironment.position.y=-Math.min(altitude,7000);launchEnvironment.visible=altitude<5500;
       // Rocket positions are local to its active stage. This frame follows the
       // vehicle, while the actual altitude is represented by atmosphere/ground.
@@ -685,7 +689,7 @@ export function createScene(canvas, options = {}) {
       rocketRoot.visible=phase!=='failed'||elapsed-phaseAt<.28;
     }else if(mode==='docking'){
       scene.background=new THREE.Color(0x03080d);scene.fog=null;
-      earth.visible=earthAtmosphere.visible=stars.visible=true;earth.position.set(-650,-1760,-1700);earth.rotation.y=2.6+t*.0000729;
+      earth.visible=earthAtmosphere.visible=stars.visible=true;earth.position.set(-1200,-900,-3500);earth.rotation.y=2.6+t*.0000729;
       hemi.intensity=.23;key.color.set(0xfffaf2);key.intensity=4.6;fill.intensity=.15;rim.intensity=.5;scene.environmentIntensity=.35;
       const position=Array.isArray(view.position)?view.position:[0,0,80];
       craftAttitude.position.set(Number(position[0])||0,Number(position[1])||0,Number(position[2])||0);
@@ -741,7 +745,7 @@ export function createScene(canvas, options = {}) {
       }
       // Context is composed in camera space, rather than pretending to be an
       // ephemeris. Keep the complete silhouette inside the upper-left view.
-      landingParent.visible=!titan;landingParent.position.copy(camera.position).add(new THREE.Vector3(-2500,1600,-11000).applyQuaternion(camera.quaternion));
+      landingParent.visible=!titan&&!['mars','mercury'].includes(selectedDestination);landingParent.position.copy(camera.position).add(new THREE.Vector3(-2500,1600,-11000).applyQuaternion(camera.quaternion));
       const parentScale=clamp(VISUAL_PROFILES[selectedDestination].parentSize*35,100,VISUAL_PROFILES[selectedDestination].parent==='saturn'?310:650);
       landingParent.scale.setScalar(parentScale);
       if(phase==='landed')surface.userData.beacons.forEach(beacon=>beacon.material.color.set(0x9dcba9));

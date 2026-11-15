@@ -1,0 +1,111 @@
+/* Kinetic Core / optical bench. Scoped to the site navigation surfaces. */
+.site-menu-trigger,
+.site-menu-dialog,
+.site-biography {
+  color: #f5f5f7;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+  color-scheme: dark;
+  box-sizing: border-box;
+}
+.site-menu-trigger {
+  display: grid;
+  place-items: center;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  padding: 11px;
+  background: #000;
+  border: 1px solid #303034;
+  border-radius: 7px;
+  cursor: pointer;
+}
+.site-menu-trigger > span { display: grid; gap: 5px; width: 20px; }
+.site-menu-trigger i { display: block; height: 1px; background: currentColor; }
+.site-menu-dialog {
+  width: min(400px, calc(100vw - 32px));
+  max-width: calc(100vw - 32px);
+  max-height: calc(100dvh - 32px);
+  margin: auto;
+  padding: 24px;
+  overflow: auto;
+  background: #0a0a0b;
+  border: 1px solid #303034;
+  border-radius: 16px;
+}
+.site-menu-dialog::backdrop { background: #000b; }
+.site-menu-heading,
+.site-biography-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.site-menu-heading { margin-bottom: 24px; }
+.site-menu-heading h2 { margin: 0; font-size: 22px; font-weight: 550; letter-spacing: -.035em; }
+.site-menu-dialog button,
+.site-biography button {
+  min-height: 44px;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.site-menu-close {
+  flex: 0 0 44px;
+  width: 44px;
+  padding: 0;
+  border: 1px solid #303034;
+  border-radius: 7px;
+  background: transparent;
+  font-size: 24px !important;
+}
+.site-menu-dialog nav { display: grid; }
+.site-menu-dialog nav button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 0;
+  background: transparent;
+  border: 0;
+  border-top: 1px solid #303034;
+  text-align: left;
+  font-size: 15px;
+}
+.site-menu-dialog nav button span { color: #a1a1a8; }
+.site-menu-trigger:hover,
+.site-menu-close:hover { background: #202023; }
+.site-menu-dialog nav button:hover { color: #9bcaff; }
+.site-menu-trigger:focus-visible,
+.site-menu-dialog button:focus-visible,
+.site-biography button:focus-visible,
+.site-biography h1:focus-visible { outline: 2px solid #9bcaff; outline-offset: 4px; }
+.site-biography[hidden] { display: none !important; }
+.site-biography {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  min-width: 0;
+  height: 100dvh;
+  overflow: auto;
+  overscroll-behavior: contain;
+  background: #000;
+}
+.site-biography-header {
+  min-height: 76px;
+  padding: 12px max(24px, env(safe-area-inset-right)) 12px max(24px, env(safe-area-inset-left));
+  border-bottom: 1px solid #303034;
+}
+.site-menu-brand { font-size: 20px; font-weight: 600; letter-spacing: -.045em; }
+.site-biography-back { padding: 10px 16px; border: 0; border-radius: 7px; background: #f5f5f7; color: #000 !important; }
+.site-biography-content { max-width: 960px; margin: 0 auto; padding: clamp(56px, 12vh, 140px) 24px 64px; }
+.site-biography-content h1 { margin: 0; font-size: clamp(30px, 5vw, 58px); line-height: 1.12; font-weight: 550; letter-spacing: -.04em; overflow-wrap: anywhere; }
+.site-biography-content p { margin: 24px 0 0; font-size: 16px; line-height: 1.6; color: #a1a1a8; }
+@media (max-width: 650px) {
+  .header-actions:has(.site-menu-trigger) { gap: 8px; }
+  .app-header:has(.site-menu-trigger) { height: auto; min-height: 70px; flex-wrap: wrap; padding-top: 8px; padding-bottom: 8px; }
+  .site-menu-dialog { padding: 20px; }
+  .site-biography-header { flex-wrap: wrap; padding: 12px 16px; }
+  .site-biography-content { padding-left: 20px; padding-right: 20px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .site-menu-trigger,
+  .site-menu-dialog button,
+  .site-biography button { transition: none; animation: none; }
+  .site-biography { scroll-behavior: auto; }
+}

@@ -57,6 +57,7 @@ export function createLanding(destinationId = 'moon') {
 
 /** A near-surface Titan approximation, not an entry/upper-atmosphere model. */
 export function landingAtmosphere(destinationId, altitude) {
+  if (destinationId === 'mars') return .020 * Math.exp(-Math.max(0, altitude) / 11000);
   if (destinationId !== 'titan') return 0;
   return 5.3 * Math.exp(-Math.max(0, altitude) / 20000);
 }

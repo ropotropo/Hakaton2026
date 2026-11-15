@@ -3,7 +3,7 @@
   "version": "0.2.0",
   "private": true,
   "type": "module",
-  "description": "Nikita's modular spacecraft and orbital flight game",
+  "description": "Kinetic Core team's modular spacecraft and orbital flight game",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
     "build": "node scripts/build.mjs",

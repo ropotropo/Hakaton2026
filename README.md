@@ -1,12 +1,12 @@
-# Kineti Core
+# Kinetic Core
 
 **Design a mission. Fly its critical moments.**
 
-An original spaceflight game concept by **Nikita**, developed in collaboration with Andrii. Version 0.2 adds a survey of 12 Solar System moons, finite-fuel manual terminal landing exercises, NASA image maps, a new black instrument design language and flight debriefs to modular assembly, ascent, staging and manual docking.
+An original spaceflight game concept by **Kinetic Core team**, developed in collaboration with Andrii. Version 0.2 adds a survey of 12 Solar System moons, finite-fuel manual terminal landing exercises, NASA image maps, a new black instrument design language and flight debriefs to modular assembly, ascent, staging and manual docking.
 
 ## Play the built version
 
-Play **[the browser version](https://ropotropo.github.io/Hakaton2026/)** or get **[the v0.2 release](https://github.com/ropotropo/Hakaton2026/releases/tag/v0.2.0)**.
+Play **[the browser version](https://ropotropo.github.io/Hakaton2026/)** or get **[the v0.2 release](https://github.com/ropotropo/Hakaton2026/releases/tag/v0.3.0)**.
 
 Download **[dist/Kineti-Core.html](dist/Kineti-Core.html)** using GitHub's **Download raw file** button, then open the downloaded HTML file in Safari, Chrome or Edge. The portable build includes the game, graphics library and all celestial textures; it needs no account, installation or local server.
 
@@ -82,8 +82,8 @@ See **[docs/PHYSICS.md](docs/PHYSICS.md)** for sources, equations, numerical ver
 
 NASA/JPL physical references and the local NASA Blue Marble Earth image are credited in [docs/PHYSICS.md](docs/PHYSICS.md), [docs/DESTINATIONS.md](docs/DESTINATIONS.md) and [public/assets/SOURCES.md](public/assets/SOURCES.md). Three.js is MIT licensed. Dependency notices are included in dist/THIRD_PARTY_NOTICES.txt and inside the portable HTML build. NASA is not affiliated with this game and does not endorse it.
 
-The original idea belongs to Nikita. Code, procedural graphics and documentation were assisted by Codex and specialist agents. The project does not use AI-generated NASA branding.
+The original idea belongs to Kinetic Core team. Code, procedural graphics and documentation were assisted by Codex and specialist agents. The project does not use AI-generated NASA branding.
 
 ## Version review
 
-Each completed, checked version is committed and pushed. Development versions use a feature branch and a pull request requesting review from **@ropotropo**. The playable portable build is included so Nikita can download and test without a development environment. Feature branches are not merged automatically.
+Each completed, checked version is committed and pushed. Development versions use a feature branch and a pull request requesting review from **@ropotropo**. The playable portable build is included so Kinetic Core team can download and test without a development environment. Feature branches are not merged automatically.
