@@ -569,6 +569,8 @@ export function createScene(canvas, options = {}) {
   const look=new THREE.Vector3(0,26,0),desiredLook=new THREE.Vector3(),desiredCamera=new THREE.Vector3();
   const cameraPoint=new THREE.Vector3(),targetProjection=new THREE.Vector3();
   const debris=[];
+  let orbitYaw=0,orbitPitch=0,orbitZoom=1,dragY=0,freeOrbit=false;
+  function resetOrbit(){orbitYaw=orbitPitch=0;orbitZoom=1;freeOrbit=false;}
   camera.position.set(72,40,94);camera.lookAt(look);
 
   function resetOutcomeVisuals(){
@@ -585,7 +587,7 @@ export function createScene(canvas, options = {}) {
   }
   function setMode(next){
     if(!['assembly','launch','docking','destination','landing'].includes(next)||next===mode)return;
-    mode=next;clearDebris();resetOutcomeVisuals();previousStage=0;previousPhase=null;previousMissionTime=null;
+    mode=next;resetOrbit();clearDebris();resetOutcomeVisuals();previousStage=0;previousPhase=null;previousMissionTime=null;
     assembly.visible=mode==='assembly';launchEnvironment.visible=mode==='launch';rocketRoot.visible=mode==='assembly'||mode==='launch';docking.visible=mode==='docking';
     destinationPreview.visible=mode==='destination';landing.visible=mode==='landing';landingParent.visible=mode==='landing'&&selectedDestination!=='titan';
     earth.visible=earthAtmosphere.visible=mode==='docking';stars.visible=['docking','destination','landing'].includes(mode);
@@ -749,6 +751,15 @@ export function createScene(canvas, options = {}) {
     }
     celestials.setSunDirection(new THREE.Vector3().subVectors(key.position,key.target.position));
     effects.update(frameDt);
+    if(freeOrbit){
+      const center=mode==='docking'?craftAttitude.position:mode==='landing'?lander.position:mode==='destination'?new THREE.Vector3():desiredLook;
+      const radius=(mode==='assembly'?120:mode==='launch'?110:mode==='destination'?69:mode==='docking'?38:38)*orbitZoom;
+      camera.up.set(0,1,0);
+      camera.position.set(center.x+radius*Math.cos(orbitPitch)*Math.sin(orbitYaw),center.y+radius*Math.sin(orbitPitch),center.z+radius*Math.cos(orbitPitch)*Math.cos(orbitYaw));
+      camera.lookAt(center);
+      if(mode==='docking')dockingCraft.visible=true;
+      if(mode==='landing')lander.visible=true;
+    }
     renderer.render(scene,camera);
     targetProjection.set(0,0,0).project(camera);
     return {targetX:(targetProjection.x+1)/2,targetY:(1-targetProjection.y)/2,targetVisible:Math.abs(targetProjection.x)<=1&&Math.abs(targetProjection.y)<=1&&targetProjection.z>=-1&&targetProjection.z<=1};
@@ -759,10 +770,10 @@ export function createScene(canvas, options = {}) {
     const height=Math.max(1,canvas.clientHeight||canvas.parentElement?.clientHeight||640);
     renderer.setSize(width,height,false);camera.aspect=width/height;camera.updateProjectionMatrix();
   }
-  function onPointerDown(event){if(!['assembly','destination'].includes(mode))return;dragging=true;dragX=event.clientX;canvas.setPointerCapture?.(event.pointerId);}
-  function onPointerMove(event){if(!dragging||!['assembly','destination'].includes(mode))return;rotation+=(event.clientX-dragX)*.007;dragX=event.clientX;}
+  function onPointerDown(event){if(event.button!==0)return;dragging=true;dragX=event.clientX;dragY=event.clientY;canvas.setPointerCapture?.(event.pointerId);}
+  function onPointerMove(event){if(!dragging)return;freeOrbit=true;orbitYaw-=(event.clientX-dragX)*.007;orbitPitch=clamp(orbitPitch+(event.clientY-dragY)*.007,-1.45,1.45);dragX=event.clientX;dragY=event.clientY;}
   function onPointerUp(){dragging=false;}
-  function onWheel(event){if(!['assembly','destination'].includes(mode))return;event.preventDefault();zoom=clamp(zoom+event.deltaY*.0006,.72,1.45);}
+  function onWheel(event){event.preventDefault();freeOrbit=true;orbitZoom=clamp(orbitZoom*Math.exp(event.deltaY*.001),.25,4);}
   canvas.addEventListener('pointerdown',onPointerDown);canvas.addEventListener('pointermove',onPointerMove);canvas.addEventListener('pointerup',onPointerUp);canvas.addEventListener('pointercancel',onPointerUp);canvas.addEventListener('wheel',onWheel,{passive:false});
   const observer=typeof ResizeObserver!=='undefined'?new ResizeObserver(resize):null;observer?.observe(canvas);
   resize();update({mode:'assembly'},1/60);
@@ -771,5 +782,5 @@ export function createScene(canvas, options = {}) {
     canvas.removeEventListener('pointerdown',onPointerDown);canvas.removeEventListener('pointermove',onPointerMove);canvas.removeEventListener('pointerup',onPointerUp);canvas.removeEventListener('pointercancel',onPointerUp);canvas.removeEventListener('wheel',onWheel);
     disposeGeometries(scene);const allMaterials=new Set();scene.traverse(o=>{if(o.material){(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>allMaterials.add(m));}});allMaterials.forEach(m=>m.dispose());Object.values(textures).forEach(t=>t.dispose());surface.userData.surfaceMap.dispose();celestials.dispose();environment.dispose();renderer.dispose();
   }
-  return {setMode,setVehicle,setDestination,update,resize,dispose,renderer,scene,camera};
+  return {setMode,setVehicle,setDestination,update,resize,dispose,resetOrbit,renderer,scene,camera};
 }

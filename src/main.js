@@ -3,6 +3,7 @@ import './styles.css';
 import { CATALOG, DEFAULT_CONFIG, resolveConfig } from './catalog.js';
 import { evaluateVehicle, createLaunch, stepLaunch, separateStage, getLaunchTelemetry, createDocking, stepDocking, getDockingTelemetry, orbitalElements, validateState } from './physics.js';
 import { createScene } from './scene.js';
+import { installNavigation } from './navigation.js';
 import { DESTINATIONS } from './destinations.js';
 import { createLanding, stepLanding, getLandingTelemetry } from './landing.js';
 import { makeCheckpoint, readCheckpoint, writeCheckpoint, validateCheckpoint, restoreCheckpointFlight } from './storage.js';
@@ -287,7 +288,7 @@ function renderFrame(now) {
       reticle.style.top = `${projection.targetY * 100}%`; reticle.hidden = !projection.targetVisible || !activeFlight();
     }
   }
-  if (now - lastUI > 80) { updateUI(); lastUI = now; }
+  if (now - lastUI > 80) { updateUI(); navigation.draw(); lastUI = now; }
 }
 
 const controlledCodes = new Set(['KeyW', 'KeyS', 'KeyA', 'KeyD', 'KeyR', 'KeyF', 'KeyQ', 'KeyE', 'KeyG', 'KeyB', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'ShiftLeft', 'ShiftRight']);
@@ -322,6 +323,10 @@ $('flight-canvas').addEventListener('webglcontextlost', event => { event.prevent
 $('flight-canvas').addEventListener('webglcontextrestored', () => notify('Graphics restored. Resume the flight when ready.'));
 renderPhase(); if (saved.error) notify(saved.error); else if (checkpoint) setText('checkpoint-label', 'Previous checkpoint available');
 window.addEventListener('resize', () => renderer?.resize());
+const navigation = installNavigation({state,selectDestination(id){state.destination=id;renderer?.setDestination(id);updateDestinationLabels();renderPhase();},resetCamera(){renderer?.resetOrbit();}});
+let mapWasPaused=false;
+document.getElementById('open-map').addEventListener('click',()=>{mapWasPaused=state.paused;clearInputs();pause(true);});
+navigation.dialog.addEventListener('close',()=>{clearInputs();if(!mapWasPaused)pause(false);});
 requestAnimationFrame(renderFrame);
 try { if (typeof ResizeObserver === 'function') new ResizeObserver(() => renderer?.resize()).observe($('viewport')); } catch (error) { console.warn('Optional viewport observer unavailable:', error); }
 
