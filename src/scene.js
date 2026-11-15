@@ -1,6 +1,9 @@
 import * as THREE from 'three';
 import { createCelestials, VISUAL_PROFILES } from './celestial.js';
 import { getDestination } from './destinations.js';
+import { advanceBallistic, inertialToLocal, releaseBody } from './separation-motion.js';
+import { createOrbitOverview } from './orbit-overview.js';
+import { boxClearance } from './separation-contact.js';
 
 // Presentation only. SI simulation stays in physics.js; camera and celestial
 // background use a local origin so GPU float precision never drives the flight.
@@ -552,6 +555,7 @@ export function createScene(canvas, options = {}) {
   const celestials=createCelestials(renderer,options),earth=celestials.earth,earthAtmosphere=celestials.earthAtmosphere;
   earth.position.set(-650,-1760,-1700);earth.rotation.set(.2,2.6,-.3);earth.visible=false;scene.add(earth);
   const destinationPreview=celestials.preview;destinationPreview.visible=false;scene.add(destinationPreview);
+  const orbitOverview=createOrbitOverview(scene,celestials.getTexture('earth'));
   let selectedDestination='moon';
   const landing=new THREE.Group();landing.visible=false;scene.add(landing);
   let surface=makeSurface(getDestination('moon'),materials);landing.add(surface);
@@ -581,11 +585,12 @@ export function createScene(canvas, options = {}) {
     surface.userData.beacons.forEach(beacon=>beacon.material.color.set(0xc6d6bf));
   }
   function clearDebris(){for(const d of debris)scene.remove(d.object);debris.length=0;}
-  function separateVisual(stage,time){
+  function separateVisual(stage,time,view){
     const source=stage===0?rocket.userData.core:rocket.userData.upper;
     const object=source.clone(true);source.updateWorldMatrix(true,false);source.getWorldPosition(object.position);source.getWorldQuaternion(object.quaternion);scene.add(object);
     object.traverse(child=>{if(child.material===materials.exhaust||child.material===materials.exhaustCore||child.material===materials.exhaustVacuum)child.visible=false;});
-    debris.push({object,start:time,base:object.position.clone(),rotation:object.quaternion.clone()});
+    const body=Array.isArray(view.positionSI)&&Array.isArray(view.velocitySI)?releaseBody(view.positionSI,view.velocitySI,Number(view.pitch)||0):null;
+    debris.push({object,start:time,last:time,base:object.position.clone(),rotation:object.quaternion.clone(),body,axis:new THREE.Vector3(Math.sin(Number(view.pitch)||0),Math.cos(Number(view.pitch)||0),0),stage});
   }
   function setMode(next){
     if(!['assembly','launch','docking','destination','landing'].includes(next)||next===mode)return;
@@ -620,7 +625,10 @@ export function createScene(canvas, options = {}) {
     previousStage=0;
   }
   function update(view={},dt=1/60){
+    // Reject incomplete events rather than mixing wall and mission time.
+    if(view.separation!==undefined&&!Number.isFinite(view.time))return;
     orbitalStation.visible=false;
+    orbitOverview.root.visible=false;
     if(disposed)return;
     if(view.destination)setDestination(view.destination);
     if(view.mode)setMode(view.mode);
@@ -629,8 +637,7 @@ export function createScene(canvas, options = {}) {
     const smooth=1-Math.exp(-frameDt*5.2);
     engineLight.intensity=0;
     key.position.set(35,65,45);key.color.set(0xffead5);key.target.position.set(0,0,0);camera.up.set(0,1,0);
-    // stage() sends a partial rendering update without a phase or mission
-    // clock. It must not look like a new mission or advance rewind tracking.
+    // Only physical mission time participates in rewind detection.
     const phase=view.phase||previousPhase||mode;
     const missionTime=Number.isFinite(view.time)?view.time:null;
     const rewound=missionTime!==null&&previousMissionTime!==null&&missionTime<previousMissionTime-1e-7;
@@ -664,7 +671,7 @@ export function createScene(canvas, options = {}) {
     }else if(mode==='launch'){
       const altitude=Math.max(0,Number(view.altitude)||0),pitch=Number(view.pitch)||0;
       const stage=clamp(Math.floor(Number(view.stageIndex)||0),0,2),throttle=clamp(Number(view.throttle)||0,0,1);
-      if(stage>previousStage)for(let i=previousStage;i<stage;i++)separateVisual(i,t);
+      if(stage>previousStage)for(let i=previousStage;i<stage;i++)separateVisual(i,t,view);
       previousStage=stage;
       rocket.userData.core.visible=stage===0;rocket.userData.upper.visible=stage<2;
       const space=clamp((altitude-10000)/80000,0,1);
@@ -672,12 +679,16 @@ export function createScene(canvas, options = {}) {
       scene.fog=space<.65?new THREE.Fog(scene.background,140+altitude*.015,800+altitude*.035):null;
       stars.visible=space>.65;stars.material.opacity=clamp((space-.65)*2,.0,.75);
       earth.visible=earthAtmosphere.visible=altitude>14000;
-      earth.position.set(-1200,-900,-3500);
-      orbitalStation.visible=altitude>100000;
+      const longitude=Array.isArray(view.positionSI)?Math.atan2(view.positionSI[1],view.positionSI[0]):0;
+      earth.position.set(-1200,-900-Math.max(0,altitude-100000)*.00015,-3500);
+      earth.rotation.z=-longitude;earth.rotation.y=2.6+t*.0000729;
+      // The old stationary ISS decoration looked like a frozen rendezvous.
+      // A station belongs to the separate approach scenario, not ascent.
+      orbitalStation.visible=false;
       launchEnvironment.position.y=-Math.min(altitude,7000);launchEnvironment.visible=altitude<5500;
       // Rocket positions are local to its active stage. This frame follows the
       // vehicle, while the actual altitude is represented by atmosphere/ground.
-      const pivot=stage===0?rocket.userData.height*.48:stage===1?rocket.userData.coreHeight+rocket.userData.upperHeight*.5:rocket.userData.height-rocket.userData.spacecraft.userData.length*.5;
+      const pivot=rocket.userData.height*.48;
       rocketRoot.rotation.z=-pitch;rocketRoot.position.set(-Math.sin(pitch)*pivot,pivot*(1-Math.cos(pitch)),0);
       rocket.userData.engines.forEach((e,i)=>{e.visible=stage===0&&throttle>.01;e.scale.set(1,mix(.45,1.35,throttle)*(1+Math.sin(elapsed*53+i)*.05),1);});
       rocket.userData.upperPlume.visible=stage===1&&throttle>.01;rocket.userData.upperPlume.scale.set(1,1+Math.sin(elapsed*43)*.045,1);
@@ -685,7 +696,39 @@ export function createScene(canvas, options = {}) {
       desiredCamera.set(stage===0?88:stage===1?51:29,pivot+12,stage===0?112:stage===1?69:39);desiredLook.set(0,pivot,0);
       camera.position.lerp(desiredCamera,smooth*.45);look.lerp(desiredLook,smooth*.6);camera.lookAt(look);
       hemi.intensity=mix(1.7,.58,space);key.intensity=mix(3.7,4.6,space);fill.intensity=mix(.9,.3,space);rim.intensity=1;scene.environmentIntensity=mix(.8,.35,space);
-      for(const d of debris){const age=Math.max(0,t-d.start);d.object.position.copy(d.base).add(new THREE.Vector3(age*.8,-age*3-age*age*.75,0));d.object.rotateZ(frameDt*.26);d.object.visible=age<45;}
+      for(const d of debris){
+        const age=Math.max(0,t-d.start),step=Math.max(0,t-d.last);d.last=t;
+        if(d.body&&Array.isArray(view.positionSI)){
+          advanceBallistic(d.body,Math.min(step,10));
+          const relative=inertialToLocal(d.body.position,view.positionSI);
+          d.object.position.copy(d.base).add(new THREE.Vector3(relative[0],relative[1],(d.stage===0?-1:1)*age*.7));
+        }else d.object.position.copy(d.base).addScaledVector(d.axis,-age*2);
+        // Keep detached hardware behind the separating joint, including when
+        // the player pitches through it. This is a visual clearance constraint.
+        if(age<2){const projection=d.object.position.clone().sub(d.base).dot(d.axis),clearance=-age*2;if(projection>clearance)d.object.position.addScaledVector(d.axis,clearance-projection);}
+        const activeBounds=new THREE.Box3().setFromObject(rocket.userData.spacecraft);
+        if(stage<2)activeBounds.union(new THREE.Box3().setFromObject(rocket.userData.upper));
+        const stageBounds=new THREE.Box3().setFromObject(d.object);
+        const contact=boxClearance(activeBounds,stageBounds);
+        if(contact){
+          const {axis:k,amount:push}=contact;d.object.position[k]+=push;
+          // Rebase the independent debris state after contact, rather than
+          // drawing the same interpenetration again on the following frame.
+          d.base[k]+=push;
+          if(d.body&&k!=='z'){
+            const p=view.positionSI,r=Math.hypot(...p),normal=k==='x'?[-p[1]/r,p[0]/r]:[p[0]/r,p[1]/r];
+            const relativeSpeed=d.body.velocity.reduce((v,n,i)=>v+(n-view.velocitySI[i])*normal[i],0);
+            if(relativeSpeed*Math.sign(push)<0)d.body.velocity=d.body.velocity.map((v,i)=>v-1.25*relativeSpeed*normal[i]);
+          }
+        }
+        d.object.quaternion.copy(d.rotation);d.object.visible=age<180&&d.object.position.length()<8000;
+      }
+      // Detached stages must also clear each other, not only the active craft.
+      for(let i=0;i<debris.length;i++)for(let j=i+1;j<debris.length;j++){
+        const a=debris[i],b=debris[j];
+        const contact=boxClearance(new THREE.Box3().setFromObject(a.object),new THREE.Box3().setFromObject(b.object));
+        if(contact){const {axis,amount}=contact;b.object.position[axis]+=amount;b.base[axis]+=amount;}
+      }
       rocketRoot.visible=phase!=='failed'||elapsed-phaseAt<.28;
     }else if(mode==='docking'){
       scene.background=new THREE.Color(0x03080d);scene.fog=null;
@@ -763,6 +806,12 @@ export function createScene(canvas, options = {}) {
       camera.lookAt(center);
       if(mode==='docking')dockingCraft.visible=true;
       if(mode==='landing')lander.visible=true;
+    }
+    orbitOverview.update(view,debris);
+    if(mode==='launch'&&view.orbitOverview&&Array.isArray(view.positionSI)){
+      rocketRoot.visible=launchEnvironment.visible=earth.visible=earthAtmosphere.visible=false;
+      debris.forEach(d=>d.object.visible=false);scene.fog=null;scene.background=new THREE.Color(0x000000);stars.visible=true;
+      orbitOverview.root.visible=true;camera.up.set(0,1,0);camera.position.set(0,0,65);camera.lookAt(0,0,0);
     }
     renderer.render(scene,camera);
     targetProjection.set(0,0,0).project(camera);

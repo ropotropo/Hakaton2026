@@ -31,6 +31,7 @@ let checkpoint = saved.checkpoint;
 const state = { phase: 'assembly', config: { ...DEFAULT_CONFIG }, destination: 'moon', preview: false, flight: null, paused: false, warp: 10, throttle: 1, guidance: true, holdAttitude: true, cameraMode: 'chase', countdown: 0, log: [], selectedSlot: 'core', fine: false, outcomeDismissed: false };
 const keys = new Set();
 let rolloutReady=false;
+let orbitOverview=false;
 const touch = new Set();
 let vehicleSignature = '';
 let renderer, accumulator = 0, lastFrame = performance.now(), lastUI = 0, lastEvent = '', toastTimer, separationRequested = false;
@@ -68,9 +69,9 @@ function log(message) { if (!message || message === lastEvent) return; lastEvent
 function renderLog() { $('log-list').innerHTML = state.log.slice(-5).reverse().map(e => `<li><time>T+${clock(e.time)}</time><span>${escape(e.message)}</span></li>`).join(''); }
 function dataValue(id, label, value, unit, detail = '') { return `<div class="instrument"><span class="instrument-name">${label}</span><div><strong id="${id}">${value}</strong><span class="instrument-unit">${unit}</span></div>${detail ? `<small>${detail}</small>` : ''}</div>`; }
 function setText(id, value) { const node = $(id); if (node && node.textContent !== String(value)) node.textContent = value; }
-function activeFlight() { return ['launch', 'docking', 'landing'].includes(state.phase); }
+function activeFlight() { return ['launch', 'orbit', 'docking', 'landing'].includes(state.phase); }
 function clearInputs() { keys.clear(); touch.clear(); document.querySelectorAll('[data-control]').forEach(b => b.classList.remove('firing')); }
-function pause(value = !state.paused) { if (!activeFlight()) return; clearInputs(); state.paused = value; accumulator = 0; $('paused-overlay').hidden = !value; $('pause-button').textContent = value ? '▶' : 'Ⅱ'; $('pause-button').setAttribute('aria-label', value ? 'Resume simulation' : 'Pause simulation'); setText('simulation-status', value ? 'Simulation paused' : state.phase === 'launch' ? 'Ascent simulation' : state.phase === 'landing' ? 'Powered descent' : 'Terminal approach'); }
+function pause(value = !state.paused) { if (!activeFlight()) return; clearInputs(); state.paused = value; accumulator = 0; $('paused-overlay').hidden = !value; $('pause-button').textContent = value ? '▶' : 'Ⅱ'; $('pause-button').setAttribute('aria-label', value ? 'Resume simulation' : 'Pause simulation'); setText('simulation-status', value ? 'Simulation paused' : state.phase === 'orbit' ? 'Orbital coast' : state.phase === 'launch' ? 'Ascent simulation' : state.phase === 'landing' ? 'Powered descent' : 'Terminal approach'); }
 function save(silent = false) { if (state.phase === 'failed') return; const snapshot = makeCheckpoint(state.config, state.phase, state.flight, state.log, state.destination); if (!validateCheckpoint(snapshot, configValid)) { if (!silent) notify('This flight state cannot be saved safely. Your previous checkpoint is intact.'); return; } checkpoint = snapshot; const persisted = writeCheckpoint(storage, snapshot, configValid); $('restore-button').disabled = false; setText('checkpoint-label', persisted ? `Saved at ${new Date(snapshot.savedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'Checkpoint kept for this session'); if (!silent) notify(persisted ? 'Checkpoint saved on this device.' : 'Checkpoint kept in memory. Browser storage is unavailable.'); }
 
 function trustedRestore(snapshot) {
@@ -91,7 +92,7 @@ $('confirm-dialog').addEventListener('cancel', () => { separationRequested = fal
 function assemble() { state.preview = false; state.outcomeDismissed = false; clearInputs(); separationRequested = false; state.phase = 'assembly'; state.flight = null; state.paused = false; state.countdown = 0; accumulator = 0; renderPhase(); }
 function beginLaunch() { if(!rolloutReady){rollout.open();return;}rolloutReady=false;state.preview = false; state.outcomeDismissed = false; if (!evaluateVehicle(state.config).valid || !renderer) return; clearInputs(); state.flight = createLaunch(state.config); state.phase = 'launch'; state.throttle = 1; state.guidance = true; state.paused = false; state.countdown = 3; state.log = []; lastEvent = ''; accumulator = 0; renderPhase(); save(true); log('Launch sequence armed. Guidance active; staging is manual.'); }
 function beginDocking(practice = false) { state.preview = false; state.outcomeDismissed = false; clearInputs(); state.flight = createDocking(state.config); state.phase = 'docking'; state.paused = false; state.holdAttitude = true; state.warp = 1; state.countdown = 0; accumulator = 0; renderPhase(); log(practice ? 'Terminal docking practice. The launch phase has been skipped.' : 'Terminal approach scenario loaded. Long-range rendezvous is not simulated.'); save(true); }
-function stage() { if (!state.flight || state.flight.kind !== 'launch' || state.countdown > 0 || state.paused || separationRequested) return; const execute = () => { separationRequested = false; const result = separateStage(state.flight); if (result.ok) { state.paused = false; renderer?.update({ mode: 'launch', separation: state.flight.stageIndex, stageIndex: state.flight.stageIndex }, 0); log(result.message); save(true); renderPhase(); } else notify(result.message); }; const t = getLaunchTelemetry(state.flight); if (state.phase === 'launch' && t.fuelFraction > 0.05) { separationRequested = true; confirm('Separate a fueled stage?', `${fmt(t.fuel / 1000, 1)} tonnes of propellant will be discarded. This cannot be recovered during the flight.`, execute, 'Separate stage'); } else execute(); }
+function stage() { if (!state.flight || state.flight.kind !== 'launch' || state.countdown > 0 || state.paused || separationRequested) return; const execute = () => { separationRequested = false; const result = separateStage(state.flight); if (result.ok) { state.paused = false; renderer?.update({ mode: 'launch', ...getLaunchTelemetry(state.flight), phase: state.phase, positionSI: state.flight.position.slice(), velocitySI: state.flight.velocity.slice(), separation: state.flight.stageIndex, stageIndex: state.flight.stageIndex }, 0); log(result.message); save(true); renderPhase(); } else notify(result.message); }; const t = getLaunchTelemetry(state.flight); if (state.phase === 'launch' && t.fuelFraction > 0.05) { separationRequested = true; confirm('Separate a fueled stage?', `${fmt(t.fuel / 1000, 1)} tonnes of propellant will be discarded. This cannot be recovered during the flight.`, execute, 'Separate stage'); } else execute(); }
 
 function renderBuilder() {
   const vehicle = evaluateVehicle(state.config), parts = vehicle.parts;
@@ -237,7 +238,7 @@ const held = (key, control) => keys.has(key) || (control && touch.has(control));
 function dockingInput() { const fine = keys.has('Shift') ? 0.2 : 1; return { x: (Number(held('KeyD', 'right')) - Number(held('KeyA', 'left'))) * fine, y: (Number(held('KeyR', 'up')) - Number(held('KeyF', 'down'))) * fine, z: (Number(held('KeyW', 'approach')) - Number(held('KeyS', 'retreat'))) * fine, pitch: (Number(held('ArrowUp', 'pitchUp')) - Number(held('ArrowDown', 'pitchDown'))) * fine, yaw: (Number(held('ArrowLeft', 'yawLeft')) - Number(held('ArrowRight', 'yawRight'))) * fine, roll: (Number(held('KeyQ', 'rollLeft')) - Number(held('KeyE', 'rollRight'))) * fine, holdAttitude: state.holdAttitude, brake: held('Space', 'brake') }; }
 function simulate(dt) {
   if (!activeFlight() || state.paused || state.countdown > 0) return;
-  if (state.phase === 'launch') { const throttleInput = Number(keys.has('KeyW')) - Number(keys.has('KeyS')); state.throttle = clamp(state.throttle + throttleInput * dt * 0.1, 0, 1); stepLaunch(state.flight, { throttle: state.throttle, guidance: state.guidance, pitchTrim: Number(keys.has('KeyD') || keys.has('ArrowRight')) - Number(keys.has('KeyA') || keys.has('ArrowLeft')) }, dt); }
+  if (state.phase === 'launch' || state.phase === 'orbit') { const throttleInput = Number(keys.has('KeyW')) - Number(keys.has('KeyS')); state.throttle = state.phase==='orbit'?0:clamp(state.throttle + throttleInput * dt * 0.1, 0, 1); stepLaunch(state.flight, { throttle: state.throttle, guidance: state.guidance, pitchTrim: Number(keys.has('KeyD') || keys.has('ArrowRight')) - Number(keys.has('KeyA') || keys.has('ArrowLeft')) }, dt); }
   else if (state.phase === 'landing') {
     const throttleInput = Number(keys.has('KeyW')) - Number(keys.has('KeyS'));
     state.throttle = clamp(state.throttle + throttleInput * dt * .25, 0, 1);
@@ -277,13 +278,16 @@ function renderFrame(now) {
   requestAnimationFrame(renderFrame);
   const realDt = Math.min((now - lastFrame) / 1000, 0.1); lastFrame = now;
   if (state.countdown > 0 && !state.paused) { state.countdown = Math.max(0, state.countdown - realDt); $('countdown').hidden = state.countdown <= 0; setText('countdown-number', Math.ceil(state.countdown)); }
-  if (activeFlight() && !state.paused && state.countdown <= 0) { accumulator += realDt * (state.phase === 'launch' ? state.warp : 1); let safety = 0; while (accumulator >= 1 / 60 && safety++ < 120) { simulate(1 / 60); accumulator -= 1 / 60; if (!activeFlight()) { accumulator = 0; break; } } }
+  if (activeFlight() && !state.paused && state.countdown <= 0) { accumulator += realDt * (state.flight?.kind === 'launch' ? state.warp : 1); let safety = 0; while (accumulator >= 1 / 60 && safety++ < 120) { simulate(1 / 60); accumulator -= 1 / 60; if (!activeFlight()) { accumulator = 0; break; } } }
   if (renderer) {
     const dock = state.flight?.kind === 'docking', land = state.flight?.kind === 'landing';
     const t = state.flight ? land ? getLandingTelemetry(state.flight) : dock ? getDockingTelemetry(state.flight) : getLaunchTelemetry(state.flight) : {};
     const projection = renderer.update({ mode: state.phase === 'assembly' ? state.preview ? 'destination' : 'assembly' : land ? 'landing' : dock ? 'docking' : 'launch', ...t,
       phase: state.phase, destination: state.destination, time: state.flight?.time ?? now / 1000,
       position: dock || land ? state.flight.position : undefined, angle: land ? state.flight.angle : undefined,
+      positionSI: state.flight?.kind==='launch'?state.flight.position:undefined,
+      velocitySI: state.flight?.kind==='launch'?state.flight.velocity:undefined,
+      orbitOverview,
       quaternion: dock ? state.flight.orientation : undefined,
       firing: dock && !state.paused && activeFlight() ? state.flight.lastThrust.map((force,i) => Math.abs(force) / state.flight.thrust + Math.abs(state.flight.lastTorque[i]) / state.flight.torque) : [0,0,0],
       stageIndex: state.flight?.stageIndex ?? 0, throttle: state.countdown > 0 ? 0 : t.throttle ?? 0,
@@ -347,6 +351,7 @@ const onlineEarth=createOnlineEarth({onOpen(){clearInputs();pause(true);},onClos
 const earthButton=document.createElement('button');earthButton.className='secondary-button';earthButton.textContent='Earth / real cities';earthButton.onclick=()=>onlineEarth.open();document.querySelector('.navigation-tools').append(earthButton);
 const localPause=document.createElement('button');localPause.className='quiet-button';localPause.textContent='Pause / resume';localPause.onclick=()=>pause();document.querySelector('.navigation-tools').append(localPause);
 const localGuide=document.createElement('button');localGuide.className='quiet-button';localGuide.textContent='Flight guide';localGuide.onclick=()=>openGuide();document.querySelector('.navigation-tools').append(localGuide);
+const orbitButton=document.createElement('button');orbitButton.className='secondary-button';orbitButton.textContent='Orbit / trajectory view';orbitButton.onclick=()=>{orbitOverview=!orbitOverview;orbitButton.textContent=orbitOverview?'Return to follow camera':'Orbit / trajectory view';notify(orbitOverview?'Orbit view: white spacecraft, amber stages, blue circular station reference. Markers enlarged. Active during ascent and orbit.':'Follow camera tracks the spacecraft; orbital motion continues.');};document.querySelector('.navigation-tools').append(orbitButton);
 window.addEventListener('blur',()=>{mapWasPaused=guideWasPaused=solarWasPaused=true;});
 requestAnimationFrame(renderFrame);
 try { if (typeof ResizeObserver === 'function') new ResizeObserver(() => renderer?.resize()).observe($('viewport')); } catch (error) { console.warn('Optional viewport observer unavailable:', error); }
