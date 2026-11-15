@@ -1,6 +1,8 @@
 import { CATALOG, DEFAULT_CONFIG, normalizeConfig, resolveConfig } from './catalog.js';
+import { evaluateDesign } from './vehicle-design.js';
 
 export { CATALOG, DEFAULT_CONFIG };
+export { createVehicleConfig } from './catalog.js';
 export const EARTH = Object.freeze({ radius: 6371000, mu: 3.98600435507e14, rotation: 7.2921159e-5, g0: 9.80665 });
 export const FIXED_STEP = 1 / 60;
 export const ORBIT_TARGET = 200000;
@@ -9,7 +11,7 @@ const norm = v => Math.hypot(...v);
 const DEG = Math.PI / 180;
 const finite = v => typeof v === 'number' && Number.isFinite(v);
 
-function payloadMass(parts) { return parts.capsule.dryMass + parts.service.dryMass + parts.service.rcsFuel + parts.cargo.dryMass; }
+function payloadMass(parts) { return parts.capsule.dryMass + parts.service.dryMass + (parts.service.propellant || 0) + parts.service.rcsFuel + parts.cargo.dryMass; }
 export function launchMass(state) {
   return state.payloadMass + state.stages.reduce((sum, stage) => sum + (stage.attached ? stage.dryMass + stage.fuel : 0), 0);
 }
@@ -18,18 +20,42 @@ export function evaluateVehicle(config = DEFAULT_CONFIG) {
   const normalized = normalizeConfig(config), parts = resolveConfig(normalized);
   const payload = payloadMass(parts), upperWet = parts.upper.dryMass + parts.upper.propellant;
   const wetMass = payload + upperWet + parts.core.dryMass + parts.core.propellant;
-  const dryMass = payload + parts.upper.dryMass + parts.core.dryMass;
-  const coreDeltaV = parts.core.ispVac * EARTH.g0 * Math.log(wetMass / (wetMass - parts.core.propellant));
-  const upperDeltaV = parts.upper.ispVac * EARTH.g0 * Math.log((payload + upperWet) / (payload + parts.upper.dryMass));
+  const dryMass = parts.capsule.dryMass + parts.service.dryMass + parts.cargo.dryMass + parts.upper.dryMass + parts.core.dryMass;
+  const ideal = (isp, wet, dry) => isp > 0 && dry > 0 && wet >= dry ? isp * EARTH.g0 * Math.log(wet / dry) : 0;
+  const coreDeltaV = ideal(parts.core.ispVac, wetMass, wetMass - parts.core.propellant);
+  const upperDeltaV = ideal(parts.upper.ispVac, payload + upperWet, payload + parts.upper.dryMass);
   const deltaV = coreDeltaV + upperDeltaV;
-  const twr = parts.core.thrustSea / (wetMass * EARTH.g0);
+  const twr = wetMass > 0 ? parts.core.thrustSea / (wetMass * EARTH.g0) : 0;
   const warnings = [], errors = [];
   if (twr < 1.15) warnings.push('Low liftoff thrust-to-weight ratio: ascent losses may prevent orbital insertion.');
   if (deltaV < 9400) warnings.push('Tight ideal delta-v budget: gravity, drag and steering consume the margin.');
   if (payload > 20000) warnings.push('Heavy spacecraft: expect slower RCS response.');
   if (twr <= 1) errors.push('Sea-level thrust is insufficient to lift this vehicle.');
   if (deltaV <= 8000) errors.push('Ideal delta-v is below the minimum orbital training budget.');
-  return { config: normalized, parts, wetMass, mass: wetMass, dryMass, payloadMass: payload, propellantMass: parts.core.propellant + parts.upper.propellant, rcsFuel: parts.service.rcsFuel, deltaV, idealDeltaV: deltaV, coreDeltaV, upperDeltaV, twr, TWR: twr, height: parts.capsule.height + parts.service.height + parts.upper.height + parts.core.height, valid: errors.length === 0, warnings, errors, synthetic: true };
+  if (normalized.design) {
+    const assessment = evaluateDesign(normalized.design);
+    errors.push(...assessment.errors); warnings.push(...assessment.warnings);
+  }
+  const serviceDeltaV = ideal(parts.service.ispVac || 0, payload, payload - (parts.service.propellant || 0));
+  return { config: normalized, parts, wetMass, mass: wetMass, dryMass, payloadMass: payload, propellantMass: parts.core.propellant + parts.upper.propellant + (parts.service.propellant || 0), rcsFuel: parts.service.rcsFuel, deltaV, idealDeltaV: deltaV, coreDeltaV, upperDeltaV, serviceDeltaV, twr, TWR: twr, height: parts.layout?.height || parts.capsule.height + parts.service.height + parts.upper.height + parts.core.height, radius: parts.layout?.radius || Math.max(parts.core.radius, parts.upper.radius, parts.service.radius, parts.capsule.radius), valid: errors.length === 0, warnings: [...new Set(warnings)], errors: [...new Set(errors)], synthetic: true };
+}
+
+/** Same physical payload that reached orbit. Main propellant and attitude-control
+ * reserve are separate resources; an attached upper stage is never discarded here. */
+export function getPostOrbitSpacecraft(state) {
+  if (!state || state.kind !== 'launch') throw new Error('A launch state is required.');
+  const parts = resolveConfig(state.config), service = parts.service;
+  const dryMass = parts.capsule.dryMass + service.dryMass + parts.cargo.dryMass;
+  const stageSnapshot = (stage, index) => stage?.attached ? { stageIndex: index, dryMass: stage.dryMass, propellant: stage.fuel, fuel: stage.fuel, thrustSea: stage.thrustSea, thrustVac: stage.thrustVac, ispSea: stage.ispSea, ispVac: stage.ispVac, radius: stage.radius, height: stage.height } : null;
+  const coreStage = stageSnapshot(state.stages[0], 0), upperStage = stageSnapshot(state.stages[1], 1);
+  return {
+    dryMass, propellant: service.propellant || 0, thrustVac: service.thrustVac || 0, ispVac: service.ispVac || 0,
+    rcsFuel: service.rcsFuel, rcsThrust: service.rcsThrust, rcsIsp: service.rcsIsp, torque: service.torque,
+    radius: Math.max(parts.capsule.radius, service.radius), height: parts.capsule.height + service.height,
+    legCount: service.legCount || 0, solarCount: service.solarCount || 0,
+    coreStage, upperStage, attachedStages: [coreStage, upperStage].filter(Boolean), totalMass: launchMass(state),
+    position: [...state.position], velocity: [...state.velocity], time: state.time,
+  };
 }
 
 /** NASA Glenn three-layer atmosphere, truncated above 100 km. */
@@ -57,6 +83,7 @@ export function orbitalElements(position, velocity) {
 
 export function createLaunch(config = DEFAULT_CONFIG) {
   const vehicle = evaluateVehicle(config), parts = vehicle.parts;
+  if (vehicle.config.design && !vehicle.valid) throw new Error(`Custom vehicle is not ready for flight: ${vehicle.errors.join(' ')}`);
   const effectiveRotation = EARTH.rotation * Math.cos(parts.site.latitude * DEG);
   return {
     version: 1, kind: 'launch', phase: 'launch', config: vehicle.config, time: 0,
@@ -236,7 +263,8 @@ function eulerQuaternion(pitch, yaw, roll) {
 
 export function createDocking(config = DEFAULT_CONFIG, options = {}) {
   const normalized = normalizeConfig(config), parts = resolveConfig(normalized);
-  const dryMass = parts.capsule.dryMass + parts.service.dryMass + parts.cargo.dryMass;
+  // Main-engine propellant remains aboard during this independent RCS exercise.
+  const dryMass = parts.capsule.dryMass + parts.service.dryMass + (parts.service.propellant || 0) + parts.cargo.dryMass;
   const length = parts.capsule.height + parts.service.height;
   const radius = Math.max(parts.capsule.radius, parts.service.radius);
   const mass = dryMass + parts.service.rcsFuel;

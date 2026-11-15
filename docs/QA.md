@@ -1,6 +1,6 @@
 # First-playable QA
 
-Original game concept: Nikita. Review dates: November 14–15, 2026 (America/Los_Angeles).
+Original game concept: Mykyta. Review dates: November 14–15, 2026 (America/Los_Angeles).
 
 This is the independent QA record for the first playable. Pending checks are not claims of verification. The implementation owner applies fixes; the reviewer keeps implementation files unchanged.
 

@@ -6,7 +6,7 @@ A black instrument bench surrounding a sunlit spacecraft. The ship, planetary
 limb and moment of contact carry the drama; the interface provides calm,
 precise control. This direction follows Andrii's brief for Apple-like clarity
 combined with aerospace technology and restrained science fiction. It is a
-working direction for Nikita's game, not a claim of final author approval.
+working direction for Mykyta's game, not a claim of final author approval.
 
 Kineti Core has its own identity. Do not import Malibu Wired's brass, TRD's
 dashboard components, a generic neon cockpit, or a marketing-site hero.
@@ -47,7 +47,7 @@ are no decorative grids, scan lines or repeated glowing borders.
 ## Composition
 
 ```
-Kineti Core / original game by Nikita                   Guide / pause
+Kineti Core / original game by Mykyta                   Guide / pause
 Assembly                 Ascent                 Docking / landing
 Destination        Sunlit vehicle or world        SI instruments
 Module sequence    Real maneuver / real contact    Readiness / fuel
@@ -113,3 +113,75 @@ For later additions, review assembly, the destination atlas, an active
 maneuver and both outcomes together. A new control should earn its space by
 helping a player make a flight decision. If an accessory competes with the
 spacecraft or makes data harder to read, remove it.
+
+## Explicit assembly platform
+
+The custom workshop uses one shared typed-slot vehicle definition for geometry,
+performance, saves and flight. A player chooses hardware, then deliberately
+selects a compatible attachment point on the 3D platform or in its accessible
+list. Choosing a component must not append it to an invisible sequence.
+Installed parts retain their physical role regardless of the order of edits.
+
+Highlight compatible points in navigation blue while placement is active;
+show the component's radius and length before placement. Keep incompatible
+points disabled and name replacement of occupied hardware explicitly. Copying
+a component prepares another placement rather than silently attaching it.
+Dimension edits update the same craft and performance data used by flight.
+
+The white Start Flight action belongs in the workshop header so the path from
+assembly to mission planning remains obvious. Load a useful lunar demonstrator
+for a quick first flight, and offer an empty platform for deliberate design.
+Saved or imported layouts follow the same validation and flight path; migration
+from sequence-based files explains its typed placement to the player. Leaving
+the editor returns to a paused flight. A dark circular assembly deck supplies
+scale and footing without making the scene into a decorative dashboard.
+
+## Mode navigation and flight controls
+
+Every game surface exposes a text-labelled **Modes** control. The mode manifest
+names the workshop, complete Moon route, Earth launch, manual docking, surface
+landing, online Earth and Solar System directly. Training descriptions state
+what they skip. Keep the current mode identifiable; do not bury a maneuver in
+an unrelated menu or rely on an unexplained icon. Opening or closing mode
+selection preserves a paused flight and releases flight inputs.
+
+Landing controls use 13–14 px action text and a 44 px slider interaction area.
+Show the engine percentage beside its label. Powered landing guidance and
+upright attitude hold are different decisions and must retain separate names
+and states; a small attitude controller does not imply automatic descent.
+Keep the landing guidance action easy to find, and communicate that it uses
+propellant and obeys the engine ceiling.
+
+The integrated mission keeps its command surface visible in the bounded
+screen. A local navigation map shows the actual mission state; the phone view
+retains altitude, vertical speed and pad offset while full resource readings
+remain available through Telemetry. Pause and outcome overlays suppress old
+flight labels so explanations stay readable over the still-visible scene.
+
+## Docking optics and hardware detail
+
+Expose External chase, Docking camera and Cockpit as explicit selected controls,
+including while paused. Reset inspection offsets when entering a mounted view.
+The crew-eye window and nose optics follow the actual spacecraft quaternion;
+they must never steer toward the target merely to improve composition. Display
+actual relative range, closing rate, lateral offset and attitude in the cabin.
+The interior is a fictional procedural reconstruction, not a certified replica.
+Keep the instrument display independent of cabin-frame aspect changes. It keeps
+its 6:1 ratio, receives uniform scaling only and is capped at 100 CSS px high;
+the main digits remain about 24 px at that maximum on tall or ultrawide screens.
+Widening the cabin must not stretch its numbers.
+
+Prefer a small number of meaningful panels, struts, footpads, foil surfaces,
+engine details and handrails over dense invisible geometry. The v0.4 standard
+lander adds 22 cosmetic meshes while preserving its contact axis; custom-craft
+dimensions and shared geometry remain authoritative. Steam/dust pools are
+finite and reduced-motion settings lower intensity. The extended curved ground
+supplies a horizon away from the pad rather than moving the target with the
+craft. These are implementation budgets, not measured mobile FPS claims.
+
+The author page pairs the existing project spacesuit portrait with the exact
+name **Микита Борисов**, Ukraine, and sole-author credit. Preserve the full
+portrait; keep provenance in the asset credits rather than visible captions.
+Use calm type, one authorship line and a visible Back to game action, without
+invented biography or repeated explanations. The burger and its anchored black
+menu use quiet lines, clear labels and 44 px targets.

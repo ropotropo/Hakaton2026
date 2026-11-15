@@ -1,6 +1,6 @@
 # First playable: Earth orbit and docking
 
-Original game concept by Nikita, relayed by Andrii. Existing project identity: Kineti Core.
+Original game concept by Mykyta, relayed by Andrii. Existing project identity: Kineti Core.
 
 ## Player loop
 

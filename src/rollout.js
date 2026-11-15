@@ -346,6 +346,7 @@ export function createRollout({ onOpen = () => {}, onClose = () => {}, onReady =
   });
   listen(canvas, 'webglcontextlost', event => { event.preventDefault(); if (active) { setPaused(true); $('[data-status]').textContent = '3D graphics interrupted. Return and reopen the exercise.'; } });
   return {
+    pause(value=true){setPaused(value);},
     open() {
       if (destroyed) throw new Error('Rollout controller has been destroyed.');
       if (active) { $('[data-return]').focus(); return; }

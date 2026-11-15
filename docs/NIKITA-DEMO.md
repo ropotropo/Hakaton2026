@@ -1,4 +1,4 @@
-# Nikita demonstration build
+# Mykyta demonstration build
 
 Open Explore Solar System for a full-window 3D atlas. All eight planets, the Sun and Pluto appear as visible spheres, with Saturn's rings. Select a system to see its catalog satellites; select a body or double-click it to focus. Mouse orbit, pan and zoom are independent of spacecraft motion. Twelve supported moons connect directly to their landing exercises.
 

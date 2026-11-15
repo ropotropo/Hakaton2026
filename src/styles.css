@@ -6,6 +6,7 @@
   --bg: #000000; --panel: #0a0a0b; --line: #303034; --subtle-line: #202023;
   --muted: #a1a1a8; --quiet: #85858e; --white: #f5f5f7; --blue: #9bcaff;
   --orange: #edb96d; --green: #a8d8bd; --red: #ff8b83; --radius-control: 7px;
+  --control-height: 44px; --utility-height: 40px;
 }
 * { box-sizing: border-box; }
 body { margin: 0; min-width: 320px; }
@@ -539,3 +540,112 @@ kbd { font: 9px ui-monospace, SFMono-Regular, Consolas, monospace; color: #d4d4d
 .flight-center.expanded-flight{position:fixed;inset:0;z-index:1000;height:100dvh;overflow:auto;background:#000;display:flex;flex-direction:column}.expanded-flight .viewport{flex:1;min-height:50dvh;height:auto}.expanded-flight .command-deck{min-height:100px;padding:14px 20px}.expanded-flight .navigation-tools{flex-shrink:0}.expanded-flight .touch-controls{flex-shrink:0}
 @media(min-width:901px){body .workspace{grid-template-columns:205px minmax(0,1fr) 180px;min-height:0;flex:1}body .library,body .instruments{padding:16px 12px;overflow:auto}body .game-shell{height:100dvh;min-height:640px}body .viewport{min-height:300px}body .command-deck{min-height:108px;padding:14px 18px}body .app-header{height:58px}body .mission-nav{height:42px}body .mission-nav ol{gap:22px}body .app-footer{min-height:30px}body .flight-center{overflow:hidden}body .navigation-tools{padding:6px 12px;gap:10px;flex-shrink:0}}
 @media(max-width:900px){body .viewport{height:65dvh;min-height:420px}.navigation-tools small{display:none}.flight-center.expanded-flight .viewport{height:auto;min-height:65dvh}.navigation-map .guide-content{padding:16px}}
+
+/* Surface controls: readable decisions, a usable slider and distinct assists. */
+body .flight-center:has(.landing-command) .viewport { min-height: 0; }
+body .command-deck:has(.landing-command) { min-height: 204px; padding: 18px 22px; }
+body .landing-command { gap: 25px; }
+body .landing-command .throttle-label label { font-size: 14px; line-height: 1.5; margin-bottom: 7px; }
+body .landing-command .throttle-label strong { font-size: 20px; letter-spacing: -.035em; }
+body .landing-command .throttle-label p { font-size: 12px; line-height: 1.9; }
+body .landing-command .throttle-label kbd { font-size: 10px; padding: 3px 5px; }
+body .landing-command .assist-note { font-size: 12px; line-height: 1.65; margin-top: 8px; max-width: 49ch; }
+body .landing-command input[type="range"] { appearance: none; -webkit-appearance: none; display: block; width: 100%; height: 44px; padding: 0 4px; margin: 0 0 5px; background: transparent; border: 0; cursor: pointer; }
+body .landing-command input[type="range"]::-webkit-slider-runnable-track { height: 4px; border-radius: 2px; background: #777780; }
+body .landing-command input[type="range"]::-webkit-slider-thumb { appearance: none; -webkit-appearance: none; width: 22px; height: 22px; margin-top: -9px; border: 1px solid #fff; border-radius: 50%; background: #f5f5f7; box-shadow: 0 1px 5px #000; }
+body .landing-command input[type="range"]::-moz-range-track { height: 4px; border-radius: 2px; background: #777780; }
+body .landing-command input[type="range"]::-moz-range-thumb { width: 22px; height: 22px; border: 1px solid #fff; border-radius: 50%; background: #f5f5f7; box-shadow: 0 1px 5px #000; }
+body .landing-controls { gap: 8px; min-width: 230px; }
+body .landing-controls button { min-height: 42px; font-size: 13px; padding: 10px 12px; }
+body .landing-controls .toggle-button { justify-content: flex-start; }
+body .landing-controls .landing-assist-toggle { font-size: 14px; font-weight: 500; border-color: #7c8da0; }
+body .landing-controls .landing-assist-toggle::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: #85858e; }
+body .landing-controls .landing-assist-toggle.on { background: #101f2f; border-color: #9bcaff; color: #e0efff; }
+body .landing-controls .landing-assist-toggle.on::before { background: #9bcaff; }
+body .landing-controls #hold-button { color: #b7b7c2; font-size: 12px; }
+body .landing-controls > .quiet-button { min-height: 33px; font-size: 12px; padding: 6px 10px; color: #ffafa7; }
+body .landing-controls > .quiet-button:hover { background: #271716; }
+body .workspace:has(.landing-command) .instrument-name { font-size: 12px; }
+body .workspace:has(.landing-command) .readiness-title { font-size: 13px; }
+body .workspace:has(.landing-command) .readiness p { font-size: 11px; }
+body .workspace:has(.landing-command) .plan-step { font-size: 12px; }
+body .workspace:has(.landing-command) .model-note { font-size: 11px; }
+@media (max-width: 650px) {
+  body .command-deck:has(.landing-command) { padding: 17px 19px; min-height: 0; }
+  body .landing-command { gap: 15px; }
+  body .landing-command .throttle-label > p { display: none; }
+  body .landing-command .assist-note { font-size: 11px; line-height: 1.65; }
+  body .landing-controls { min-width: 0; width: 100%; grid-template-columns: 1fr 1fr; }
+  body .landing-controls .toggle-button { grid-column: auto; font-size: 12px; min-height: 44px; padding: 10px; justify-content: center; }
+  body .landing-controls .landing-assist-toggle { font-size: 13px; }
+  body .landing-controls .button-row { grid-column: 1 / -1; }
+  body .landing-controls .button-row button { min-height: 44px; font-size: 13px; }
+  body .landing-controls > .quiet-button { grid-column: 1 / -1; min-height: 35px; }
+  body .flight-center:has(.landing-command) .viewport { height: 300px; min-height: 300px; }
+}
+
+/* Physical docking viewpoints are explicit and reachable during a pause. */
+.docking-camera-controls { flex-shrink: 0; padding: 13px 22px 11px; border-top: 1px solid #303034; background: #080809; }
+.docking-camera-buttons { display: flex; align-items: center; gap: 7px; }
+.docking-camera-label { margin-right: 9px; color: #aaaab5; font-size: 12px; white-space: nowrap; }
+.docking-camera-buttons button { min-height: 42px; padding: 10px 13px; border: 1px solid #4a4a53; border-radius: 7px; background: #131317; color: #d2d2dd; font-size: 12px; font-weight: 450; line-height: 1.3; white-space: nowrap; }
+.docking-camera-buttons button:hover { color: #fff; background: #29292f; border-color: #85858e; }
+.docking-camera-buttons button.selected { background: #f5f5f7; border-color: #f5f5f7; color: #101012; }
+.docking-camera-controls > p { max-width: 78ch; color: #a5a5b2; font-size: 11px; line-height: 1.65; margin: 8px 0 0; }
+body .docking-command p { font-size: 13px; line-height: 1.7; }
+body .flight-center:has(.docking-camera-controls:not([hidden])) .viewport { min-height: 0; }
+body .flight-center:has(.docking-camera-controls:not([hidden])) .command-deck { min-height: 135px; }
+@media (max-width: 650px) {
+  .docking-camera-controls { padding: 12px 17px 11px; }
+  .docking-camera-buttons { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
+  .docking-camera-label { grid-column: 1 / -1; margin: 0 0 2px; font-size: 12px; }
+  .docking-camera-buttons button { min-height: 44px; padding: 9px 7px; white-space: normal; font-size: 12px; }
+  .docking-camera-controls > p { font-size: 11px; }
+  body .flight-center:has(.docking-camera-controls:not([hidden])) .viewport { height: 320px; min-height: 320px; }
+}
+
+/* Interaction audit: one action family, quiet utility family and held inputs. */
+body .primary-button, body .secondary-button, body .toggle-button,
+body .stage-control button, body .docking-camera-buttons button {
+  min-height: var(--control-height); border-radius: var(--radius-control);
+  font-weight: 500; line-height: 1.35;
+}
+body .toggle-button { font-size: 12px; padding: 10px 12px; }
+body .icon-button { width: 44px; min-width: 44px; height: 44px; border-radius: var(--radius-control); }
+body .view-button, body .navigation-tools > button { min-height: var(--utility-height); border-radius: var(--radius-control); }
+body .touch-tabs button { min-height: 44px; border-radius: var(--radius-control); }
+body .ascent-controls input[type="range"] { display: block; height: 44px; margin: 0; padding: 0 4px; }
+@media (max-width: 650px) {
+  body .header-actions .quiet-button { min-width: 44px; min-height: 44px; padding: 8px; }
+  body .view-tabs button, body .view-button, body .navigation-tools > button,
+  body .landing-controls > .quiet-button, body .app-footer button { min-height: 44px; }
+  body .navigation-tools { gap: 6px 10px; padding: 8px 12px; }
+  body .touch-pad { gap: 8px; }
+  body .touch-pad button { min-height: 48px; font-size: 12px; }
+  body .touch-tabs > span { display: none; }
+  body .docking-camera-controls > p { line-height: 1.6; }
+}
+
+.ascent-pitch-controls { display: flex; gap: 8px; margin-top: 9px; }
+body .ascent-pitch-controls button { flex: 1; min-height: 44px; font-size: 12px; touch-action: none; user-select: none; -webkit-user-select: none; }
+
+@media (max-width: 980px) and (max-height: 500px) {
+  body .touch-controls:not([hidden]) { display: block; }
+  body .touch-controls { padding: 10px 14px; }
+  body .touch-pad { gap: 7px; }
+  body .touch-pad button { min-height: 44px; }
+  body .touch-tabs { margin-bottom: 8px; }
+}
+
+/* The legacy ascent steering pair occupies its own row beside the power tools. */
+body .assist-controls { flex-wrap: wrap; gap: 8px 12px; }
+body .ascent-pitch-controls { order: 3; flex-basis: 100%; width: 100%; margin-top: 0; }
+body .flight-center:has(.ascent-controls) .viewport { min-height: 0; }
+
+@media (max-width: 650px) {
+  /* Keep the real approach visible while the pilot reaches the touch pad. */
+  body .flight-center:has(#touch-controls:not([hidden])) .viewport {
+    position: sticky; top: 0; z-index: 4;
+    height: min(38dvh, 320px); min-height: min(38dvh, 320px);
+  }
+}

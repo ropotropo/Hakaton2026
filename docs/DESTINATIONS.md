@@ -1,6 +1,6 @@
 # Destination catalog and terminal landing model
 
-Original game idea: Nikita. This catalog, numerical model and tests were prepared with AI assistance. Sources checked November 15, 2026.
+Original game idea: Mykyta. This catalog, numerical model and tests were prepared with AI assistance. Sources checked November 15, 2026.
 
 ## What the destination selector represents
 

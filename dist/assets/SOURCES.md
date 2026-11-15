@@ -1,5 +1,17 @@
 # Local visual assets
 
+## Author portrait
+
+`mykyta-portrait.jpg` is the existing AI-generated spacesuit portrait of
+**Микита Борисов**, supplied for this project and explicitly requested for the
+author page by Andrii on 15 November 2026. The image is an illustration, not
+evidence of a real lunar mission. It was encoded from the current v3 portrait PNG (no retired project-name/SH patch)
+without a generative edit or facial alteration. Its source/output SHA-256,
+dimensions and encoding are recorded in `mykyta-portrait-source.json`.
+The technical provenance is documented here separately from Mykyta's
+sole game authorship; the game page keeps its visible copy minimal. The original source file remains intact in the project
+presentation workspace; no personal reference photographs are included here.
+
 ## Earth map
 
 - File: `earth-blue-marble.jpg`
@@ -35,3 +47,15 @@ All landing terrain, rocks, ice-fracture patterns, surface relief, survey beacon
 Preview globe size, body shape/oblateness, slow inspection rotation, illumination direction and parent-planet context are presentation choices, not live ephemerides or a true-scale solar-system view. Phobos/Deimos silhouettes are approximate irregular shapes; their visualization texture maps do not constitute measured 3D shape models. Parent planets appear as contextual illustrations and are hidden through Titan's simulated haze during surface descent.
 
 Dust/debris use brief ballistic-looking motion, not atmospheric smoke on airless moons. Capture lights, impact flash and strut settling are visual feedback, not additional forces in the simulation. Hard-impact effects are triggered once from outcome state; benign mission-rule failures do not invent a destructive explosion. A reduced-motion preference reduces particles and suppresses inspection rotation.
+
+## v0.4 close-up maps and continuous flight presentation
+
+- **Moon 4K:** `celestial-moon-hd.jpg`, 4096 × 2048, converted from NASA SVS's [LROC sRGB 16-bit 4K TIFF](https://svs.gsfc.nasa.gov/vis/a000000/a004700/a004720/lroc_color_16bit_srgb_4k.tif). Credit: NASA / GSFC / ASU / LROC. Converted to 8-bit RGB JPEG, quality 94; no generated detail. The CGI Moon Kit's visualization and coverage limitations above still apply.
+- **Europa 4K:** `celestial-europa-hd.jpg`, 4096 × 2048, resampled from the [USGS Galileo / Voyager global 500 m mosaic](https://planetarymaps.usgs.gov/mosaic/Europa_Voyager_GalileoSSI_global_mosaic_500m.tif). Credit: NASA / JPL / USGS. The original Simple Cylindrical mosaic is 19631 × 9816 pixels. This is a **monochrome mosaic**, given mild display contrast and a warm-neutral tint; it is not measured true color or a height map. Approximately 4.25% of zero/no-data pixels were filled with a flat median value, without reconstructed surface detail. [Processing receipt](hd-sources.json) records original and derived hashes, dimensions, sizes and source URLs.
+- Desktop renderers with 4096-pixel texture support use these maps by default. When 8192-pixel textures are supported, the retained 5400 × 2700 NASA Earth source supplies the Earth's close-up color map without another download. Narrow screens retain the lighter source maps. Neither map is used as a local landing elevation model. The landing sites remain procedural illustrations and the flat contact approximation remains in the simulation module.
+
+The custom vehicle geometry is shared verbatim between the workshop and flight renderer. Its dimensions, canonical attachment positions and stage membership come from the vehicle-design model. The geometry, stages, plume shaders, finite steam/dust particles, crawler, astronaut and Kinetic Core text flag are original procedural artwork. The flag is a text placeholder, not an agency insignia. EVA presentation is enabled only after successful contact in the integrated Moon mission when the controller explicitly enables crew; Europa landing practice does not claim human radiation survival.
+
+Flight backgrounds use a separate depth pass and floating local coordinates. Earth and Moon preserve their supplied relative bearings and angular sizes; the Moon trajectory is a modeled circular orbit, not a current ephemeris. Sun and other planets are symbolic static contextual markers, with minimum visible sizes; they do not participate in the Earth–Moon solver. Globe display orientation, ocean tonal lift, ocean roughness, cloud layer and atmosphere scattering are visualization approximations. The dated Earth composite's near-black ocean receives a restrained daylight tonal lift; it is not a new measured ocean-color product.
+
+Launchpad and coastal terrain are illustrative. Camera framing, Earth distance haze, launch steam and vacuum dust are presentation; thrust, stage release, fuel and contact state continue to come from the simulation. The surface-EVA walk and flag placement are a post-contact cinematic, not an independently modeled life-support or surface-traverse simulation.

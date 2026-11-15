@@ -6,8 +6,8 @@ description: Extend or review Kineti Core's black aerospace game interface and 3
 # Kineti Core design
 
 Read [the design language](../../docs/DESIGN.md) before changing game visuals.
-Its source tokens are in [src/styles.css](../../src/styles.css). Nikita is the
-original game author; Andrii's current direction is predominantly true black,
+Its source tokens are in [src/styles.css](../../src/styles.css). Mykyta Borisov
+(Микита Борисов) is the sole game author; Andrii's direction is predominantly true black,
 Apple-like precision and restrained aerospace science fiction.
 
 The memorable surface is the lit spacecraft or celestial body. Keep controls
@@ -15,6 +15,9 @@ calm around it: white primary actions, continuous instrument panels, sentence
 case labels, tabular sans values, and a small selection rail for installed
 hardware. Reserve blue for navigation/focus and amber/red/green for physical
 state. Do not reuse Malibu Wired or TRD branding or a generic card dashboard.
+Keep visible copy brief. Store portrait-generation and implementation provenance
+in credits/docs, without visible production captions or repeated explanations.
+Use the current name and portrait in AUTHORS.md and public/assets/SOURCES.md.
 
 For a new interaction, identify the flight decision it supports and the
 physical state that drives it. Preserve useful scene area and one clear next
