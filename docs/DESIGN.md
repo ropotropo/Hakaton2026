@@ -297,3 +297,9 @@ the full Moon mission before detailed controls.
   Begin/Cancel and the same destination gravity/context as the original selector.
 - Lunar terrain and panel deployment in this patch are bounded visual changes.
   The deeper lunar stage is tracked in LUNAR-EXPERIENCE-NEXT.md.
+
+Round flight utilities are icon-only on phone and desktop. Keep an accessible
+name and a hover title; do not shrink or wrap labels inside the circles. View
+utilities use 44 × 44 px targets. Return to flight camera shares their reset
+icon and second-row alignment. Expanded Data replaces the phase heading at the
+left edge and must not cover a tool or reset action.

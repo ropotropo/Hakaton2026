@@ -96,7 +96,7 @@ export function installAscentReadouts({ scene, tools, icon, onToggle = () => {},
   hud.innerHTML = '<div class="ascent-fuel-line"><span data-engine></span><strong data-fuel></strong><small data-burn></small></div><div class="ascent-altitude-reference"><div><span>Altitude reference</span><strong data-altitude></strong></div><meter min="0" max="200000" value="0" aria-label="Altitude reference only, not orbit completion"></meter><small data-orbit-note>Orbit also needs speed and safe apsides.</small></div>';
   const panel = document.createElement('div'); panel.className = 'ascent-mini-telemetry'; panel.id = id; panel.hidden = true; panel.setAttribute('aria-label', 'Optional live flight telemetry'); panel.innerHTML = '<dl></dl>';
   const button = document.createElement('button'); button.type = 'button'; button.className = buttonClass + ' ascent-data-toggle'; button.hidden = true;
-  button.setAttribute('aria-label', 'Show compact live telemetry'); button.setAttribute('aria-expanded', 'false'); button.setAttribute('aria-controls', id);
+  button.setAttribute('aria-label', 'Show compact live telemetry'); button.title = 'Live telemetry'; button.setAttribute('aria-expanded', 'false'); button.setAttribute('aria-controls', id);
   button.innerHTML = `${icon('chart')}<span${buttonClass === 'kc-tool' ? ' class="kc-tool-label"' : ''}>Data</span>`;
   tools.append(button); scene.append(hud, panel);
   let expanded = false;

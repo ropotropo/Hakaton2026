@@ -11,6 +11,7 @@ const paths = {
   info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10v.2"/>',
   help:'<circle cx="12" cy="12" r="9"/><path d="M9 9a3 3 0 1 1 4 3c-1 .5-1 1-1 2m0 3v.1"/>',
   pause:'<path d="M9 5v14m6-14v14"/>',
+  power:'<path d="M12 3v9M7.1 5.6a8 8 0 1 0 9.8 0"/>',
   play:'<path d="m8 4 12 8-12 8V4Z"/>',
   menu:'<path d="M4 6h16M4 12h16M4 18h16"/>',
   close:'<path d="m6 6 12 12M6 18 18 6"/>',

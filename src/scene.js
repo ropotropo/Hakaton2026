@@ -294,6 +294,102 @@ function makePad(materials) {
   return pad;
 }
 
+function makeLaunchSiteDetail(palette){
+  // Fictional Kennedy/Wallops-inspired utility layout, not surveyed geometry.
+  // Repeated hardware is instanced by primitive/material, with no new textures.
+  const root=new THREE.Group(),batches=new Map(),owned=new Map(),dummy=new THREE.Object3D();
+  const geometries={box:new THREE.BoxGeometry(1,1,1),cylinder:new THREE.CylinderGeometry(1,1,1,16),sphere:new THREE.SphereGeometry(1,16,10),ring:new THREE.TorusGeometry(1,.055,6,24)};
+  const material=(name,source,color)=>{if(!owned.has(name)){const m=source.clone();if(color)m.color.set(color);owned.set(name,m);}return owned.get(name);};
+  const concrete=material('concrete',palette.concrete,0x737975),asphalt=material('asphalt',palette.black,0x293035),steel=material('steel',palette.titanium,0x7d898e),white=material('white',palette.white,0xd8dedb),dark=material('dark',palette.darkMetal,0x303b40),amber=material('amber',palette.copper,0xcab87d),glass=material('glass',palette.glass),lamp=material('lamp',palette.portLight,0xe4ddd0);
+  function add(geometry,m,size,position,rotation=[0,0,0]){const key=geometry+':'+m.uuid;if(!batches.has(key))batches.set(key,{geometry:geometries[geometry],material:m,matrices:[]});dummy.position.set(...position);dummy.rotation.set(...rotation);dummy.scale.set(...size);dummy.updateMatrix();batches.get(key).matrices.push(dummy.matrix.clone());}
+  function pipe(a,b,r=.22,m=steel){const from=new THREE.Vector3(...a),to=new THREE.Vector3(...b),axis=to.clone().sub(from);dummy.position.copy(from).add(to).multiplyScalar(.5);dummy.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),axis.clone().normalize());dummy.scale.set(r,axis.length(),r);dummy.updateMatrix();const key='cylinder:'+m.uuid;if(!batches.has(key))batches.set(key,{geometry:geometries.cylinder,material:m,matrices:[]});batches.get(key).matrices.push(dummy.matrix.clone());}
+  // A flame-channel apron, retaining walls, service lanes and launch markings.
+  add('box',concrete,[106,.13,138],[0,-1.48,31]);add('box',asphalt,[11,.07,75],[0,-1.36,55]);
+  for(const x of [-6.8,6.8])add('box',concrete,[2.1,1.2,77],[x,-.9,55]);
+  for(const x of [-32,32]){add('box',asphalt,[7,.1,260],[x,-1.29,133]);for(let z=26;z<254;z+=18)add('box',amber,[.18,.02,7],[x,-1.22,z]);for(const sign of [-1,1])add('box',white,[.12,.02,260],[x+sign*3.1,-1.22,133]);}
+  add('box',asphalt,[230,.1,8],[63,-1.31,150]);for(let x=-42;x<171;x+=18)add('box',amber,[7,.02,.18],[x,-1.24,150]);
+  for(const x of [-23,23])for(let z=-12;z<=31;z+=7)add('box',amber,[2.8,.025,.45],[x,-1.35,z],[0,.55,0]);
+  // Cryogenic storage, with plinths, support saddles, caps and tank bands.
+  for(const [x,z,r,h] of [[48,-42,4.2,16],[61,-43,3.2,12],[73,-42,3.2,12],[-61,-26,3.8,10]]){
+    add('box',concrete,[r*2.7,.45,r*2.7],[x,-1.13,z]);add('cylinder',white,[r,h,r],[x,h*.5+.3,z]);
+    add('sphere',white,[r,.38*r,r],[x,h+.3,z]);for(const y of [1.1,h*.6])add('ring',steel,[r*1.015,r*1.015,r*1.015],[x,y,z],[Math.PI/2,0,0]);
+    for(const dx of [-r*.65,r*.65])pipe([x+dx,-.9,z],[x+dx,1,z],.2,dark);
+  }
+  // Pipe racks, isolation valves and a separate cable tray avoid the craft axis.
+  for(const offset of [0,1.05,2.1]){
+    const points=[[48,-.2,-35-offset],[26,-.2,-35-offset],[26,-.2,-10-offset],[16,-.2,-10-offset]];
+    for(let i=1;i<points.length;i++)pipe(points[i-1],points[i],.18+i*.025,i===2?amber:steel);
+    for(const x of [29,39,46])add('box',concrete,[.75,.65,4.7],[x,-1.05,-36]);
+    pipe([39,-.2,-35-offset],[39,1.0,-35-offset],.09,amber);add('ring',amber,[.38,.38,.38],[39,1.06,-35-offset],[Math.PI/2,0,0]);
+  }
+  add('box',dark,[1.6,.3,68],[-22,-.97,54]);for(let z=25;z<84;z+=5)add('box',steel,[1.7,.06,.16],[-22,-.78,z]);
+  // Low service buildings, protected vents, doors and medium-distance bunkers.
+  for(const [x,z,w,d,h] of [[68,67,18,12,5],[-62,78,21,14,5.5],[114,135,29,17,7],[-110,-97,24,18,5]]){
+    add('box',concrete,[w,h,d],[x,h*.5-1.25,z]);add('box',dark,[w+1,.3,d+1],[x,h-1.1,z]);
+    add('box',asphalt,[3.5,3.7,.12],[x,h*.5-1.2,z+d*.5+.08]);add('box',white,[w*.45,1.15,.13],[x-w*.18,h*.6-1.25,z+d*.5+.1]);
+    for(const dx of [-w*.25,w*.25])add('box',steel,[2,.8,2],[x+dx,h-.5,z]);
+  }
+  // Lightning/service masts: thin poles and guy lines leave the tower clear.
+  for(const [x,z,h] of [[-78,-73,52],[82,-79,56],[-85,107,48],[95,104,46]]){
+    add('box',concrete,[4,.7,4],[x,-1.15,z]);pipe([x,-.8,z],[x,h,z],.22,white);pipe([x,h,z],[x,h+5,z],.075,steel);
+    for(const sign of [-1,1])pipe([x,h*.72,z],[x+sign*13,-1.3,z+8],.035,steel);
+    add('sphere',lamp,[.2,.2,.2],[x,h+5.1,z]);
+  }
+  for(const [x,z] of [[-29,55],[29,88],[48,141],[-58,116]]){pipe([x,-1.2,z],[x,7,z],.09,dark);pipe([x,7,z],[x+1.5,7,z],.07,dark);add('box',lamp,[.7,.12,.45],[x+1.4,6.97,z]);}
+  // A few uncrewed scale vehicles, pallets and enclosed utility cabinets.
+  for(const [x,z] of [[35,56],[-32,106],[88,148]]){
+    add('box',dark,[2.5,.45,5],[x,-.42,z]);add('box',white,[2.4,1.55,2.1],[x,.47,z-1.05]);add('box',glass,[2.05,.67,.04],[x,.87,z+.02]);add('box',steel,[2.4,.8,2.7],[x,.02,z+1.3]);
+    for(const dx of [-1.25,1.25])for(const dz of [-1.5,1.6])add('cylinder',asphalt,[.45,.22,.45],[x+dx,-.72,z+dz],[0,0,Math.PI/2]);
+  }
+  for(let i=0;i<9;i++){const x=41+i%3*2.1,z=14+Math.floor(i/3)*2.4;add('box',dark,[1.65,1.25,1.65],[x,-.78,z]);add('box',steel,[1.75,.08,1.75],[x,-.115,z]);}
+  let instances=0;for(const batch of batches.values()){const mesh=new THREE.InstancedMesh(batch.geometry,batch.material,batch.matrices.length);batch.matrices.forEach((matrix,i)=>mesh.setMatrixAt(i,matrix));mesh.castShadow=false;mesh.receiveShadow=false;root.add(mesh);instances+=batch.matrices.length;}
+  root.userData={illustrative:true,drawCallBudget:batches.size,instances};return {root,materials:[...owned.values()]};
+}
+
+function makeAtmosphericTrail(reducedMotion=false){
+  // Bounded exhaust/water-vapour appearance, not a wind or condensation solver.
+  const root=new THREE.Group(),count=reducedMotion?32:96,geometry=new THREE.PlaneGeometry(1,1),opacity=new Float32Array(count);
+  geometry.setAttribute('trailOpacity',new THREE.InstancedBufferAttribute(opacity,1).setUsage(THREE.DynamicDrawUsage));
+  const material=new THREE.ShaderMaterial({transparent:true,depthWrite:false,side:THREE.DoubleSide,toneMapped:false,
+    vertexShader:'attribute float trailOpacity;varying vec2 tex;varying float fade;void main(){tex=uv;fade=trailOpacity;gl_Position=projectionMatrix*modelViewMatrix*instanceMatrix*vec4(position,1.0);}',
+    fragmentShader:'varying vec2 tex;varying float fade;void main(){float r=length((tex-.5)*2.0);float a=pow(max(0.0,1.0-r),1.8)*fade;if(a<.002)discard;gl_FragColor=vec4(.84,.88,.9,a);}' });
+  const puffs=new THREE.InstancedMesh(geometry,material,count);puffs.instanceMatrix.setUsage(THREE.DynamicDrawUsage);puffs.frustumCulled=false;root.add(puffs);
+  const nearMaterial=new THREE.ShaderMaterial({transparent:true,depthWrite:false,side:THREE.DoubleSide,toneMapped:false,uniforms:{strength:{value:0}},
+    vertexShader:'varying vec2 tex;void main(){tex=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
+    fragmentShader:'uniform float strength;varying vec2 tex;void main(){float width=pow(max(0.0,1.0-abs(tex.x-.5)*2.0),2.0);float a=width*smoothstep(0.0,.55,tex.y)*strength;if(a<.002)discard;gl_FragColor=vec4(.84,.88,.9,a);}' });
+  const near=new THREE.Mesh(new THREE.PlaneGeometry(1,1),nearMaterial);near.frustumCulled=false;root.add(near);
+  const particles=Array.from({length:count},()=>({age:99,life:6,p:[0,0],time:0,z:0,density:0})),dummy=new THREE.Object3D(),samples=[];
+  let cursor=0,emission=0,seed=1511,wasEmitting=false,ambientClock=0;const rand=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;};
+  function clear(){particles.forEach(p=>{p.age=99;});opacity.fill(0);geometry.attributes.trailOpacity.needsUpdate=true;samples.length=0;emission=0;wasEmitting=false;ambientClock=0;root.visible=false;near.visible=false;}
+  function update(dt,view,emitter,camera){
+    if(!Array.isArray(view.positionSI)||!Array.isArray(view.velocitySI)){clear();return;}
+    const h=view.paused?0:Math.min(.1,Math.max(0,dt)),altitude=Math.max(0,Number(view.altitude)||0),density=1-THREE.MathUtils.smoothstep(altitude,30000,50000);
+    const now=Number.isFinite(view.time)?view.time:ambientClock+h;ambientClock=now;
+    const latitude=Number(view.site?.latitude??28.6084)*Math.PI/180,omega=Number(view.effectiveRotation)||7.2921159e-5*Math.cos(latitude);
+    // The visual exhaust history follows the same co-rotating ambient frame
+    // as the launch site, rather than leaving a ~400m/s inertial side-streak.
+    const localHistory=sample=>{const a=omega*Math.max(0,now-sample.time),c=Math.cos(a),s=Math.sin(a);return inertialToLocal([sample.p[0]*c-sample.p[1]*s,sample.p[0]*s+sample.p[1]*c],view.positionSI);};
+    const burning=!view.paused&&view.phase==='launch'&&altitude>2&&view.throttle>.01&&density>0&&Math.hypot(...view.velocitySI)>1;
+    const p=view.positionSI,r=Math.hypot(...p),up=[p[0]/r,p[1]/r],east=[-up[1],up[0]];
+    if(burning){
+      const source=[p[0]+east[0]*emitter.x+up[0]*emitter.y,p[1]+east[1]*emitter.x+up[1]*emitter.y];
+      samples.push({p:source,time:now,z:emitter.z});if(samples.length>8)samples.shift();
+      if(!wasEmitting)emission=1;emission+=h*(reducedMotion?5:14)*density;
+      while(emission>=1){emission--;const puff=particles[cursor++%count];puff.age=0;puff.life=4.8+rand()*1.2;puff.p=source.slice();puff.time=now;puff.z=emitter.z+(rand()-.5)*.7;puff.density=density;}
+    }else if(!view.paused){samples.length=0;emission=0;}
+    if(!view.paused)wasEmitting=burning;
+    let visible=false;
+    particles.forEach((puff,i)=>{puff.age+=h;if(puff.age>=puff.life){opacity[i]=0;return;}visible=true;const local=localHistory(puff),size=1.6+puff.age*2.5;dummy.position.set(local[0],local[1],puff.z);dummy.quaternion.copy(camera.quaternion);dummy.scale.set(size,size,1);dummy.updateMatrix();puffs.setMatrixAt(i,dummy.matrix);opacity[i]=.2*puff.density*Math.pow(1-puff.age/puff.life,1.35);});
+    puffs.instanceMatrix.needsUpdate=true;geometry.attributes.trailOpacity.needsUpdate=true;puffs.visible=visible;
+    // A continuous near-nozzle ribbon bridges sparse history samples at high
+    // speed. Both endpoints come from the recorded physical flight path.
+    near.visible=samples.length>1&&(burning||view.paused&&wasEmitting);
+    if(near.visible){const first=samples[0],last=samples.at(-1),a=localHistory(first),b=localHistory(last),tail=new THREE.Vector3(a[0],a[1],first.z),head=new THREE.Vector3(b[0],b[1],last.z),axis=head.clone().sub(tail);if(axis.length()>150){tail.copy(head).addScaledVector(axis,-150/axis.length());axis.copy(head).sub(tail);}const length=axis.length();if(length<.1)near.visible=false;else{axis.normalize();const toward=camera.position.clone().sub(head).normalize(),side=new THREE.Vector3().crossVectors(axis,toward).normalize(),normal=new THREE.Vector3().crossVectors(side,axis).normalize();near.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(side,axis,normal));near.position.copy(head).add(tail).multiplyScalar(.5);near.scale.set(3.4,length,1);nearMaterial.uniforms.strength.value=.14*density;}}
+    root.visible=puffs.visible||near.visible;
+  }
+  clear();return {root,update,clear,dispose(){geometry.dispose();material.dispose();near.geometry.dispose();nearMaterial.dispose();}};
+}
+
 function makeStation(materials) {
   const station=new THREE.Group();
   // Port is exactly z=0 in the docking simulation's local frame.
@@ -652,7 +748,6 @@ export function createScene(canvas, options = {}) {
   const launchVertices=launchTerrain.attributes.position;for(let i=0;i<launchVertices.count;i++){const x=launchVertices.getX(i),z=launchVertices.getZ(i);launchVertices.setY(i,-1.6-(x*x+z*z)/(2*6371000));}launchTerrain.computeVertexNormals();
   const launchGround=new THREE.Mesh(launchTerrain,new THREE.MeshStandardMaterial({map:textures.coastalGround,color:0xffffff,roughness:1,flatShading:false}));launchGround.receiveShadow=false;launchEnvironment.add(launchGround);
   const localGroundMaterials=[launchGround.material];
-  localGroundMaterials.forEach(material=>{material.transparent=true;material.depthWrite=false;});
   for(const x of [-48,48])box(launchEnvironment,[9,.12,600],[x,-1.3,190],materials.concrete);
   box(launchEnvironment,[34,.08,1900],[0,-1.42,1120],materials.grate);
   const waterTank=new THREE.Group();waterTank.position.set(-95,-1.6,-70);launchEnvironment.add(waterTank);
@@ -662,6 +757,11 @@ export function createScene(canvas, options = {}) {
   const operations=new THREE.Group();operations.position.set(-1250,-1.6,1550);launchEnvironment.add(operations);
   box(operations,[140,120,100],[0,60,0],materials.white);box(operations,[105,8,103],[0,112,0],materials.darkMetal);
   for(const x of [-34,0,34])box(operations,[21,83,1.5],[x,47,51],materials.tower);
+  const launchDetail=makeLaunchSiteDetail(materials);launchEnvironment.add(launchDetail.root);localGroundMaterials.push(...launchDetail.materials);
+  // Fade every local-site object, including the existing tower/tanks, without
+  // mutating materials shared with the spacecraft or assembly workshop.
+  const fadedMaterials=new Map();launchEnvironment.traverse(object=>{if(!object.material)return;const fade=m=>{if(localGroundMaterials.includes(m))return m;if(!fadedMaterials.has(m)){const copy=m.clone();fadedMaterials.set(m,copy);localGroundMaterials.push(copy);}return fadedMaterials.get(m);};object.material=Array.isArray(object.material)?object.material.map(fade):fade(object.material);});
+  localGroundMaterials.forEach(material=>{material.transparent=true;material.depthWrite=false;});
   const rocketRoot=new THREE.Group();scene.add(rocketRoot);
   let vehicle={},rocket=makeRocket(materials,vehicle);rocketRoot.add(rocket);
   let framing=hardwareFrames(rocket),chaseReady=false,chaseRange=0,displayedLaunchPitch=null;
@@ -676,6 +776,7 @@ export function createScene(canvas, options = {}) {
   let dockingCraft=makeSpacecraft(materials,vehicle);dockingCraft.rotation.x=-Math.PI/2;const craftAttitude=new THREE.Group();craftAttitude.add(dockingCraft);docking.add(craftAttitude);
   const dockingCockpit=makeDockingCockpit(materials);camera.add(dockingCockpit.root);
   const reducedMotion=options.reducedMotion??window.matchMedia?.('(prefers-reduced-motion: reduce)').matches??false;
+  const atmosphericTrail=makeAtmosphericTrail(reducedMotion);scene.add(atmosphericTrail.root);
   const celestials=createCelestials(renderer,options),earth=celestials.earth,earthAtmosphere=celestials.earthAtmosphere;
   const surfaceSky=createSurfaceSky(celestials);
   const flightSky=createFlightSky(celestials);
@@ -702,6 +803,7 @@ export function createScene(canvas, options = {}) {
   let mode='assembly',previousStage=0,previousPhase=null,previousMissionTime=null,phaseAt=0,destructiveFailure=false,disposed=false,elapsed=0,dragging=false,dragX=0,rotation=.18,zoom=1;
   const look=new THREE.Vector3(0,26,0),desiredLook=new THREE.Vector3(),desiredCamera=new THREE.Vector3();
   const cameraPoint=new THREE.Vector3(),targetProjection=new THREE.Vector3();
+  const trailEmitter=new THREE.Vector3();
   const debris=[];
   let wasOverview=false;
   let orbitYaw=0,orbitPitch=0,orbitZoom=1,dragY=0,freeOrbit=false;
@@ -710,7 +812,7 @@ export function createScene(canvas, options = {}) {
   camera.position.set(72,40,94);camera.lookAt(look);
 
   function resetOutcomeVisuals(){
-    effects.clear();surfaceThrust.clear();finale.reset();destructiveFailure=false;captureGlow.material.opacity=0;
+    effects.clear();surfaceThrust.clear();atmosphericTrail.clear();finale.reset();destructiveFailure=false;captureGlow.material.opacity=0;
     materials.portLight.color.set(0xc9e7de);
     surface.userData.beacons.forEach(beacon=>beacon.material.color.set(0xc6d6bf));
   }
@@ -725,6 +827,7 @@ export function createScene(canvas, options = {}) {
   function setMode(next){
     if(!['assembly','rollout','launch','transfer','docking','destination','landing','finale'].includes(next)||next===mode)return;
     mode=next;resetOrbit();clearDebris();resetOutcomeVisuals();previousStage=0;previousPhase=null;previousMissionTime=null;chaseReady=false;displayedLaunchPitch=null;
+    if(mode==='rollout')localGroundMaterials.forEach(material=>{material.opacity=1;});
     if(rocket.userData.custom){if(['rollout','launch'].includes(mode)||['landing','finale'].includes(mode)&&['mars','titan'].includes(selectedDestination))setVehicleSolar(rocket,false,0,true);else if(mode==='assembly')setVehicleSolar(rocket,true,0,true);}
     assembly.visible=mode==='assembly';launchEnvironment.visible=['launch','rollout'].includes(mode);rocketRoot.visible=['assembly','launch','rollout','transfer'].includes(mode);docking.visible=mode==='docking';
     crawler.visible=mode==='rollout';destinationPreview.visible=mode==='destination';landing.visible=['landing','finale'].includes(mode);landingParent.visible=mode==='landing'&&selectedDestination!=='titan';
@@ -1052,6 +1155,7 @@ export function createScene(canvas, options = {}) {
       camera.position.set(0,0,24/Math.tan(camera.fov*Math.PI/360)/Math.min(1,camera.aspect));camera.lookAt(0,0,0);
     }
     wasOverview=showOverview;
+    if(mode==='launch'&&!showOverview){const stage=clamp(Number(view.stageIndex??view.activeStageIndex)||0,0,2),source=rocket.userData.custom?rocket.userData.flames.find(flame=>flame.stage===stage)?.object:stage===0?rocket.userData.engines[0]:stage===1?rocket.userData.upperPlume:null;if(source)source.getWorldPosition(trailEmitter);else trailEmitter.set(0,0,0);atmosphericTrail.update(frameDt,view,trailEmitter,camera);}else atmosphericTrail.clear();
     const useFlightSky=!showOverview&&(['launch','rollout','transfer','docking'].includes(mode)||(view.customMission&&selectedDestination==='moon'&&['landing','finale'].includes(mode)));
     const useSurfaceSky=!showOverview&&!useFlightSky&&['landing','finale'].includes(mode);
     let celestialMarkers=[];
@@ -1082,7 +1186,7 @@ export function createScene(canvas, options = {}) {
   function dispose(){
     if(disposed)return;disposed=true;observer?.disconnect();clearDebris();
     canvas.removeEventListener('pointerdown',onPointerDown);canvas.removeEventListener('pointermove',onPointerMove);canvas.removeEventListener('pointerup',onPointerUp);canvas.removeEventListener('pointercancel',onPointerUp);canvas.removeEventListener('wheel',onWheel);
-    disposeGeometries(scene);const allMaterials=new Set();scene.traverse(o=>{if(o.material){(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>allMaterials.add(m));}});allMaterials.forEach(m=>m.dispose());Object.values(textures).forEach(t=>t.dispose());surface.userData.surfaceMap.dispose();dockingCockpit.dispose();finale.dispose();surfaceThrust.dispose();flightSky.dispose();surfaceSky.dispose();celestials.dispose();environment.dispose();renderer.dispose();
+    disposeGeometries(scene);const allMaterials=new Set();scene.traverse(o=>{if(o.material){(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>allMaterials.add(m));}});allMaterials.forEach(m=>m.dispose());Object.values(textures).forEach(t=>t.dispose());surface.userData.surfaceMap.dispose();dockingCockpit.dispose();finale.dispose();surfaceThrust.dispose();atmosphericTrail.dispose();flightSky.dispose();surfaceSky.dispose();celestials.dispose();environment.dispose();renderer.dispose();
   }
   return {setMode,setVehicle,setDestination,update,resize,dispose,resetOrbit,get inspection(){return freeOrbit;},beginOrbit(){freeOrbit=true;},zoomBy(factor){if(!Number.isFinite(factor)||factor<=0)return;freeOrbit=true;orbitZoom=clamp(orbitZoom*factor,.25,4);},renderer,scene,camera};
 }

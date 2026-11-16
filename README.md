@@ -27,10 +27,11 @@ the planned [detailed Moon stage](docs/LUNAR-EXPERIENCE-NEXT.md).
 | Submitted presentation | **[English PDF — original submitted link](https://github.com/ropotropo/Hakaton2026/blob/codex/final-presentations/presentation/Kinetic-Core-EN.pdf)** |
 | Project guide | **[Read the Wiki](https://github.com/ropotropo/Hakaton2026/wiki)** |
 | Gameplay video | **[Video and update status](VIDEO.md)** — completed film, maintained separately |
-| Flight Deck v0.5 preview | **[HTML, Windows EXE, Android APK and source](https://github.com/ropotropo/Hakaton2026/releases/tag/v0.5.0)** |
+| v0.5.1 web / portable HTML / source | **[Flight polish release](https://github.com/ropotropo/Hakaton2026/releases/tag/v0.5.1)** |
+| Previous native installers (v0.5.0) | **[HTML, Windows EXE, Android APK and source](https://github.com/ropotropo/Hakaton2026/releases/tag/v0.5.0)** |
 | Historical submitted installers | [v0.4.4 downloads](https://github.com/ropotropo/Hakaton2026/releases/tag/v0.4.4) |
 
-**This branch: v0.5.0 Flight Deck.** Its tested preview release is available above; the separate publication repository has not been synchronized. The archive web files are ready on `gh-pages`, but a repository owner must reactivate Pages in Settings before that web address works. Original submitted links and v0.4.4 downloads remain historical records. The PDF keeps its original URL and bytes; video revisions are maintained independently.
+**This branch: v0.5.1 Flight polish.** Its tested preview release is available above; the separate publication repository has not been synchronized. The archive web files are ready on `gh-pages`, but a repository owner must reactivate Pages in Settings before that web address works. Original submitted links and v0.4.4 downloads remain historical records. The PDF keeps its original URL and bytes; video revisions are maintained independently.
 
 ![Recorded Kinetic Core gameplay](docs/media/v04-custom-moon-touchdown.jpg)
 
@@ -42,7 +43,7 @@ The opening **Missions** screen gives the Moon expedition one primary action,
 with the spacecraft workshop, separate maneuver practice and exploration below.
 The journey shows actual flight phases; the local flight log records confirmed
 milestones. Three critical readings, the scene and touch controls share one
-bounded viewport. Camera, map and detailed instruments open only when needed.
+bounded viewport. A passive map stays in the corner; clock, camera and instrument icons open their controls.
 Closing tools leaves flight paused until an explicit **Resume** action.
 
 ## Try the first mission
@@ -50,7 +51,7 @@ Closing tools leaves flight paused until an explicit **Resume** action.
 1. Open **Missions → Prepare expedition**. The Lunar demonstrator is ready.
    For a custom vehicle, choose **Build a spacecraft**, place compatible hardware
    and select **Plan flight**. Dimensions change geometry and performance.
-2. Choose **Moon · full expedition**, select one of four Apollo-reference
+2. Choose the **Moon** globe for the full expedition, select one of four Apollo-reference
    approaches and start. Other destinations are labelled surface rehearsals.
 3. A skippable 12 s rollout and 5 s countdown precede actual powered ascent.
    The flight director hands over at 100 m. Keep **Powered guidance** on initially;

@@ -23,7 +23,7 @@ const time = s => s >= 86400 ? `${Math.floor(s / 86400)}d ${Math.floor(s % 86400
 const distance = n => Math.abs(n) >= 100000 ? `${fmt(n / 1000, 0)} km` : `${fmt(n, Math.abs(n) < 1000 ? 1 : 0)} m`;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const title = p => ({ rollout: 'Rollout', countdown: 'Ignition sequence', launch: 'Earth ascent', orbit: 'Earth orbit', window: 'Departure window', departure: 'Lunar departure', coast: 'Lunar coast', 'lunar-approach': 'Lunar approach', 'lunar-coast': 'Ballistic approach', capture: 'Lunar capture', 'lunar-orbit': 'Lunar orbit', descent: 'Powered descent', landing: 'Final descent', landed: 'Touchdown confirmed', failed: 'Flight debrief' }[p] ?? p);
-const tool = (action, glyph, label) => `<button class="mc-tool" data-action="${action}" aria-label="${label}">${icon(glyph)}<span>${label}</span></button>`;
+const tool = (action, glyph, label) => `<button class="mc-tool" data-action="${action}" aria-label="${label}" title="${label}">${icon(glyph)}<span>${label}</span></button>`;
 const modelNote = `The Moon route uses continuous 2D patched conics at real Earth–Moon distance, ideal engine pointing and a circular synthetic Moon epoch. Site longitude is projected into the training plane; terrain is illustrative. Other worlds are local surface rehearsals and skip launch and transfer. <a href="${LUNAR_SITE_SOURCE}" target="_blank" rel="noopener">NASA site references</a>`;
 
 export function createMissionControl({ onOpen = () => {}, onClose = () => {}, onEditDesign = () => {} } = {}) {
@@ -52,7 +52,7 @@ export function createMissionControl({ onOpen = () => {}, onClose = () => {}, on
         <canvas data-flight-canvas tabindex="0" aria-label="Spacecraft view. Drag to inspect in 360 degrees; use Camera for view and zoom controls."></canvas>
         <div class="mc-scene-heading"><span data-phase>Rollout</span><strong data-clock>T+00:00</strong></div>
         <div class="mc-scene-tools" aria-label="Flight views and tools">${tool('pause', 'pause', 'Pause')}${tool('camera', 'camera', 'Camera')}${tool('time', 'time', 'Time')}${tool('telemetry', 'sliders', 'Tools')}</div>
-        <div class="mc-inspect-hint" hidden><span>360° inspection · drag to rotate</span><button data-action="reset-view">Return to camera</button></div>
+        <div class="mc-inspect-hint" hidden><button class="kc-tool" data-action="reset-view" aria-label="Return to flight camera" title="Return to flight camera">${icon('reset')}</button></div>
         <div class="mc-mini-map" data-mini-map></div><div class="mc-cinematic" data-cinematic hidden></div>
         <div class="mc-live" aria-label="Critical flight readings"><span><small>Altitude</small><strong data-altitude>—</strong></span><span><small>Vertical speed</small><strong data-vertical>—</strong></span><span><small data-offset-label>Propellant</small><strong data-offset>—</strong></span></div>
         <div class="mc-paused" hidden><span>Paused</span><p data-pause-detail>Resume when ready.</p></div>
@@ -63,7 +63,7 @@ export function createMissionControl({ onOpen = () => {}, onClose = () => {}, on
         <div class="mc-command-engine">
           <button class="mc-engine-tool" data-action="guidance" aria-pressed="true">${icon('rocket')}<span>Guidance<small data-guidance-state>On</small></span></button>
           <label class="mc-engine-control">Engine ceiling <strong data-power-label>100%</strong><input data-power type="range" min="0" max="100" value="100" aria-label="Engine ceiling"><small data-engine-output>Applied thrust 0%</small></label>
-          <button class="mc-engine-tool engine-cut-button" data-action="cut">${icon('pause')}<span>Cut<small>Engine</small></span></button>
+          <button class="mc-engine-tool engine-cut-button" data-action="cut" aria-label="Cut engine" title="Cut engine">${icon('power')}<span>Cut<small>Engine</small></span></button>
         </div>
         <div class="mc-pitch-controls" role="group" aria-label="Manual pitch" hidden><button data-turn="-1" aria-label="Hold to pitch left">${icon('chevron-left')}<span>Pitch left</span></button><span>Hold to turn</span><button data-turn="1" aria-label="Hold to pitch right"><span>Pitch right</span>${icon('chevron-right')}</button></div>
       </footer>
@@ -120,6 +120,7 @@ export function createMissionControl({ onOpen = () => {}, onClose = () => {}, on
     const button = $('[data-action="pause"]');
     button.innerHTML = `${icon(paused ? 'play' : 'pause')}<span>${paused ? 'Resume' : 'Pause'}</span>`;
     button.setAttribute('aria-label', paused ? 'Resume flight' : 'Pause flight');
+    button.title = paused ? 'Resume flight' : 'Pause flight';
     if (mission && !planner) update();
   }
   function open(raw) {
@@ -204,7 +205,7 @@ export function createMissionControl({ onOpen = () => {}, onClose = () => {}, on
     $('[data-power-label]').textContent = `${Math.round(power * 100)}%`;
     $('[data-engine-output]').textContent = `Applied thrust ${fmt(t.throttle * 100, 0)}%`;
     $('[data-guidance-state]').textContent = guidance ? 'On' : 'Off';
-    $('[data-action="guidance"]').setAttribute('aria-pressed', String(guidance));
+    $('[data-action="guidance"]').setAttribute('aria-pressed', String(guidance)); $('[data-action="guidance"]').title = `Powered guidance ${guidance ? 'on' : 'off'}`;
     $('[data-action="guidance"]').setAttribute('aria-label', `Powered guidance ${guidance ? 'on' : 'off'}. ${guidance ? 'Turn off for manual flight' : 'Turn on'}`);
     const locked = ['rollout', 'countdown'].includes(phase) || phase === 'launch' && !mission.handedOver;
     $('[data-power]').disabled = locked || ended; $('[data-action="guidance"]').disabled = locked || ended; $('[data-action="cut"]').disabled = locked || ended;
@@ -217,7 +218,7 @@ export function createMissionControl({ onOpen = () => {}, onClose = () => {}, on
     const timePolicy = getFlightTimePolicy(mission, warp, { guidance, altitude: t.altitude });
     const timeState = `Selected coast rate ${fmt(warp, 0)}× · ${paused ? 'paused; resumes at' : 'applied'} ${fmt(timePolicy.applied, 0)}×`;
     $('[data-applied-warp]').textContent = `${timeState}. ${timePolicy.reason}`;
-    const timeButton = $('[data-action="time"]'); timeButton.querySelector('span').textContent = `Time ${timePolicy.applied >= 1000 ? fmt(timePolicy.applied / 1000, 0) + 'k' : fmt(timePolicy.applied, 0)}×`; timeButton.setAttribute('aria-label', `Time controls. Applied rate ${timePolicy.applied} times`);
+    const timeButton = $('[data-action="time"]'); timeButton.querySelector('span').textContent = `Time ${timePolicy.applied >= 1000 ? fmt(timePolicy.applied / 1000, 0) + 'k' : fmt(timePolicy.applied, 0)}×`; timeButton.setAttribute('aria-label', `Time controls. Applied rate ${timePolicy.applied} times`); timeButton.title = `Time · ${timePolicy.applied}×`;
     $('[data-time-state]').textContent = timeState; $('[data-time-reason]').textContent = timePolicy.reason;
     dialog.querySelectorAll('[data-mission-time]').forEach(button => { const rate = Number(button.dataset.missionTime); button.disabled = rate > timePolicy.maximum; button.setAttribute('aria-pressed', String(rate === warp)); });
     const descentAvailable = !ended && (mission.kind === 'custom-descent' || t.primary === 'moon' && t.altitude < 30000);

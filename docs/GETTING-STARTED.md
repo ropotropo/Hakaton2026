@@ -6,7 +6,7 @@ Created by **Mykyta Borisov**, the sole game author.
 
 1. Open **Missions → Prepare expedition**. The Lunar demonstrator is ready.
    To customize it, choose **Build a spacecraft**, then **Plan flight**.
-2. Choose **Moon · full expedition**, select an approach, then **Start lunar mission**.
+2. Choose the **Moon** globe for the full expedition, select an approach, then **Start lunar mission**.
 3. Keep **Powered guidance on** and the engine ceiling at **100%** initially.
    A short rollout and countdown precede the actual powered first 100 m.
 4. At core depletion, the game pauses. Select **Separate booster** or press
@@ -47,7 +47,7 @@ complete manual phone campaign still need device testing.
 ## Pause, save and retry
 
 **Esc** or **Pause** releases held inputs. Leaving the page also pauses flight.
-Opening Missions, a map, guide or tools pauses; closing it leaves flight paused.
+Opening Missions, Time, the guide or tools pauses; closing it leaves flight paused.
 Use **Resume** when ready. Camera changes affect only the view; free inspection
 is labelled separately from External chase, Docking camera and Cockpit.
 Save before a risky maneuver. **Restore checkpoint** recovers the saved state,
@@ -58,3 +58,11 @@ carry a design to another installation.
 
 See [README](../README.md), [physical model](PHYSICS.md) and
 [repository transfer](REPOSITORY-TRANSFER.md) for details.
+
+
+Round flight buttons use icons. The clock opens Time, the camera opens view
+controls, the sliders open Tools, and the chart toggles compact Data. The curved
+arrow returns from inspection to the flight camera. The power symbol cuts the
+engine. Desktop hover titles and accessible names describe each action; selected
+guidance remains a pressed state. Powered maneuvers run at 1×; accelerate only
+where Time makes a faster coast rate available.
