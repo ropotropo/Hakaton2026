@@ -1055,5 +1055,5 @@ export function createScene(canvas, options = {}) {
     canvas.removeEventListener('pointerdown',onPointerDown);canvas.removeEventListener('pointermove',onPointerMove);canvas.removeEventListener('pointerup',onPointerUp);canvas.removeEventListener('pointercancel',onPointerUp);canvas.removeEventListener('wheel',onWheel);
     disposeGeometries(scene);const allMaterials=new Set();scene.traverse(o=>{if(o.material){(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>allMaterials.add(m));}});allMaterials.forEach(m=>m.dispose());Object.values(textures).forEach(t=>t.dispose());surface.userData.surfaceMap.dispose();dockingCockpit.dispose();finale.dispose();surfaceThrust.dispose();flightSky.dispose();celestials.dispose();environment.dispose();renderer.dispose();
   }
-  return {setMode,setVehicle,setDestination,update,resize,dispose,resetOrbit,renderer,scene,camera};
+  return {setMode,setVehicle,setDestination,update,resize,dispose,resetOrbit,get inspection(){return freeOrbit;},beginOrbit(){freeOrbit=true;},zoomBy(factor){if(!Number.isFinite(factor)||factor<=0)return;freeOrbit=true;orbitZoom=clamp(orbitZoom*factor,.25,4);},renderer,scene,camera};
 }

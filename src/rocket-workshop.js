@@ -3,6 +3,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { TYPES, SLOTS, createEmptyDesign, createLunarDesign, normalizeDesign, evaluateDesign, getAttachmentPoints } from './vehicle-design.js';
 import { createVehicleGeometry } from './vehicle-geometry.js';
 import './rocket-workshop.css';
+import { icon } from './ui-icons.js';
 
 // The canonical typed slots, geometry and performance model are shared with flight.
 const STORAGE_KEY = 'kineti-core.rocket-workshop.v2';
@@ -23,17 +24,26 @@ export function createRocketWorkshop({ onOpen = () => {}, onClose = () => {}, on
   panel.className = 'rocket-workshop';
   panel.setAttribute('aria-label', 'Rocket assembly platform');
   panel.innerHTML = `
-    <header class="rw-header"><div><span>Kinetic Core / Vehicle engineering</span><h1>Assembly platform</h1></div><div class="rw-header-actions"><button type="button" data-action="close">Back to game</button><button type="button" class="rw-primary rw-flight" data-action="start">Start Flight</button></div></header>
+    <header class="rw-header"><div><span>Kinetic Core</span><h1>Rocket workshop</h1></div><div class="rw-header-actions"><button type="button" data-action="close">Back to game</button><button type="button" class="rw-primary rw-flight" data-action="start">Plan flight</button></div></header>
     <div class="rw-boundary"><p><strong data-design-label>Lunar demonstrator</strong><span data-readiness>Checking flight readiness</span></p><div class="rw-presets"><button type="button" data-action="preset">Load lunar demonstrator</button><button type="button" data-action="empty">Empty platform</button><button type="button" data-action="undo" disabled>Undo</button></div></div>
     <div class="rw-placement" hidden><div><strong data-placement-label></strong><span data-placement-hint></span></div><button type="button" data-action="cancel-placement">Cancel placement</button></div>
     <div class="rw-layout">
-      <aside class="rw-palette" aria-label="Component palette"><h2>Choose hardware</h2><p>Select a component, then place it on a compatible attachment point. Addition order never determines its position.</p><div class="rw-palette-grid">${Object.entries(TYPES).map(([type, spec]) => `<button type="button" draggable="true" data-part="${type}" aria-pressed="false"><span class="rw-icon rw-icon-${type}" aria-hidden="true"></span><strong>${escape(spec.label)}</strong><small>Choose attachment point</small></button>`).join('')}</div></aside>
-      <section class="rw-scene" aria-label="Assembly platform and compatible attachment points"><canvas tabindex="0" aria-label="3D vehicle. Drag to orbit, right-drag to pan, scroll to zoom. Click installed hardware to inspect it."></canvas><div class="rw-attachment-points" aria-label="Visible attachment points"></div><div class="rw-scene-top"><span data-count>0 / ${SLOTS.length} attachment points occupied</span><button type="button" data-action="frame">Frame vehicle</button></div><p class="rw-empty">Your assembly platform.<br><span>Choose hardware, then select its attachment point.</span></p><p class="rw-scene-help">Drag to orbit · Right-drag to pan · Scroll to zoom<br>Click installed hardware to inspect · Dimensions in metres</p><p class="rw-webgl" hidden>3D preview is unavailable. Use the attachment-point list to assemble and save.</p></section>
-      <aside class="rw-inspector" aria-label="Attachment points and engineering instruments"><h2>Attachment points</h2><p class="rw-slot-help">Each point has a fixed role in the vehicle. Select any component to inspect it.</p><ol class="rw-parts" aria-label="Vehicle attachment points"></ol>
+      <aside class="rw-palette" aria-label="Component palette"><h2>Choose hardware</h2><p>Choose hardware, then tap a highlighted attachment point.</p><div class="rw-palette-grid">${Object.entries(TYPES).map(([type, spec]) => `<button type="button" draggable="true" data-part="${type}" aria-pressed="false"><span class="rw-icon rw-icon-${type}" aria-hidden="true"></span><strong>${escape(spec.label)}</strong></button>`).join('')}</div></aside>
+      <section class="rw-scene" aria-label="Assembly platform and compatible attachment points"><canvas tabindex="0" aria-label="3D vehicle. Drag to orbit, right-drag to pan, scroll to zoom. Click installed hardware to inspect it."></canvas><div class="rw-attachment-points" aria-label="Visible attachment points"></div><div class="rw-scene-top"><span data-count>0 / ${SLOTS.length} attachment points occupied</span><button type="button" data-action="frame">Frame vehicle</button></div><p class="rw-empty">Your assembly platform.<br><span>Choose hardware, then select its attachment point.</span></p><p class="rw-scene-help">Drag to inspect. Tap hardware to edit.</p><p class="rw-webgl" hidden>3D preview is unavailable. Use the attachment-point list to assemble and save.</p></section>
+      <aside class="rw-inspector" aria-label="Attachment points and engineering instruments"><h2>Attachment points</h2><p class="rw-slot-help">Select a component to adjust its dimensions.</p><ol class="rw-parts" aria-label="Vehicle attachment points"></ol>
       <fieldset class="rw-dimensions" disabled><legend data-selected>No component selected</legend><label>Radius / half-width (m)<input data-dimension="radius" type="number" min="0.1" max="5" step="0.05" value="1"></label><label>Length (m)<input data-dimension="length" type="number" min="0.1" max="20" step="0.05" value="1"></label><button type="button" data-action="duplicate">Copy to another point</button><button type="button" data-action="delete">Remove component</button></fieldset>
       <section class="rw-engineering"><h2>Flight readiness</h2><div class="rw-validation" aria-live="polite"></div><dl class="rw-stats"></dl><details class="rw-assumptions"><summary>Fictional hardware & flight model</summary><p>Dimensions, attachment roles, stage masses, propellant and engine performance come from one shared vehicle model. The craft shown here is the craft passed to flight; choosing a different order of placement does not change its geometry.</p><p>Hardware specifications are invented for this game. Thrust-to-weight uses Earth gravity; ideal delta-v is a staged vacuum budget before flight losses. Mission readiness warnings identify performance margins, not certification. Flight still uses finite propellant and the selected hardware.</p><p>Attachment points provide a constrained engineering layout. Structural flex, plumbing, arbitrary joint stress and collision-aware CAD validation are not simulated.</p></details></section></aside>
     </div>
     <footer class="rw-footer"><div class="rw-file-actions"><button type="button" data-action="save">Save locally</button><button type="button" data-action="load">Load local save</button><button type="button" data-action="export">Export JSON</button><button type="button" data-action="import">Import JSON</button><input type="file" accept=".json,application/json" hidden data-import></div><p role="status" aria-live="polite" data-status>One vehicle model from assembly to flight.</p><small>Ctrl/⌘ S save · D copy to a point · Delete remove · F frame · Esc close. Flight controls are blocked while editing.</small></footer>`;
+  const layout=panel.querySelector('.rw-layout');layout.dataset.panel='vehicle';
+  const mobileTabs=document.createElement('nav');mobileTabs.className='rw-mobile-tabs';mobileTabs.setAttribute('aria-label','Workshop panels');
+  mobileTabs.innerHTML='<button type="button" data-panel="hardware">Hardware</button><button type="button" data-panel="vehicle" aria-pressed="true">Vehicle</button><button type="button" data-panel="readiness">Readiness</button>';layout.append(mobileTabs);
+  function setPanel(name){layout.dataset.panel=name;for(const button of mobileTabs.querySelectorAll('button'))button.setAttribute('aria-pressed',String(button.dataset.panel===name));}
+  for(const button of mobileTabs.querySelectorAll('button'))button.onclick=()=>setPanel(button.dataset.panel);
+  const footer=panel.querySelector('.rw-footer'),files=document.createElement('details');files.className='rw-files-menu';files.innerHTML=`<summary>${icon('save')}Files & presets</summary>`;
+  const filePane=document.createElement('div');filePane.className='rw-files-pane';filePane.append(panel.querySelector('.rw-presets'),panel.querySelector('.rw-file-actions'));files.append(filePane);footer.prepend(files);
+  const mobileStart=document.createElement('button');mobileStart.type='button';mobileStart.className='rw-primary rw-mobile-start';mobileStart.dataset.action='mobile-start';mobileStart.innerHTML=`Plan flight ${icon('chevron-right')}`;footer.append(mobileStart);
+  const back=panel.querySelector('[data-action="close"]');back.innerHTML=icon('back');back.setAttribute('aria-label','Back to game');
   document.body.append(panel);
   const $ = selector => panel.querySelector(selector);
   const canvas = $('canvas'), viewport = $('.rw-scene'), list = $('.rw-parts');
@@ -205,10 +215,10 @@ export function createRocketWorkshop({ onOpen = () => {}, onClose = () => {}, on
       $('[data-placement-hint]').textContent = `Choose one of ${count} highlighted points. Occupied points explicitly replace that component.`;
     }
     const e = evaluateDesign(design);
-    $('[data-action="start"]').disabled = !e.valid || !!pending;
+    for(const button of panel.querySelectorAll('[data-action="start"],[data-action="mobile-start"]'))button.disabled = !e.valid || !!pending;
     $('[data-readiness]').textContent = pending ? 'Place or cancel the selected hardware before flight' : e.valid ? e.warnings.length ? 'Flight available / review margins' : 'Ready for mission planning' : 'Complete the required flight hardware';
     $('[data-readiness]').className = e.valid ? 'rw-ready' : 'rw-not-ready';
-    $('.rw-validation').innerHTML = [...e.errors.map(message => `<p class="rw-error">${escape(message)}</p>`), ...e.warnings.map(message => `<p class="rw-warning">${escape(message)}</p>`)].join('') || '<p class="rw-good">Hardware is ready. Start Flight opens mission planning.</p>';
+    $('.rw-validation').innerHTML = [...e.errors.map(message => `<p class="rw-error">${escape(message)}</p>`), ...e.warnings.map(message => `<p class="rw-warning">${escape(message)}</p>`)].join('') || '<p class="rw-good">Hardware is ready. Plan flight opens mission planning.</p>';
     $('.rw-stats').innerHTML = [['Initial mass', `${format(e.wetMass / 1000, 1)} t`], ['Dry mass', `${format(e.dryMass / 1000, 1)} t`], ['Propellant', `${format(e.propellantMass / 1000, 1)} t`], ['Liftoff thrust', `${format(e.thrust / 1000)} kN`], ['Earth initial TWR', format(e.twr, 2)], ['Staged ideal Δv', `${format(e.deltaV)} m/s`], ['Vehicle height', `${format(e.height, 1)} m`]].map(([name, value]) => `<div><dt>${name}</dt><dd>${value}</dd></div>`).join('');
     rebuild(); renderMarkers();
   }
@@ -224,7 +234,7 @@ export function createRocketWorkshop({ onOpen = () => {}, onClose = () => {}, on
     pending = { type, radius: TYPES[type].radius, length: TYPES[type].length };
     selectedSlot = null; renderUI(); frameDesign();
     status(`${TYPES[type].label} selected. Click a highlighted attachment point or choose one in the list.`);
-    if (window.matchMedia('(max-width: 760px)').matches) viewport.scrollIntoView({ block: 'start', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+    if (window.matchMedia('(max-width: 760px)').matches) setPanel('vehicle');
   }
   function placePart(slotId) {
     const slot = SLOT_MAP.get(slotId);
@@ -260,7 +270,7 @@ export function createRocketWorkshop({ onOpen = () => {}, onClose = () => {}, on
     return documentValue();
   }
   function save() {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(documentValue())); status('Vehicle saved locally. Load it later and use Start Flight to fly the same design.'); }
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(documentValue())); status('Vehicle saved locally. Load it later and use Plan flight to fly the same design.'); }
     catch { status('Local storage is unavailable or full. Use Export JSON.'); }
   }
   function load() {
@@ -329,7 +339,7 @@ export function createRocketWorkshop({ onOpen = () => {}, onClose = () => {}, on
       replaceDesign(value, 'Imported vehicle');
     } catch (error) { status(`Import rejected: ${error.message}`); }
   });
-  const actions = { close, frame: frameDesign, duplicate, delete: remove, save, load, undo, start: startFlight,
+  const actions = { close, frame: frameDesign, duplicate, delete: remove, save, load, undo, start: startFlight, 'mobile-start': startFlight,
     preset: () => replaceDesign(createLunarDesign(), 'Lunar demonstrator'), empty: () => replaceDesign(createEmptyDesign(), 'Empty platform'),
     'cancel-placement': cancelPlacement, export: exportJSON, import: () => $('[data-import]').click() };
   for (const button of panel.querySelectorAll('[data-action]')) listen(button, 'click', () => actions[button.dataset.action]());
@@ -350,7 +360,7 @@ export function createRocketWorkshop({ onOpen = () => {}, onClose = () => {}, on
     }
     if (!SLOT_MAP.has(slotId)) return;
     if (pending) placePart(slotId);
-    else { selectedSlot = slotId; renderUI(); list.querySelector(`[data-slot="${slotId}"]`)?.scrollIntoView({ block: 'nearest' }); }
+    else { selectedSlot = slotId; setPanel('vehicle'); renderUI(); list.querySelector(`[data-slot="${slotId}"]`)?.scrollIntoView({ block: 'nearest' }); }
   });
   listen(canvas, 'webglcontextlost', event => { event.preventDefault(); $('.rw-webgl').hidden = false; });
   listen(canvas, 'webglcontextrestored', () => { $('.rw-webgl').hidden = true; });
@@ -359,7 +369,7 @@ export function createRocketWorkshop({ onOpen = () => {}, onClose = () => {}, on
   listen(window, 'keydown', event => {
     if (!active) return;
     event.stopImmediatePropagation();
-    const editing = event.target instanceof Element && !!event.target.closest('input, textarea, select, [contenteditable="true"]');
+    const editing = event.target instanceof Element && !!event.target.closest('input, textarea, select, button, summary, a[href], [contenteditable="true"]');
     if (event.key === 'Escape') { event.preventDefault(); close(); }
     else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') { event.preventDefault(); save(); }
     else if (!editing && !event.ctrlKey && !event.metaKey && !event.altKey) {

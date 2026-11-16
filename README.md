@@ -13,25 +13,49 @@ Build a modular spacecraft, see how engineering choices change its performance, 
 | Review material | Link |
 | --- | --- |
 | Publication game | **[Open Kinetic Core](https://ropotropo.github.io/Kinetic-Core-2026/)** |
-| Archive game | [Existing submitted/archive playable](https://ropotropo.github.io/Hakaton2026/kinetic-core/) |
+| Archive preview | [Flight Deck address — awaiting owner Pages activation](https://ropotropo.github.io/Hakaton2026/kinetic-core/?v=0.5.0) |
 | Submitted presentation | **[English PDF — original submitted link](https://github.com/ropotropo/Hakaton2026/blob/codex/final-presentations/presentation/Kinetic-Core-EN.pdf)** |
 | Project guide | **[Read the Wiki](https://github.com/ropotropo/Hakaton2026/wiki)** |
 | Gameplay video | **[Video and update status](VIDEO.md)** — completed film, maintained separately |
-| Portable game and preview installers | [v0.4.4 downloads](https://github.com/ropotropo/Hakaton2026/releases/tag/v0.4.4) |
+| Flight Deck v0.5 preview | **[HTML, Windows EXE, Android APK and source](https://github.com/ropotropo/Hakaton2026/releases/tag/v0.5.0)** |
+| Historical submitted installers | [v0.4.4 downloads](https://github.com/ropotropo/Hakaton2026/releases/tag/v0.4.4) |
 
-**Current game: v0.4.4, a development preview.** The PDF keeps its original URL and bytes. Video revisions use one stable file path; they do not change this game's version.
+**This branch: v0.5.0 Flight Deck.** Its tested preview release is available above; the separate publication repository has not been synchronized. The archive web files are ready on `gh-pages`, but a repository owner must reactivate Pages in Settings before that web address works. Original submitted links and v0.4.4 downloads remain historical records. The PDF keeps its original URL and bytes; video revisions are maintained independently.
 
 ![Recorded Kinetic Core gameplay](docs/media/v04-custom-moon-touchdown.jpg)
 
 *Recorded gameplay from the documented guided Moon-mission check. This image is historical test evidence, not a new run of the final build.*
 
+## Flight Deck v0.5
+
+The opening **Missions** screen gives the Moon expedition one primary action,
+with the spacecraft workshop, separate maneuver practice and exploration below.
+The journey shows actual flight phases; the local flight log records confirmed
+milestones. Three critical readings, the scene and touch controls share one
+bounded viewport. Camera, map and detailed instruments open only when needed.
+Closing tools leaves flight paused until an explicit **Resume** action.
+
 ## Try the first mission
 
-1. Open **Modes → Rocket workshop** and load the **Lunar demonstrator**.
-2. Choose **Start Flight → Moon**, select an approach and start the mission.
-3. Keep **Powered guidance** on initially. Separate depleted stages when prompted and use time warp for long coasts.
+1. Open **Missions → Prepare expedition**. The Lunar demonstrator is ready.
+   For a custom vehicle, choose **Build a spacecraft**, place compatible hardware
+   and select **Plan flight**. Dimensions change geometry and performance.
+2. Choose **Moon · full expedition**, select one of four Apollo-reference
+   approaches and start. Other destinations are labelled surface rehearsals.
+3. A skippable 12 s rollout and 5 s countdown precede actual powered ascent.
+   The flight director hands over at 100 m. Keep **Powered guidance** on initially;
+   the engine slider sets its ceiling. At depletion choose **Separate booster**.
+4. In confirmed Earth orbit, choose **Plan departure**. Use time warp for coasts
+   and release the depleted upper stage when prompted. The same retained craft
+   uses finite fuel for departure, approach, capture and descent. Safe contact
+   starts the KC crew/flag ceremony and physical debrief.
 
-For a quick maneuver, choose **Modes → Manual docking** or **Modes → Surface landing**. See [How to play](docs/GETTING-STARTED.md) for controls, checkpoints and recovery.
+For a quick maneuver, choose **Missions → Docking** or **Missions → Surface
+landing**. Docking starts a separate 70 m terminal approach with External chase,
+Docking camera and Cockpit; changing view does not align, brake or move the
+craft. Landing assist is powered descent guidance, separate from Upright hold.
+Both use finite propellant. See [How to play](docs/GETTING-STARTED.md) for
+controls, checkpoints and recovery.
 
 ## What the prototype demonstrates
 
@@ -43,9 +67,9 @@ The mission model uses **2D patched conics, ideal engine pointing and a syntheti
 
 ## Evidence and source
 
-[Current scope and verification](docs/CURRENT-VERSION.md) · [Physics and references](docs/PHYSICS.md) · [Documentation index](docs/README.md) · [Presentation materials](presentation/README.md) · [Archive/publication continuity](docs/MIGRATION.md)
+[Flight Deck v0.5 verification](docs/QA-V05.md) · [v0.5 UX audit](docs/UX-AUDIT-V05.md) · [Original v0.4.4 review baseline](docs/CURRENT-VERSION.md) · [Physics and references](docs/PHYSICS.md) · [Documentation index](docs/README.md) · [Presentation materials](presentation/README.md) · [Archive/publication continuity](docs/MIGRATION.md)
 
-The current numerical suite contains **86 tests**. Build checks and historical browser evidence are identified separately in the documentation; a passing suite is not certification or a universal accuracy score.
+The current suite contains **99 tests**, including numerical/state/geometry regressions, mission-journey and retained-mass checks, and local milestone persistence. Build checks and historical browser evidence are identified separately in the documentation; a passing suite is not certification or a universal accuracy score.
 
 To run locally with Node.js **22.12+** and npm:
 
@@ -56,7 +80,7 @@ npm run build
 npm run preview
 ```
 
-For a portable copy, download `Kineti-Core.html` from the [v0.4.4 release](https://github.com/ropotropo/Hakaton2026/releases/tag/v0.4.4) and open the downloaded file. The legacy filename is retained for compatibility. The core Moon game has bundled assets; optional online Earth flight needs internet. Browser saves stay local to the current origin and device.
+A source build produces the v0.5.0 candidate at `dist/Kineti-Core.html`. For the previously published portable copy, download `Kineti-Core.html` from the [v0.4.4 release](https://github.com/ropotropo/Hakaton2026/releases/tag/v0.4.4) and open the downloaded file. The legacy filename is retained for compatibility. The core Moon game has bundled assets; optional online Earth flight needs internet. Browser saves stay local to the current origin and device.
 
 ## Authorship and credits
 
