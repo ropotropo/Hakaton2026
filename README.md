@@ -8,7 +8,7 @@ Created by **Mykyta Borisov** · **NASA Space Apps Challenge 2026** · Challenge
 
 Build a modular spacecraft, see how engineering choices change its performance, and fly a continuous Earth-to-Moon landing mission. Practice docking and surface landings as clearly separate exercises.
 
-## Flight polish v0.5.2
+## Flight polish v0.5.3
 
 The workshop now frames selected hardware and attachment points. Empty launch
 stages pause for a highlighted release action. Critical maneuvers run at 1×,
@@ -27,11 +27,11 @@ the planned [detailed Moon stage](docs/LUNAR-EXPERIENCE-NEXT.md).
 | Submitted presentation | **[English PDF — original submitted link](https://github.com/ropotropo/Hakaton2026/blob/codex/final-presentations/presentation/Kinetic-Core-EN.pdf)** |
 | Project guide | **[Read the Wiki](https://github.com/ropotropo/Hakaton2026/wiki)** |
 | Gameplay video | **[Video and update status](VIDEO.md)** — completed film, maintained separately |
-| v0.5.2 web / portable HTML / source | **[Flight polish release](https://github.com/ropotropo/Hakaton2026/releases/tag/v0.5.2)** |
+| v0.5.3 web / portable HTML / source | **[Flight polish release](https://github.com/ropotropo/Hakaton2026/releases/tag/v0.5.3)** |
 | Previous native installers (v0.5.0) | **[HTML, Windows EXE, Android APK and source](https://github.com/ropotropo/Hakaton2026/releases/tag/v0.5.0)** |
 | Historical submitted installers | [v0.4.4 downloads](https://github.com/ropotropo/Hakaton2026/releases/tag/v0.4.4) |
 
-**This branch: v0.5.2 Flight polish.** Its tested preview release is available above; the separate publication repository has not been synchronized. The archive web files are ready on `gh-pages`, but a repository owner must reactivate Pages in Settings before that web address works. Original submitted links and v0.4.4 downloads remain historical records. The PDF keeps its original URL and bytes; video revisions are maintained independently.
+**This branch: v0.5.3 Flight polish.** Its tested preview release is available above; the separate publication repository has not been synchronized. The archive web files are ready on `gh-pages`, but a repository owner must reactivate Pages in Settings before that web address works. Original submitted links and v0.4.4 downloads remain historical records. The PDF keeps its original URL and bytes; video revisions are maintained independently.
 
 ![Recorded Kinetic Core gameplay](docs/media/v04-custom-moon-touchdown.jpg)
 

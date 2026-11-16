@@ -303,3 +303,10 @@ name and a hover title; do not shrink or wrap labels inside the circles. View
 utilities use 44 × 44 px targets. Return to flight camera shares their reset
 icon and second-row alignment. Expanded Data replaces the phase heading at the
 left edge and must not cover a tool or reset action.
+
+Stage separation may use one brief external presentation shot, based on the
+actual departing hardware. Ease into the view and back to chase; keep controls
+available and the solver untouched. Never invent a fresh separation on restore.
+Manual inspection cancels the shot, pause freezes it, and reduced motion skips
+it. Camera smoothing must not blend incompatible world frames or make a mounted
+cockpit drift away from its physical pose.

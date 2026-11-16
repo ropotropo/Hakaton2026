@@ -8,6 +8,7 @@ import { createOrbitOverview } from './orbit-overview.js';
 import { boxClearance } from './separation-contact.js';
 import { shouldShowOrbitOverview } from './flight-view.js';
 import { chaseDistance, atmosphericShake, easeLaunchPitch, aboveTerrain } from './visual-framing.js';
+import { canStartSeparationBeat, advanceSeparationClock, separationBeatWeight, separationEnvelope } from './separation-camera.js';
 
 // Presentation only. SI simulation stays in physics.js; camera and celestial
 // background use a local origin so GPU float precision never drives the flight.
@@ -28,7 +29,7 @@ function hardwareFrames(model) {
       box.union(object.geometry.boundingBox.clone().applyMatrix4(new THREE.Matrix4().multiplyMatrices(inverse,object.matrixWorld)));
     });return box;
   });
-  return [0,1,2].map(stage=>{const box=new THREE.Box3();boxes.forEach((b,i)=>{if(i>=stage&&!b.isEmpty())box.union(b);});const size=box.getSize(new THREE.Vector3());return {center:box.getCenter(new THREE.Vector3()),radius:Math.max(4,size.length()*.5),top:box.max.y};});
+  return [0,1,2].map(stage=>{const box=new THREE.Box3();boxes.forEach((b,i)=>{if(i>=stage&&!b.isEmpty())box.union(b);});const size=box.getSize(new THREE.Vector3()),releasedSize=boxes[stage].getSize(new THREE.Vector3());return {center:box.getCenter(new THREE.Vector3()),radius:Math.max(4,size.length()*.5),top:box.max.y,releasedCenter:boxes[stage].getCenter(new THREE.Vector3()),releasedRadius:Math.max(2,releasedSize.length()*.5)};});
 }
 
 function canvasTexture(draw, width = 1024, height = 1024) {
@@ -808,7 +809,14 @@ export function createScene(canvas, options = {}) {
   let wasOverview=false;
   let orbitYaw=0,orbitPitch=0,orbitZoom=1,dragY=0,freeOrbit=false;
   let launchReferenceAngle=null;
-  function resetOrbit(){orbitYaw=orbitPitch=0;orbitZoom=1;freeOrbit=false;}
+  let launchObservation=null,separationBeat=null,inspectionReturn=null;
+  const inspectionFocus=new THREE.Vector3();
+  function beginInspection(){if(!freeOrbit)inspectionFocus.copy(look);separationBeat=null;inspectionReturn=null;freeOrbit=true;}
+  function resetOrbit(immediate=false){
+    separationBeat=null;
+    inspectionReturn=freeOrbit&&!immediate&&!reducedMotion?{mode,age:0,offset:camera.position.clone().sub(inspectionFocus),lookOffset:inspectionFocus.clone().sub(look)}:null;
+    orbitYaw=orbitPitch=0;orbitZoom=1;freeOrbit=false;
+  }
   camera.position.set(72,40,94);camera.lookAt(look);
 
   function resetOutcomeVisuals(){
@@ -816,17 +824,20 @@ export function createScene(canvas, options = {}) {
     materials.portLight.color.set(0xc9e7de);
     surface.userData.beacons.forEach(beacon=>beacon.material.color.set(0xc6d6bf));
   }
-  function clearDebris(){for(const d of debris)scene.remove(d.object);debris.length=0;}
+  function clearDebris(){for(const d of debris)scene.remove(d.object);debris.length=0;separationBeat=null;}
   function separateVisual(stage,time,view){
     const source=stage===0?rocket.userData.core:rocket.userData.upper;
     const object=source.clone(true);source.updateWorldMatrix(true,false);source.getWorldPosition(object.position);source.getWorldQuaternion(object.quaternion);scene.add(object);
     object.traverse(child=>{if(child.material===materials.exhaust||child.material===materials.exhaustCore||child.material===materials.exhaustVacuum)child.visible=false;});
     const body=Array.isArray(view.positionSI)&&Array.isArray(view.velocitySI)?releaseBody(view.positionSI,view.velocitySI,Number(view.pitch)||0):null;
-    debris.push({object,start:time,last:time,base:object.position.clone(),rotation:object.quaternion.clone(),body,axis:new THREE.Vector3(Math.sin(Number(view.pitch)||0),Math.cos(Number(view.pitch)||0),0),stage});
+    rocket.updateWorldMatrix(true,true);object.updateWorldMatrix(true,true);
+    const centerOffset=object.worldToLocal(framing[stage].releasedCenter.clone().applyMatrix4(rocket.matrixWorld));
+    const released={object,start:time,last:time,base:object.position.clone(),rotation:object.quaternion.clone(),body,axis:new THREE.Vector3(Math.sin(Number(view.pitch)||0),Math.cos(Number(view.pitch)||0),0),stage,centerOffset,radius:framing[stage].releasedRadius};
+    debris.push(released);return released;
   }
   function setMode(next){
     if(!['assembly','rollout','launch','transfer','docking','destination','landing','finale'].includes(next)||next===mode)return;
-    mode=next;resetOrbit();clearDebris();resetOutcomeVisuals();previousStage=0;previousPhase=null;previousMissionTime=null;chaseReady=false;displayedLaunchPitch=null;
+    mode=next;resetOrbit(true);clearDebris();resetOutcomeVisuals();previousStage=0;previousPhase=null;previousMissionTime=null;chaseReady=false;displayedLaunchPitch=null;launchObservation=null;
     if(mode==='rollout')localGroundMaterials.forEach(material=>{material.opacity=1;});
     if(rocket.userData.custom){if(['rollout','launch'].includes(mode)||['landing','finale'].includes(mode)&&['mars','titan'].includes(selectedDestination))setVehicleSolar(rocket,false,0,true);else if(mode==='assembly')setVehicleSolar(rocket,true,0,true);}
     assembly.visible=mode==='assembly';launchEnvironment.visible=['launch','rollout'].includes(mode);rocketRoot.visible=['assembly','launch','rollout','transfer'].includes(mode);docking.visible=mode==='docking';
@@ -858,7 +869,7 @@ export function createScene(canvas, options = {}) {
     vehicle=next;clearDebris();rocketRoot.remove(rocket);if(rocket.userData.custom)rocket.userData.dispose();else disposeGeometries(rocket);
     const design=next.design||(next.format==='kineti-core-rocket'?next:null);
     rocket=design?createVehicleGeometry(design,{materials}):makeRocket(materials,vehicle);rocketRoot.add(rocket);
-    framing=hardwareFrames(rocket);chaseReady=false;displayedLaunchPitch=null;
+    framing=hardwareFrames(rocket);chaseReady=false;displayedLaunchPitch=null;launchObservation=null;separationBeat=null;inspectionReturn=null;
     for(const pad of [assemblyPad,launchPad])pad.userData.tower.scale.y=clamp(rocket.userData.height/52,.7,1.65);
     craftAttitude.remove(dockingCraft);if(dockingCraft.userData.dispose)dockingCraft.userData.dispose();else disposeGeometries(dockingCraft);
     if(design){
@@ -894,7 +905,7 @@ export function createScene(canvas, options = {}) {
     const terminalPhases=['failed','docked','landed','orbit'];
     const restarted=terminalPhases.includes(previousPhase)&&!terminalPhases.includes(phase)&&!['assembly','destination'].includes(phase);
     if(rewound||restarted){
-      resetOutcomeVisuals();clearDebris();phaseAt=elapsed;chaseReady=false;displayedLaunchPitch=null;
+      resetOutcomeVisuals();clearDebris();phaseAt=elapsed;chaseReady=false;displayedLaunchPitch=null;launchObservation=null;inspectionReturn=null;
       const restoredStage=Number(view.stageIndex??view.activeStageIndex);
       previousStage=Number.isFinite(restoredStage)?clamp(Math.floor(restoredStage),0,2):0;
     }
@@ -936,8 +947,17 @@ export function createScene(canvas, options = {}) {
     }else if(mode==='launch'){
       const altitude=Math.max(0,Number(view.altitude)||0),pitch=Number(view.pitch)||0;
       const stage=clamp(Math.floor(Number(view.stageIndex??view.activeStageIndex)||0),0,2),throttle=clamp(Number(view.throttle)||0,0,1);
-      if(stage>previousStage)for(let i=previousStage;i<stage;i++)separateVisual(i,t,view);
-      previousStage=stage;
+      const observation={mode,stage,time:t,phase,altitude,paused:!!view.paused};
+      // A first/restored frame only establishes what is attached. Actual stage
+      // release needs an observed running transition, not a saved stage index.
+      if(launchObservation&&stage>previousStage&&!rewound&&!restarted&&!view.paused&&['launch','orbit'].includes(phase)){
+        let released;for(let i=previousStage;i<stage;i++)released=separateVisual(i,t,view);
+        if(released&&canStartSeparationBeat(launchObservation,observation,{reducedMotion,inspection:freeOrbit,discontinuity:rewound||restarted})){
+          const nose=new THREE.Vector3(0,1,0).transformDirection(rocket.matrixWorld),side=new THREE.Vector3(.18,.1,1);side.addScaledVector(nose,-side.dot(nose)).normalize();
+          separationBeat={released,age:0,direction:nose.multiplyScalar(.42).addScaledVector(side,.9075).normalize(),center:null,range:0,radius:0};inspectionReturn=null;
+        }
+      }
+      previousStage=stage;launchObservation=observation;
       rocket.userData.core.visible=stage===0;rocket.userData.upper.visible=stage<2;
       const space=THREE.MathUtils.smoothstep(altitude,7000,80000);
       scene.background=new THREE.Color(0x87aabd).lerp(new THREE.Color(0x000000),space);
@@ -1135,6 +1155,23 @@ export function createScene(canvas, options = {}) {
     effects.update(frameDt);
     const showOverview=!view.customMission&&shouldShowOrbitOverview({...view,mode});
     if(wasOverview&&!showOverview){camera.position.copy(desiredCamera);look.copy(desiredLook);camera.lookAt(look);}
+    if(separationBeat&&!freeOrbit&&!showOverview){
+      const beat=separationBeat;beat.age=advanceSeparationClock(beat.age,frameDt,view.paused);
+      if(mode!=='launch'||beat.age>=4.7||!beat.released.object.parent||phase==='failed')separationBeat=null;
+      else{
+        const stage=clamp(Number(view.stageIndex??view.activeStageIndex)||0,0,2),rigid=framing[stage];rocket.updateWorldMatrix(true,true);beat.released.object.updateWorldMatrix(true,true);
+        const activeCenter=rigid.center.clone().applyMatrix4(rocket.matrixWorld),releasedCenter=beat.released.centerOffset.clone().applyMatrix4(beat.released.object.matrixWorld);
+        const envelope=separationEnvelope(activeCenter.toArray(),rigid.radius,releasedCenter.toArray(),beat.released.radius),target=new THREE.Vector3(...envelope.center);
+        // Fixed hardware radii and a monotonic envelope avoid plume/rotation
+        // breathing. An accelerated distant stage ends the shot, not a chase.
+        beat.radius=Math.max(beat.radius,envelope.radius);if(activeCenter.distanceTo(releasedCenter)>Math.max(220,rigid.radius*8))beat.age=Math.max(3.35,beat.age);
+        const ease=1-Math.exp(-frameDt*4.5),range=chaseDistance(beat.radius,camera.fov,camera.aspect)*1.06;
+        if(!beat.center){beat.center=target;beat.range=range;}else{beat.center.lerp(target,ease);beat.range=mix(beat.range,range,ease);}
+        const position=beat.center.clone().addScaledVector(beat.direction,beat.range),weight=separationBeatWeight(beat.age);
+        if(launchEnvironment.visible)position.y=aboveTerrain(position.y,launchEnvironment.position.y-1.6);
+        camera.position.lerp(position,weight);look.lerp(beat.center,weight);camera.up.set(0,1,0);camera.lookAt(look);
+      }
+    }
     if(freeOrbit){
       let center=mode==='docking'?craftAttitude.position:['landing','finale'].includes(mode)?lander.position.clone().add(new THREE.Vector3(0,2.7,0)):mode==='destination'?new THREE.Vector3():desiredLook;
       let radius=(mode==='assembly'?Math.max(55,rocket.userData.height*1.7):mode==='destination'?69:38)*orbitZoom;
@@ -1147,8 +1184,20 @@ export function createScene(canvas, options = {}) {
       if(['landing','finale'].includes(mode))camera.position.y=aboveTerrain(camera.position.y,surface.userData.heightAt(camera.position.x,camera.position.z));
       else if(['launch','rollout'].includes(mode)&&launchEnvironment.visible)camera.position.y=aboveTerrain(camera.position.y,launchEnvironment.position.y-1.6);
       camera.lookAt(center);
+      inspectionFocus.copy(center);
       if(mode==='docking')dockingCraft.visible=true;
       if(['landing','finale'].includes(mode)){lander.visible=!(view.customMission&&rocket.userData.custom);if(view.customMission)rocketRoot.visible=true;}
+    }
+    const exactMounted=!freeOrbit&&(mode==='docking'&&['port','cockpit','docking'].includes(view.cameraMode)||['landing','finale'].includes(mode)&&['port','cockpit','docking'].includes(view.cameraMode));
+    if(inspectionReturn){
+      if(exactMounted||showOverview||freeOrbit||inspectionReturn.mode!==mode)inspectionReturn=null;
+      else{
+        const transition=inspectionReturn;transition.age+=frameDt;const weight=THREE.MathUtils.smoothstep(transition.age,0,.48),baseOffset=camera.position.clone().sub(look),target=look.clone().addScaledVector(transition.lookOffset,1-weight);
+        camera.position.copy(target).add(transition.offset.clone().lerp(baseOffset,weight));look.copy(target);
+        if(['landing','finale'].includes(mode))camera.position.y=aboveTerrain(camera.position.y,surface.userData.heightAt(camera.position.x,camera.position.z));
+        else if(['launch','rollout'].includes(mode)&&launchEnvironment.visible)camera.position.y=aboveTerrain(camera.position.y,launchEnvironment.position.y-1.6);
+        camera.lookAt(look);if(weight===1)inspectionReturn=null;
+      }
     }
     orbitOverview.update(view,debris);
     if(showOverview){
@@ -1180,9 +1229,9 @@ export function createScene(canvas, options = {}) {
     renderer.setSize(width,height,false);camera.aspect=width/height;camera.updateProjectionMatrix();
   }
   function onPointerDown(event){if(event.button!==0)return;dragging=true;dragX=event.clientX;dragY=event.clientY;canvas.setPointerCapture?.(event.pointerId);}
-  function onPointerMove(event){if(!dragging)return;freeOrbit=true;orbitYaw-=(event.clientX-dragX)*.007;orbitPitch=clamp(orbitPitch+(event.clientY-dragY)*.007,-1.45,1.45);dragX=event.clientX;dragY=event.clientY;}
+  function onPointerMove(event){if(!dragging)return;beginInspection();orbitYaw-=(event.clientX-dragX)*.007;orbitPitch=clamp(orbitPitch+(event.clientY-dragY)*.007,-1.45,1.45);dragX=event.clientX;dragY=event.clientY;}
   function onPointerUp(){dragging=false;}
-  function onWheel(event){event.preventDefault();freeOrbit=true;orbitZoom=clamp(orbitZoom*Math.exp(event.deltaY*.001),.25,4);}
+  function onWheel(event){event.preventDefault();beginInspection();orbitZoom=clamp(orbitZoom*Math.exp(event.deltaY*.001),.25,4);}
   canvas.addEventListener('pointerdown',onPointerDown);canvas.addEventListener('pointermove',onPointerMove);canvas.addEventListener('pointerup',onPointerUp);canvas.addEventListener('pointercancel',onPointerUp);canvas.addEventListener('wheel',onWheel,{passive:false});
   const observer=typeof ResizeObserver!=='undefined'?new ResizeObserver(resize):null;observer?.observe(canvas);
   resize();update({mode:'assembly'},1/60);
@@ -1191,5 +1240,5 @@ export function createScene(canvas, options = {}) {
     canvas.removeEventListener('pointerdown',onPointerDown);canvas.removeEventListener('pointermove',onPointerMove);canvas.removeEventListener('pointerup',onPointerUp);canvas.removeEventListener('pointercancel',onPointerUp);canvas.removeEventListener('wheel',onWheel);
     disposeGeometries(scene);const allMaterials=new Set();scene.traverse(o=>{if(o.material){(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>allMaterials.add(m));}});allMaterials.forEach(m=>m.dispose());Object.values(textures).forEach(t=>t.dispose());surface.userData.surfaceMap.dispose();dockingCockpit.dispose();finale.dispose();surfaceThrust.dispose();atmosphericTrail.dispose();flightSky.dispose();surfaceSky.dispose();celestials.dispose();environment.dispose();renderer.dispose();
   }
-  return {setMode,setVehicle,setDestination,update,resize,dispose,resetOrbit,get inspection(){return freeOrbit;},beginOrbit(){freeOrbit=true;},zoomBy(factor){if(!Number.isFinite(factor)||factor<=0)return;freeOrbit=true;orbitZoom=clamp(orbitZoom*factor,.25,4);},renderer,scene,camera};
+  return {setMode,setVehicle,setDestination,update,resize,dispose,resetOrbit,get inspection(){return freeOrbit;},beginOrbit:beginInspection,zoomBy(factor){if(!Number.isFinite(factor)||factor<=0)return;beginInspection();orbitZoom=clamp(orbitZoom*factor,.25,4);},renderer,scene,camera};
 }
