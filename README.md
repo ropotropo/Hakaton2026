@@ -13,13 +13,14 @@ Build a modular spacecraft, see how engineering choices change its performance, 
 | Review material | Link |
 | --- | --- |
 | Publication game | **[Open Kinetic Core](https://ropotropo.github.io/Kinetic-Core-2026/)** |
-| Archive game | [Existing submitted/archive playable](https://ropotropo.github.io/Hakaton2026/kinetic-core/) |
+| Archive preview | [Flight Deck address — awaiting owner Pages activation](https://ropotropo.github.io/Hakaton2026/kinetic-core/?v=0.5.0) |
 | Submitted presentation | **[English PDF — original submitted link](https://github.com/ropotropo/Hakaton2026/blob/codex/final-presentations/presentation/Kinetic-Core-EN.pdf)** |
 | Project guide | **[Read the Wiki](https://github.com/ropotropo/Hakaton2026/wiki)** |
 | Gameplay video | **[Video and update status](VIDEO.md)** — completed film, maintained separately |
-| Portable game and preview installers | [v0.4.4 downloads](https://github.com/ropotropo/Hakaton2026/releases/tag/v0.4.4) |
+| Flight Deck v0.5 preview | **[HTML, Windows EXE, Android APK and source](https://github.com/ropotropo/Hakaton2026/releases/tag/v0.5.0)** |
+| Historical submitted installers | [v0.4.4 downloads](https://github.com/ropotropo/Hakaton2026/releases/tag/v0.4.4) |
 
-**This branch: v0.5.0 Flight Deck, a development preview candidate.** The published v0.4.4 downloads and original submitted links remain available above. Merging this source does not publish a release or synchronize the separate publication repository. The PDF keeps its original URL and bytes; video revisions are maintained independently.
+**This branch: v0.5.0 Flight Deck.** Its tested preview release is available above; the separate publication repository has not been synchronized. The archive web files are ready on `gh-pages`, but a repository owner must reactivate Pages in Settings before that web address works. Original submitted links and v0.4.4 downloads remain historical records. The PDF keeps its original URL and bytes; video revisions are maintained independently.
 
 ![Recorded Kinetic Core gameplay](docs/media/v04-custom-moon-touchdown.jpg)
 
