@@ -50,8 +50,10 @@ coasting does not pay a future delta-v requirement. Resolve planner mass from
 actual flight parts, including cargo, and keep SI units and reference frames.
 
 Opening Missions pauses and releases inputs. Optional tools/map/camera sheets
-pause the maneuver and make the covered controls inert. Closing them leaves
-the flight paused; provide an explicit Resume action. A depleted stage must
+pause the maneuver and make the covered controls inert. Explicit camera selection
+or its close button restores the prior running state; a previously paused flight,
+Escape, backgrounding and other optional sheets remain paused with an explicit
+Resume action. A depleted stage must
 still be released before continuing. Verify nested-sheet return, held-input release,
 manual staging and zero-power restore. Space/Enter on focused controls belongs
 to those controls, never a background flight shortcut. Preserve checkpoint

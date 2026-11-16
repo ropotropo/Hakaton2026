@@ -2,6 +2,17 @@ import { EARTH, FIXED_STEP, ORBIT_TARGET, atmosphere, getLaunchTelemetry, stepLa
 const EPSILON = 1e-6;
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
+// This fictional vehicle ceiling matches launchSubstep's strict q > 110 kPa
+// failure condition. Regression tests bind it to the solver; the two display
+// margins give notice before that ceiling without adding a new physics rule.
+export const ASCENT_PRESSURE_LIMIT = 110000;
+export function getAscentLoadIndicator(dynamicPressure) {
+  const pressure = Number.isFinite(dynamicPressure) && dynamicPressure >= 0 ? dynamicPressure : null;
+  const fraction = pressure === null ? null : pressure / ASCENT_PRESSURE_LIMIT;
+  return { pressure, fraction, limit: ASCENT_PRESSURE_LIMIT,
+    state: fraction === null ? 'unknown' : fraction >= .95 ? 'danger' : fraction >= .8 ? 'caution' : 'normal' };
+}
+
 export function activeMissionEngine(flight) {
   if (!flight) return null;
   if (flight.kind === 'lunar-mission' && flight.resources) {
@@ -93,17 +104,25 @@ let readoutId = 0;
 export function installAscentReadouts({ scene, tools, icon, onToggle = () => {}, buttonClass = 'kc-tool' }) {
   const id = `ascent-mini-${++readoutId}`;
   const hud = document.createElement('div'); hud.className = 'ascent-reference'; hud.hidden = true;
-  hud.innerHTML = '<div class="ascent-fuel-line"><span data-engine></span><strong data-fuel></strong><small data-burn></small></div><div class="ascent-altitude-reference"><div><span>Altitude reference</span><strong data-altitude></strong></div><meter min="0" max="200000" value="0" aria-label="Altitude reference only, not orbit completion"></meter><small data-orbit-note>Orbit also needs speed and safe apsides.</small></div>';
+  hud.innerHTML = '<div class="ascent-fuel-line"><span data-engine></span><strong data-fuel></strong><small data-burn></small></div><div class="ascent-pressure-readout" hidden><span>Dynamic pressure</span><strong data-pressure></strong></div><div class="ascent-altitude-reference"><div><span>Altitude reference</span><strong data-altitude></strong></div><meter min="0" max="200000" value="0" aria-label="Altitude reference only, not orbit completion"></meter><small data-orbit-note>Orbit also needs speed and safe apsides.</small></div>';
   const panel = document.createElement('div'); panel.className = 'ascent-mini-telemetry'; panel.id = id; panel.hidden = true; panel.setAttribute('aria-label', 'Optional live flight telemetry'); panel.innerHTML = '<dl></dl>';
   const button = document.createElement('button'); button.type = 'button'; button.className = buttonClass + ' ascent-data-toggle'; button.hidden = true;
   button.setAttribute('aria-label', 'Show compact live telemetry'); button.title = 'Live telemetry'; button.setAttribute('aria-expanded', 'false'); button.setAttribute('aria-controls', id);
   button.innerHTML = `${icon('chart')}<span${buttonClass === 'kc-tool' ? ' class="kc-tool-label"' : ''}>Data</span>`;
   tools.append(button); scene.append(hud, panel);
+  const pressureScope = scene.closest('.game-shell, .mission-control');
   let expanded = false;
   button.onclick = () => { onToggle(); expanded = !expanded; panel.hidden = !expanded; button.setAttribute('aria-expanded', String(expanded)); button.setAttribute('aria-pressed', String(expanded)); button.setAttribute('aria-label', expanded ? 'Hide compact live telemetry' : 'Show compact live telemetry'); };
   const number = (value, decimals = 1) => Number.isFinite(value) ? value.toLocaleString('en-US', { maximumFractionDigits: decimals }) : '—';
   const text = (selector, value) => { const node = hud.querySelector(selector); if (node.textContent !== value) node.textContent = value; };
   return { update(flight, telemetry = {}, options = {}) {
+    const launch = flight?.kind === 'lunar-mission' ? flight.launch : flight?.kind === 'launch' ? flight : null;
+    const earthAscent = launch && ['launch', 'orbit', 'failed'].includes(flight.phase) && (flight.primary ?? 'earth') === 'earth' && (flight.phase !== 'failed' || launch.phase === 'failed');
+    const load = getAscentLoadIndicator(earthAscent ? launch.dynamicPressure : null);
+    if (pressureScope) pressureScope.dataset.aeroPressure = load.state;
+    hud.dataset.aeroPressure = load.state;
+    hud.querySelector('.ascent-pressure-readout').hidden = !['caution', 'danger'].includes(load.state);
+    text('[data-pressure]', `${number(load.pressure === null ? NaN : load.pressure / 1000)} / ${number(load.limit / 1000, 0)} kPa`);
     const available = flight && ['launch', 'orbit', 'window', 'departure', 'coast', 'lunar-approach', 'lunar-coast', 'capture', 'lunar-orbit', 'descent', 'landing'].includes(flight.phase) && ['launch', 'lunar-mission'].includes(flight.kind);
     hud.hidden = !available; button.hidden = !available; panel.hidden = !available || !expanded; if (!available) return;
     const fuel = getEngineReadout(flight, telemetry), ascent = ['launch', 'orbit'].includes(flight.phase) && (flight.primary ?? 'earth') === 'earth';
@@ -111,7 +130,6 @@ export function installAscentReadouts({ scene, tools, icon, onToggle = () => {},
     text('[data-burn]', fuel.burnSeconds === null ? 'Engine off' : fuel.burnSeconds === 0 ? 'Stage empty' : `~${number(fuel.burnSeconds, 0)} s at ${options.paused ? 'last' : 'current'} thrust`);
     hud.querySelector('.ascent-altitude-reference').hidden = !ascent;
     if (ascent) {
-      const launch = flight.kind === 'lunar-mission' ? flight.launch : flight;
       const guide = getAscentGuidance(launch, telemetry, options);
       text('[data-altitude]', `${number(guide.altitude / 1000)} / ${number(guide.targetAltitude / 1000, 0)} km`);
       hud.querySelector('meter').value = clamp(guide.altitude, 0, guide.targetAltitude);
@@ -121,7 +139,8 @@ export function installAscentReadouts({ scene, tools, icon, onToggle = () => {},
     if (expanded) {
       const orbit = telemetry.orbit;
       const rows = [['Pitch', `${number((telemetry.pitch ?? 0) * 180 / Math.PI)}°`], ['Engine applied', `${number((telemetry.throttle ?? 0) * 100, 0)}%`], ...(orbit ? [['Periapsis', `${number(orbit.periapsis / 1000)} km`], ['Apoapsis', Number.isFinite(orbit.apoapsis) ? `${number(orbit.apoapsis / 1000)} km` : 'Unbound']] : [['Speed', `${number(telemetry.speed / 1000, 2)} km/s`], ['Engine Δv', `${number(telemetry.remainingDeltaV, 0)} m/s`]])];
-      panel.querySelector('dl').innerHTML = rows.map(([label, value]) => `<div><dt>${label}</dt><dd>${value}</dd></div>`).join('');
+      if (earthAscent) rows.push(['Dynamic pressure', `${number(load.pressure === null ? NaN : load.pressure / 1000)} kPa`, load.state]);
+      panel.querySelector('dl').innerHTML = rows.map(([label, value, pressureState]) => `<div><dt>${label}</dt><dd${pressureState ? ` data-aero-pressure="${pressureState}"` : ''}>${value}</dd></div>`).join('');
     }
   } };
 }

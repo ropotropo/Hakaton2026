@@ -49,7 +49,7 @@ The builder's ideal delta-v omits gravity, drag and steering losses. It is a des
 
 Manual separation removes an attached stage's dry mass **and any remaining propellant**. Position and velocity remain continuous. Separation cannot occur on the pad. The model does not simulate a pyrotechnic impulse, debris collisions or recovery of the discarded stage.
 
-Optional ascent guidance commands thrust direction and throttle through a closed-loop radial-velocity target. It changes forces, never position or velocity directly. The pilot can trim pitch or fly with guidance off. Guidance limits nominal acceleration to approximately 3.8 g; manual flight can exceed it. The fictional aerodynamic design limit is 110 kPa. Structural flex, bending loads, vibration, heating, lift, winds and detailed engine performance are outside this first version.
+Optional ascent guidance commands thrust direction and throttle through a closed-loop radial-velocity target. It changes forces, never position or velocity directly. The pilot can trim pitch or fly with guidance off. Guidance limits nominal acceleration to approximately 3.8 g; manual flight can exceed it. The fictional aerodynamic design limit is 110 kPa. The UI colors actual dynamic pressure amber at 88 kPa and red at 104.5 kPa (80% and 95% of that limit); these margins do not alter the solver. The model uses a fixed frontal area/Cd and has no angle-of-attack bending failure. Structural flex, bending loads, vibration, heating, lift, winds and detailed engine performance are outside this first version.
 
 An orbit is confirmed only when:
 

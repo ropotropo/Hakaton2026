@@ -47,11 +47,14 @@ complete manual phone campaign still need device testing.
 ## Pause, save and retry
 
 **Esc** or **Pause** releases held inputs. Leaving the page also pauses flight.
-Opening Missions, Time, the guide or tools pauses; closing it leaves flight paused.
+Opening Missions, Time, the guide or tools pauses; closing those leaves flight paused.
+Selecting a camera or closing its view sheet restores a previously running
+flight; Esc or a real background/visibility change keeps it paused.
 Use **Resume** when ready. Camera changes affect only the view; free inspection
 is labelled separately from External chase, Docking camera and Cockpit.
 Save before a risky maneuver. **Restore checkpoint** recovers the saved state,
-pauses and sets engine power to zero: choose the intended power before resuming.
+and opens paused. Practice restores its saved engine ceiling; the expedition
+restores with zero ceiling. Check the intended power before resuming.
 Saves are local to the current browser/device; changing a site or repository
 URL does not automatically migrate them. Vehicle JSON export/import lets you
 carry a design to another installation.
@@ -66,3 +69,23 @@ arrow returns from inspection to the flight camera. The power symbol cuts the
 engine. Desktop hover titles and accessible names describe each action; selected
 guidance remains a pressed state. Powered maneuvers run at 1×; accelerate only
 where Time makes a faster coast rate available.
+
+After a confirmed docking, the camera shows the joined spacecraft from outside.
+Choose **Inspect docked craft** to dismiss the debrief and orbit the result.
+Docking camera has a restrained sensor texture; its reticle and telemetry remain
+sharp. One-finger upward drag moves toward a top-down surface view; pinch zoom
+is separate from orbit. Ready Start actions use a subtle outline pulse, with a
+static outline when reduced motion is enabled.
+
+
+In Rocket workshop, select a component to bring its editor above the attachment
+list. Change hardware shows compatible choices; review dimensions and confirm
+Add or Replace. Empty attachment points open Hardware automatically on phones.
+The KC logo returns to mission home and pauses the current flight. Phone preview
+Vehicle/Destination tabs sit at bottom center. World rails display a small count
+of newly confirmed successful landings; these totals stay on this browser/site
+and do not backfill earlier milestone badges.
+
+Destination survey hides launch-assembly settings. All new surface-practice
+entry points start with powered landing assist on; switch it off for manual
+engine control. Touchdown counters record new attempts, with no cloud sync.

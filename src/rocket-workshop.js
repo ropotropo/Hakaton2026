@@ -29,10 +29,10 @@ export function createRocketWorkshop({ onOpen = () => {}, onClose = () => {}, on
     <div class="rw-boundary"><p><strong data-design-label>Lunar demonstrator</strong><span data-readiness>Checking flight readiness</span></p><div class="rw-presets"><button type="button" data-action="preset">Load lunar demonstrator</button><button type="button" data-action="empty">Empty platform</button><button type="button" data-action="undo" disabled>Undo</button></div></div>
     <div class="rw-placement" hidden><div><strong data-placement-label></strong><span data-placement-hint></span></div><button type="button" data-action="cancel-placement">Cancel placement</button></div>
     <div class="rw-layout">
-      <aside class="rw-palette" aria-label="Component palette"><h2>Choose hardware</h2><p>Choose hardware, then tap a highlighted attachment point.</p><div class="rw-palette-grid">${Object.entries(TYPES).map(([type, spec]) => `<button type="button" draggable="true" data-part="${type}" aria-pressed="false"><span class="rw-icon rw-icon-${type}" aria-hidden="true"></span><strong>${escape(spec.label)}</strong></button>`).join('')}</div></aside>
+      <aside class="rw-palette" aria-label="Component palette"><h2>Choose hardware</h2><p>Choose hardware, then tap a highlighted attachment point.</p><div class="rw-hardware-context" hidden><small data-hardware-intent></small><h2 data-hardware-target></h2></div><div class="rw-palette-grid">${Object.entries(TYPES).map(([type, spec]) => `<button type="button" draggable="true" data-part="${type}" aria-pressed="false"><span class="rw-icon rw-icon-${type}" aria-hidden="true"></span><strong>${escape(spec.label)}</strong></button>`).join('')}</div></aside>
       <section class="rw-scene" aria-label="Assembly platform and compatible attachment points"><canvas tabindex="0" aria-label="3D vehicle. Drag to orbit, right-drag to pan, scroll to zoom. Click installed hardware to inspect it."></canvas><div class="rw-attachment-points" aria-label="Visible attachment points"></div><div class="rw-scene-top"><span data-count>0 / ${SLOTS.length} attachment points occupied</span><button type="button" data-action="frame">Frame vehicle</button></div><p class="rw-empty">Your assembly platform.<br><span>Choose hardware, then select its attachment point.</span></p><p class="rw-scene-help">Drag to inspect. Tap hardware to edit.</p><p class="rw-webgl" hidden>3D preview is unavailable. Use the attachment-point list to assemble and save.</p></section>
       <aside class="rw-inspector" aria-label="Attachment points and engineering instruments"><h2>Attachment points</h2><p class="rw-slot-help">Select a component to adjust its dimensions.</p><ol class="rw-parts" aria-label="Vehicle attachment points"></ol>
-      <fieldset class="rw-dimensions" disabled><legend data-selected>No component selected</legend><label>Radius / half-width (m)<input data-dimension="radius" type="number" min="0.1" max="5" step="0.05" value="1"></label><label>Length (m)<input data-dimension="length" type="number" min="0.1" max="20" step="0.05" value="1"></label><button type="button" data-action="duplicate">Copy to another point</button><button type="button" data-action="delete">Remove component</button></fieldset>
+      <fieldset class="rw-dimensions" disabled><legend data-selected>No component selected</legend><label>Radius / half-width (m)<input data-dimension="radius" type="number" min="0.1" max="5" step="0.05" value="1"></label><label>Length (m)<input data-dimension="length" type="number" min="0.1" max="20" step="0.05" value="1"></label><button type="button" class="rw-primary rw-context-action" data-action="change-hardware">Change hardware</button><button type="button" class="rw-primary rw-context-action" data-action="confirm-placement" hidden>Add hardware</button><button type="button" data-action="duplicate">Copy to another point</button><button type="button" data-action="delete">Remove component</button></fieldset>
       <section class="rw-engineering"><h2>Flight readiness</h2><div class="rw-validation" aria-live="polite"></div><dl class="rw-stats"></dl><details class="rw-assumptions"><summary>Fictional hardware & flight model</summary><p>Dimensions, attachment roles, stage masses, propellant and engine performance come from one shared vehicle model. The craft shown here is the craft passed to flight; choosing a different order of placement does not change its geometry.</p><p>Hardware specifications are invented for this game. Thrust-to-weight uses Earth gravity; ideal delta-v is a staged vacuum budget before flight losses. Mission readiness warnings identify performance margins, not certification. Flight still uses finite propellant and the selected hardware.</p><p>Attachment points provide a constrained engineering layout. Structural flex, plumbing, arbitrary joint stress and collision-aware CAD validation are not simulated.</p></details></section></aside>
     </div>
     <footer class="rw-footer"><div class="rw-file-actions"><button type="button" data-action="save">Save locally</button><button type="button" data-action="load">Load local save</button><button type="button" data-action="export">Export JSON</button><button type="button" data-action="import">Import JSON</button><input type="file" accept=".json,application/json" hidden data-import></div><p role="status" aria-live="polite" data-status>One vehicle model from assembly to flight.</p><small>Ctrl/⌘ S save · D copy to a point · Delete remove · F frame · Esc close. Flight controls are blocked while editing.</small></footer>`;
@@ -49,7 +49,12 @@ export function createRocketWorkshop({ onOpen = () => {}, onClose = () => {}, on
   const $ = selector => panel.querySelector(selector);
   const canvas = $('canvas'), viewport = $('.rw-scene'), list = $('.rw-parts');
   let design = normalizeDesign(initialDesign ?? createLunarDesign());
-  let selectedSlot = null, pending = null, pendingSlot = null, pendingAction = 'Place', active = false, destroyed = false;
+  let selectedSlot = null, pending = null, pendingSlot = null, hardwareTarget = null, pendingAction = 'Place', active = false, destroyed = false;
+  const compactEditor = window.matchMedia('(max-width: 760px), (max-height: 500px) and (max-width: 1000px)');
+  let compactLayout = compactEditor.matches;
+  // An editing decision belongs above the long attachment index. Keep the same
+  // live inputs/listeners and validated design, rather than a second mobile form.
+  $('.rw-inspector').insertBefore($('.rw-dimensions'), list);
   let label = initialDesign ? 'Custom vehicle' : 'Lunar demonstrator';
   let previousFocus, previousOverflow, animation, renderer, controls, scene, camera, vehicle, platform, selectionBox;
   let fileRevision = 0, pointerStart, lastWidth = 0, lastHeight = 0, lastTick = 0, cameraTransition = null;
@@ -195,9 +200,33 @@ export function createRocketWorkshop({ onOpen = () => {}, onClose = () => {}, on
   function frameAttachment(slotId, placing = false) {
     frameContext = { kind: placing ? 'placement' : 'slot', slotId }; frameCurrentView();
   }
+  function focusCurrentEditor() {
+    if (!compactEditor.matches) return;
+    if (layout.dataset.panel === 'hardware') {
+      $('.rw-palette').scrollTop = 0;
+      panel.querySelector('[data-part]:not([hidden])')?.focus({ preventScroll: true });
+    } else if (currentPart()) {
+      $('.rw-inspector').scrollTop = 0;
+      $(`[data-action="${pending ? 'confirm-placement' : 'change-hardware'}"]`).focus({ preventScroll: true });
+    }
+  }
   function selectSlot(slotId) {
-    selectedSlot = slotId; pendingSlot = null; setPanel('vehicle'); renderUI(); frameAttachment(slotId);
-    status(design.slots[slotId] ? `${SLOT_MAP.get(slotId).label} selected. Edit its dimensions or copy it to another point.` : `${SLOT_MAP.get(slotId).label} is empty. Choose compatible hardware, then tap its + point.`);
+    selectedSlot = slotId; pendingSlot = null; hardwareTarget = slotId;
+    setPanel(compactEditor.matches && !design.slots[slotId] ? 'hardware' : 'vehicle');
+    renderUI(); frameAttachment(slotId); focusCurrentEditor();
+    status(design.slots[slotId] ? `${SLOT_MAP.get(slotId).label} selected. Edit dimensions or choose Change hardware.` : `${SLOT_MAP.get(slotId).label} is empty. Choose compatible hardware to add.`);
+  }
+  function changeHardware() {
+    if (!selectedSlot || !design.slots[selectedSlot]) return;
+    hardwareTarget = selectedSlot; setPanel('hardware'); renderUI();
+    $('.rw-palette').scrollTop = 0;
+    panel.querySelector('[data-part]:not([hidden])')?.focus({ preventScroll: true });
+  }
+  function choosePendingPoint(slotId) {
+    if (!pending || !compatible(SLOT_MAP.get(slotId), pending.type)) return;
+    pendingSlot = slotId; hardwareTarget = slotId; setPanel('vehicle');
+    renderUI(); frameAttachment(slotId, true); focusCurrentEditor();
+    status(`${SLOT_MAP.get(slotId).label} selected. Review dimensions, then ${design.slots[slotId] ? 'Replace' : 'Add'}.`);
   }
 
   function renderMarkers() {
@@ -211,7 +240,7 @@ export function createRocketWorkshop({ onOpen = () => {}, onClose = () => {}, on
       button.classList.toggle('rw-focus-point', slot.id === (pending ? pendingSlot : selectedSlot));
       button.setAttribute('aria-label', pending ? `${design.slots[slot.id] ? 'Replace component at' : 'Place component at'} ${slot.label}` : `Choose hardware for empty ${slot.label}`);
       button.innerHTML = `<span aria-hidden="true">+</span><small>${escape(slot.label)}</small>`;
-      button.onclick = () => pending ? placePart(slot.id) : chooseType(slot.accepts[0], slot.id);
+      button.onclick = () => pending ? compactEditor.matches ? choosePendingPoint(slot.id) : placePart(slot.id) : selectSlot(slot.id);
       button.addEventListener('dragover', event => { event.preventDefault(); event.dataTransfer.dropEffect = 'copy'; });
       button.addEventListener('drop', event => {
         event.preventDefault(); event.stopPropagation();
@@ -235,21 +264,31 @@ export function createRocketWorkshop({ onOpen = () => {}, onClose = () => {}, on
       choose.type = 'button'; choose.dataset.slot = slot.id;
       choose.setAttribute('aria-pressed', String(selectedSlot === slot.id && !pending));
       choose.disabled = !!pending && !canPlace;
-      choose.innerHTML = `<span><strong>${escape(slot.label)}</strong><small>${part ? escape(TYPES[part.type].label) + ` / ${format(part.radius, 2)} × ${format(part.length, 2)} m` : `Accepts ${slot.accepts.map(type => TYPES[type].label).join(' / ')}`}</small></span><em>${pending && canPlace ? part ? 'Replace' : 'Place' : part ? 'Installed' : 'Empty'}</em>`;
+      choose.innerHTML = `<span><strong>${escape(slot.label)}</strong><small>${part ? escape(TYPES[part.type].label) + ` / ${format(part.radius, 2)} × ${format(part.length, 2)} m` : `Accepts ${slot.accepts.map(type => TYPES[type].label).join(' / ')}`}</small></span><em>${pending && canPlace ? compactEditor.matches ? 'Choose' : part ? 'Replace' : 'Add' : part ? 'Installed' : 'Empty'}</em>`;
       choose.onclick = () => {
-        if (pending) placePart(slot.id);
+        if (pending) compactEditor.matches ? choosePendingPoint(slot.id) : placePart(slot.id);
         else selectSlot(slot.id);
-        list.querySelector(`[data-slot="${slot.id}"]`)?.focus({ preventScroll: true });
+        if (!compactEditor.matches) list.querySelector(`[data-slot="${slot.id}"]`)?.focus({ preventScroll: true });
       };
       row.append(choose); list.append(row);
     }
+    const target = SLOT_MAP.get(pending ? pendingSlot : hardwareTarget);
+    const targetOnly = compactEditor.matches && !!target;
+    $('.rw-palette').dataset.targeted = String(targetOnly);
+    $('.rw-hardware-context').hidden = !targetOnly;
+    $('[data-hardware-intent]').textContent = target && design.slots[target.id] ? 'Replace hardware at' : 'Add hardware at';
+    $('[data-hardware-target]').textContent = target?.label ?? '';
     for (const button of panel.querySelectorAll('[data-part]')) {
+      button.hidden = targetOnly && !compatible(target, button.dataset.part);
       button.setAttribute('aria-pressed', String(pending?.type === button.dataset.part));
       button.classList.toggle('rw-chosen', pending?.type === button.dataset.part);
     }
     const part = currentPart(), spec = part && TYPES[part.type];
-    $('.rw-dimensions').disabled = !part;
-    $('[data-selected]').textContent = part ? pending ? `${spec.label} / awaiting placement` : SLOT_MAP.get(selectedSlot).label : selectedSlot ? `${SLOT_MAP.get(selectedSlot).label} / empty` : 'Select hardware or an attachment point';
+    $('.rw-dimensions').disabled = !part; $('.rw-dimensions').hidden = !part;
+    $('[data-action="change-hardware"]').hidden = !part || !!pending;
+    $('[data-action="confirm-placement"]').hidden = !pending;
+    $('[data-action="confirm-placement"]').textContent = pending ? `${design.slots[pendingSlot] ? 'Replace' : 'Add'} ${TYPES[pending.type].label.toLowerCase()}` : 'Add hardware';
+    $('[data-selected]').textContent = part ? pending ? `${SLOT_MAP.get(pendingSlot).label} / ${design.slots[pendingSlot] ? 'replacement' : 'new hardware'}` : SLOT_MAP.get(selectedSlot).label : selectedSlot ? `${SLOT_MAP.get(selectedSlot).label} / empty` : 'Select hardware or an attachment point';
     for (const input of panel.querySelectorAll('[data-dimension]')) {
       input.setCustomValidity('');
       if (!part) continue;
@@ -268,10 +307,10 @@ export function createRocketWorkshop({ onOpen = () => {}, onClose = () => {}, on
     if (pending) {
       const focus = SLOT_MAP.get(pendingSlot), verb = design.slots[pendingSlot] ? 'replace' : 'place';
       $('[data-placement-label]').textContent = `${pendingAction} ${spec.label} / radius ${format(part.radius, 2)} m × length ${format(part.length, 2)} m`;
-      $('[data-placement-hint]').textContent = `Tap + to ${verb} at ${focus?.label ?? 'a compatible point'}. Other points are in the attachment list.`;
+      $('[data-placement-hint]').textContent = compactEditor.matches ? `Review dimensions, then ${verb === 'replace' ? 'Replace' : 'Add'} at ${focus?.label ?? 'the selected point'}.` : `Tap + or confirm below to ${verb} at ${focus?.label ?? 'a compatible point'}.`;
     } else { $('[data-placement-label]').textContent = ''; $('[data-placement-hint]').textContent = ''; }
     $('.rw-slot-help').textContent = pending ? 'Highlighted points accept this hardware. Place replaces the component already at that point.' : selectedSlot ? design.slots[selectedSlot] ? 'Selected hardware is framed in the scene. Edit its dimensions or choose another attachment.' : 'This attachment is empty. Choose hardware to prepare a placement.' : 'Select installed hardware or an empty attachment point.';
-    $('.rw-scene-help').textContent = pending ? `Tap the highlighted + to ${design.slots[pendingSlot] ? 'replace' : 'place'} the component.` : selectedSlot ? `${SLOT_MAP.get(selectedSlot).label} selected. Drag to inspect.` : 'Drag to inspect. Tap hardware to edit.';
+    $('.rw-scene-help').textContent = pending ? compactEditor.matches ? `Review hardware below, then ${design.slots[pendingSlot] ? 'Replace' : 'Add'}.` : `Tap the highlighted + to ${design.slots[pendingSlot] ? 'replace' : 'place'} the component.` : selectedSlot ? `${SLOT_MAP.get(selectedSlot).label} selected. Drag to inspect.` : 'Drag to inspect. Tap hardware to edit.';
     const e = evaluateDesign(design);
     for(const button of panel.querySelectorAll('[data-action="start"],[data-action="mobile-start"]'))button.disabled = !e.valid || !!pending;
     $('[data-readiness]').textContent = pending ? 'Place or cancel the selected hardware before flight' : e.valid ? e.warnings.length ? 'Flight available / review margins' : 'Ready for mission planning' : 'Complete the required flight hardware';
@@ -291,40 +330,41 @@ export function createRocketWorkshop({ onOpen = () => {}, onClose = () => {}, on
     if (!Object.hasOwn(TYPES, type)) return;
     pending = { type, radius: TYPES[type].radius, length: TYPES[type].length };
     pendingSlot = chooseWorkshopAttachment(SLOTS, design, type, { preferredSlot }); pendingAction = 'Place';
-    selectedSlot = null; setPanel('vehicle'); renderUI(); frameAttachment(pendingSlot, true);
-    status(`${TYPES[type].label} ready. Tap + at ${SLOT_MAP.get(pendingSlot).label} to ${design.slots[pendingSlot] ? 'replace the installed component' : 'place it'}, or choose another compatible point.`);
+    selectedSlot = null; hardwareTarget = pendingSlot; setPanel('vehicle'); renderUI(); frameAttachment(pendingSlot, true); focusCurrentEditor();
+    status(`${TYPES[type].label} ready at ${SLOT_MAP.get(pendingSlot).label}. Review dimensions, then ${design.slots[pendingSlot] ? 'Replace' : 'Add'}.`);
   }
   function placePart(slotId) {
     const slot = SLOT_MAP.get(slotId);
     if (!pending || !compatible(slot, pending.type)) { status('That point is not compatible with the selected component.'); return; }
     const part = { ...pending }, replacing = !!design.slots[slotId];
     const next = clone(design); next.slots[slotId] = part;
-    selectedSlot = slotId; pending = null; pendingSlot = null;
+    try { normalizeDesign(next); } catch (error) { status(`Cannot ${replacing ? 'replace' : 'add'} this hardware: ${error.message}`); return; }
+    selectedSlot = slotId; pending = null; pendingSlot = null; hardwareTarget = slotId;
     changed(next, `${TYPES[part.type].label} ${replacing ? 'replaced at' : 'placed on'} ${slot.label}. Physical position comes from this attachment point.`);
-    setPanel('vehicle'); frameAttachment(slotId);
+    setPanel('vehicle'); frameAttachment(slotId); focusCurrentEditor();
   }
-  function cancelPlacement() { pending = null; pendingSlot = null; selectedSlot = null; renderUI(); frameDesign(); status('Placement canceled. The installed vehicle is unchanged.'); }
+  function cancelPlacement() { pending = null; pendingSlot = null; selectedSlot = null; hardwareTarget = null; renderUI(); frameDesign(); status('Placement canceled. The installed vehicle is unchanged.'); }
   function duplicate() {
     const part = design.slots[selectedSlot];
     if (!part) return;
     pendingSlot = chooseWorkshopAttachment(SLOTS, design, part.type, { sourceSlot: selectedSlot }); pendingAction = 'Copy';
-    pending = { ...part }; selectedSlot = null; setPanel('vehicle'); renderUI(); frameAttachment(pendingSlot, true);
-    status(`Copy ready. Tap + at ${SLOT_MAP.get(pendingSlot).label} to ${design.slots[pendingSlot] ? 'replace its installed hardware' : 'place the copy'}, or choose another compatible point.`);
+    pending = { ...part }; selectedSlot = null; hardwareTarget = pendingSlot; setPanel('vehicle'); renderUI(); frameAttachment(pendingSlot, true); focusCurrentEditor();
+    status(`Copy ready at ${SLOT_MAP.get(pendingSlot).label}. Choose ${design.slots[pendingSlot] ? 'Replace' : 'Add'} to confirm.`);
   }
   function remove() {
     if (!design.slots[selectedSlot]) return;
     const name = SLOT_MAP.get(selectedSlot).label, next = clone(design);
     delete next.slots[selectedSlot];
-    changed(next, `${name} is empty. Undo restores the removed component.`); frameAttachment(selectedSlot);
+    changed(next, `${name} is empty. Undo restores the removed component.`); selectSlot(selectedSlot);
   }
   function undo() {
     if (!history.length) return;
-    design = normalizeDesign(history.pop()); pending = null; pendingSlot = null; selectedSlot = null; label = 'Custom vehicle'; fileRevision++;
+    design = normalizeDesign(history.pop()); pending = null; pendingSlot = null; selectedSlot = null; hardwareTarget = null; label = 'Custom vehicle'; fileRevision++;
     renderUI(); frameDesign(); status('Previous vehicle design restored.');
   }
   function replaceDesign(value, nextLabel = 'Loaded vehicle') {
     const trusted = normalizeDesign(value), migrated = value?.version === 1;
-    pending = null; pendingSlot = null; selectedSlot = null;
+    pending = null; pendingSlot = null; selectedSlot = null; hardwareTarget = null;
     changed(trusted, migrated ? 'Version 1 design migrated by component type into explicit attachment points. Review placement and performance before flight.' : nextLabel === 'Empty platform' ? 'Empty platform. Choose hardware, then select a compatible attachment point.' : 'Vehicle loaded. Geometry and performance updated; review flight readiness before starting.', nextLabel);
     frameDesign();
     return documentValue();
@@ -399,7 +439,7 @@ export function createRocketWorkshop({ onOpen = () => {}, onClose = () => {}, on
       replaceDesign(value, 'Imported vehicle');
     } catch (error) { status(`Import rejected: ${error.message}`); }
   });
-  const actions = { close, frame: frameDesign, duplicate, delete: remove, save, load, undo, start: startFlight, 'mobile-start': startFlight,
+  const actions = { close, frame: frameDesign, duplicate, delete: remove, save, load, undo, start: startFlight, 'mobile-start': startFlight, 'change-hardware': changeHardware, 'confirm-placement': () => placePart(pendingSlot),
     preset: () => replaceDesign(createLunarDesign(), 'Lunar demonstrator'), empty: () => replaceDesign(createEmptyDesign(), 'Empty platform'),
     'cancel-placement': cancelPlacement, export: exportJSON, import: () => $('[data-import]').click() };
   for (const button of panel.querySelectorAll('[data-action]')) listen(button, 'click', () => actions[button.dataset.action]());
@@ -425,8 +465,8 @@ export function createRocketWorkshop({ onOpen = () => {}, onClose = () => {}, on
       object = object.parent;
     }
     if (!SLOT_MAP.has(slotId)) return;
-    if (pending) placePart(slotId);
-    else { selectSlot(slotId); list.querySelector(`[data-slot="${slotId}"]`)?.scrollIntoView({ block: 'nearest' }); }
+    if (pending) compactEditor.matches ? choosePendingPoint(slotId) : placePart(slotId);
+    else { selectSlot(slotId); if (!compactEditor.matches) list.querySelector(`[data-slot="${slotId}"]`)?.scrollIntoView({ block: 'nearest' }); }
   });
   listen(canvas, 'webglcontextlost', event => { event.preventDefault(); $('.rw-webgl').hidden = false; });
   listen(canvas, 'webglcontextrestored', () => { $('.rw-webgl').hidden = true; });
@@ -491,7 +531,7 @@ export function createRocketWorkshop({ onOpen = () => {}, onClose = () => {}, on
   }
   function close() {
     if (!active) return;
-    active = false; pending = null; pendingSlot = null; selectedSlot = null; cameraTransition = null; pointerStart = null; fileRevision++; cancelAnimationFrame(animation);
+    active = false; pending = null; pendingSlot = null; selectedSlot = null; hardwareTarget = null; cameraTransition = null; pointerStart = null; fileRevision++; cancelAnimationFrame(animation);
     if (panel.open) panel.close();
     document.documentElement.style.overflow = previousOverflow;
     try { onClose(); } finally { if (previousFocus?.isConnected) previousFocus.focus({ preventScroll: true }); }
@@ -501,6 +541,7 @@ export function createRocketWorkshop({ onOpen = () => {}, onClose = () => {}, on
     controls?.removeEventListener('start', stopCameraTransition); controls?.removeEventListener('change', constrainCamera);
     controls?.dispose(); renderer?.dispose(); panel.remove();
   }
+  listen(window, 'resize', () => { const next = compactEditor.matches; if (next !== compactLayout) { compactLayout = next; if (active) renderUI(); } });
   renderUI();
   return { open, close, destroy, getDesign: documentValue, setDesign: value => replaceDesign(value, 'Loaded vehicle') };
 }

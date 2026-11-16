@@ -12,10 +12,10 @@ export function installNavigation({state,resetCamera,zoomCamera=()=>{},inspectCa
   cameraDialog.innerHTML=`<div class="dialog-header"><h2>Camera</h2><button class="kc-tool" aria-label="Close camera tools">${icon('close')}</button></div><p>Drag the scene to look around. Choose a mounted view in flight controls.</p><div class="camera-tool-grid"><button class="kc-action" id="reset-orbit">${icon('reset')}Reset view</button><button class="kc-action" data-inspect>${icon('orbit')}Inspect in 360°</button><button class="kc-action" data-zoom="0.8">${icon('plus')}Zoom in</button><button class="kc-action" data-zoom="1.25">${icon('minus')}Zoom out</button></div>`;
   document.body.append(dialog,cameraDialog);
   function pauseForTools(){document.dispatchEvent(new CustomEvent('kc:pause-practice'));document.getElementById('pause-button')?.getAttribute('aria-label')==='Pause simulation'&&document.getElementById('pause-button').click();}
-  bar.querySelector('#open-camera-tools').onclick=()=>{pauseForTools();cameraDialog.showModal();};
-  cameraDialog.querySelector('[aria-label="Close camera tools"]').onclick=()=>cameraDialog.close();
-  cameraDialog.querySelector('#reset-orbit').onclick=resetCamera;
-  cameraDialog.querySelector('[data-inspect]').onclick=()=>{inspectCamera();cameraDialog.close();};
+  bar.querySelector('#open-camera-tools').onclick=()=>{cameraDialog.returnValue='';pauseForTools();cameraDialog.showModal();};
+  cameraDialog.querySelector('[aria-label="Close camera tools"]').onclick=()=>cameraDialog.close('selected');
+  cameraDialog.querySelector('#reset-orbit').onclick=()=>{resetCamera();cameraDialog.close('selected');};
+  cameraDialog.querySelector('[data-inspect]').onclick=()=>{inspectCamera();cameraDialog.close('selected');};
   for(const button of cameraDialog.querySelectorAll('[data-zoom]'))button.onclick=()=>zoomCamera(Number(button.dataset.zoom));
   let expanded=false;
   const expand=bar.querySelector('#expand-flight-view');expand.onclick=()=>{expanded=!expanded;document.querySelector('.flight-center').classList.toggle('expanded-flight',expanded);expand.setAttribute('aria-pressed',String(expanded));expand.setAttribute('aria-label',expanded?'Restore flight layout':'Expand flight view');window.dispatchEvent(new Event('resize'));};

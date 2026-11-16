@@ -1,6 +1,7 @@
 import { DESTINATIONS } from './destinations.js';
 import { BODY_TEXTURE_PATHS } from './celestial.js';
 import { icon } from './ui-icons.js';
+import { readLandingCounts, LANDING_COUNTS_KEY } from './player-progress.js';
 import './destination-carousel.css';
 
 // A lightweight sphere-thumbnail rail: no extra WebGL contexts or changes to flight.
@@ -17,6 +18,15 @@ export function installDestinationCarousel({ select, dialog }) {
   const rail = group.querySelector('.world-rail');
   let signature = '';
   const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function refreshCounts() {
+    const counts = readLandingCounts();
+    for (const button of rail.querySelectorAll('[data-world]')) {
+      const count = counts[button.dataset.world] || 0, badge = button.querySelector('.world-landings');
+      badge.hidden = !count;
+      badge.querySelector('span').textContent = count > 999 ? '999+' : String(count);
+      button.setAttribute('aria-label', `Land on ${button.dataset.worldName}${count ? `. ${count.toLocaleString('en-US')} successful landing${count === 1 ? '' : 's'}` : ''}`);
+    }
+  }
   function sync(scroll = false) {
     for (const button of rail.querySelectorAll('[data-world]')) {
       const active = button.dataset.world === select.value;
@@ -41,17 +51,19 @@ export function installDestinationCarousel({ select, dialog }) {
         const world = DESTINATIONS.find(item => item.id === option.value);
         if (!world) continue;
         const button = document.createElement('button');
-        button.type = 'button'; button.className = 'world-choice'; button.dataset.world = world.id;
+        button.type = 'button'; button.className = 'world-choice'; button.dataset.world = world.id; button.dataset.worldName = world.name;
         button.setAttribute('aria-label', `Land on ${world.name}`);
         const globe = document.createElement('span'); globe.className = `world-globe world-globe-${world.id}`; globe.setAttribute('aria-hidden', 'true');
         globe.style.setProperty('--world-color', world.color);
         const map = BODY_TEXTURE_PATHS[world.id];
         if (map) globe.style.backgroundImage = `url("${new URL(map, document.baseURI).href}")`;
+        const badge = document.createElement('span'); badge.className = 'world-landings'; badge.hidden = true; badge.innerHTML = `${icon('land')}<span></span>`; globe.append(badge);
         const name = document.createElement('strong'); name.textContent = world.name;
         const parent = document.createElement('small'); parent.textContent = world.parent === world.name ? 'Planet' : `${world.parent} system`;
         button.append(globe, name, parent); button.addEventListener('click', () => choose(world.id)); rail.append(button);
       }
     }
+    refreshCounts();
     sync(scroll && dialog.open);
   }
   function step(direction) {
@@ -68,8 +80,13 @@ export function installDestinationCarousel({ select, dialog }) {
       const buttons = [...rail.querySelectorAll('[data-world]')]; choose((event.key === 'Home' ? buttons[0] : buttons.at(-1)).dataset.world, true);
     } else step(event.key === 'ArrowLeft' ? -1 : 1);
   });
-  select.addEventListener('change', () => sync());
+  const onChange = () => sync();
+  const onStorage = event => { if (event.key === null || event.key === LANDING_COUNTS_KEY) refreshCounts(); };
+  select.addEventListener('change', onChange);
+  document.addEventListener('kc:milestone', refreshCounts);
+  document.addEventListener('kc:landing-progress', refreshCounts);
+  window.addEventListener('storage', onStorage);
   const observer = new MutationObserver(() => render(true)); observer.observe(select, { childList: true }); observer.observe(dialog, { attributes: true, attributeFilter: ['open'] });
   render();
-  return { render, destroy() { observer.disconnect(); group.remove(); select.hidden = false; if (enclosingLabel) enclosingLabel.hidden = false; dialog.querySelector(`label[for="${select.id}"]`)?.removeAttribute('hidden'); } };
+  return { render, destroy() { observer.disconnect(); select.removeEventListener('change', onChange); document.removeEventListener('kc:milestone', refreshCounts); document.removeEventListener('kc:landing-progress', refreshCounts); window.removeEventListener('storage', onStorage); group.remove(); select.hidden = false; if (enclosingLabel) enclosingLabel.hidden = false; dialog.querySelector(`label[for="${select.id}"]`)?.removeAttribute('hidden'); } };
 }

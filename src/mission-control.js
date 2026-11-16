@@ -32,7 +32,7 @@ export function createMissionControl({ onOpen = () => {}, onClose = () => {}, on
   dialog.setAttribute('aria-label', 'Spacecraft mission');
   dialog.innerHTML = `
     <header class="mc-header">
-      <div class="mc-brand">${kcMark.replace('role="img" aria-labelledby="title"', 'aria-hidden="true" focusable="false"')}<strong data-title>Mission plan</strong></div>
+      <button type="button" class="mc-brand" data-action="home" aria-label="Kinetic Core home">${kcMark.replace('role="img" aria-labelledby="title"', 'aria-hidden="true" focusable="false"')}<strong data-title>Mission plan</strong></button>
       <nav aria-label="Mission navigation"><button data-action="close">${icon('arrow-left')}<span>Back</span></button></nav>
     </header>
     <section class="mc-planner">
@@ -73,7 +73,7 @@ export function createMissionControl({ onOpen = () => {}, onClose = () => {}, on
         <div class="mc-sheet-tabs" role="tablist" aria-label="Flight tools"><button role="tab" id="mc-data-tab" data-tab="data" aria-selected="true" aria-controls="mc-data-panel">Flight data</button><button role="tab" id="mc-controls-tab" data-tab="controls" aria-selected="false" aria-controls="mc-controls-panel">Controls</button><button role="tab" id="mc-help-tab" data-tab="help" aria-selected="false" aria-controls="mc-help-panel">Guide</button></div>
         <div class="mc-sheet-body">
           <div id="mc-data-panel" data-tab-panel="data" role="tabpanel" aria-labelledby="mc-data-tab"><h3 data-target-label>Moon expedition</h3><dl class="mc-instruments" data-instruments></dl><p data-status role="status" aria-live="polite"></p><div class="mc-checkpoints"><button data-action="save">Save checkpoint</button><button data-action="restore">Restore checkpoint</button></div><details class="mc-log"><summary>Flight events</summary><ol data-log></ol></details></div>
-          <div id="mc-controls-panel" data-tab-panel="controls" role="tabpanel" aria-labelledby="mc-controls-tab" hidden><label class="mc-warp">Time warp<select data-warp><option value="1">1×</option><option value="10" selected>10×</option><option value="100">100×</option><option value="1000">1,000×</option><option value="10000">10,000×</option><option value="50000">50,000× coast</option></select><small data-applied-warp></small></label><div class="mc-sheet-actions"><button data-action="stage">Separate stage</button><button data-action="skip-rollout" hidden>Skip rollout</button></div><p>Stage release is manual and discards the attached stage and its remaining fuel. Space cuts the engine during surface descent.</p></div>
+          <div id="mc-controls-panel" data-tab-panel="controls" role="tabpanel" aria-labelledby="mc-controls-tab" hidden><button class="kc-action" data-action="open-time">${icon('time')}<span>Time controls</span></button><p data-applied-warp></p><div class="mc-sheet-actions"><button data-action="stage">Separate stage</button><button data-action="skip-rollout" hidden>Skip rollout</button></div><p>Stage release is manual and discards the attached stage and its remaining fuel. Space cuts the engine during surface descent.</p></div>
           <div id="mc-help-panel" data-tab-panel="help" role="tabpanel" aria-labelledby="mc-help-tab" hidden><h3>Fly the next maneuver</h3><p>The journey marks actual flight phases. Follow the maneuver beneath the scene; depleted stages require your release.</p><dl class="mc-guide"><div><dt>Engine ceiling</dt><dd>Limits available thrust. Powered guidance uses real propellant and obeys this limit.</dd></div><div><dt>Guidance</dt><dd>On: steers and powers the maneuver. Off: use the engine slider and hold pitch buttons. No passive braking.</dd></div><div><dt>Camera</dt><dd>External chase, local descent view, 360° inspection and zoom. Inspection changes the view, never the trajectory.</dd></div><div><dt>Keyboard</dt><dd><kbd>W</kbd>/<kbd>S</kbd> engine · <kbd>A</kbd>/<kbd>D</kbd> pitch · <kbd>G</kbd> guidance · <kbd>Space</kbd> stage / descent engine cut · <kbd>Esc</kbd> pause</dd></div></dl><details class="mc-model-note"><summary>Model and sources</summary><p>${modelNote}</p></details></div>
         </div>
       </section>
@@ -108,7 +108,7 @@ export function createMissionControl({ onOpen = () => {}, onClose = () => {}, on
       const raw = checkpoint ?? JSON.parse(localStorage.getItem(KEY) || 'null');
       if (!raw) throw Error('No saved mission yet.');
       const restored = raw.kind === 'custom-descent' ? restoreCustomDescent(raw) : restoreLunarMission(raw);
-      mission = restored; design = mission.design; target = mission.destination ?? 'moon'; site = mission.siteId;
+      mission = restored; emittedMilestones.clear(); design = mission.design; target = mission.destination ?? 'moon'; site = mission.siteId;
       rolloutElapsed = mission.phase === 'rollout' ? mission.sequenceTime / 3 * ROLLOUT_SECONDS : 0;
       power = 0; guidance = true; camera = 'chase'; inspectMode = false; previousPhase = ''; previousEvent = ''; lastFlightPhase = null; closeSheet(false); activateFlight(); renderer.resetOrbit(); pause(true);
       status('Checkpoint restored. Engine ceiling is zero; set power before resuming.');
@@ -156,12 +156,12 @@ export function createMissionControl({ onOpen = () => {}, onClose = () => {}, on
   }
   function activateFlight() {
     planner = false; $('.mc-planner').hidden = true; $('.mc-flight').hidden = false; $('.mc-outcome').hidden = true;
-    setupRenderer(); $('[data-power]').value = Math.round(power * 100); $('[data-warp]').value = String(warp);
+    setupRenderer(); $('[data-power]').value = Math.round(power * 100);
     $('[data-target-label]').textContent = target === 'moon' ? 'Moon expedition' : `${DESTINATIONS.find(d => d.id === target).name} · local rehearsal`;
     update();
   }
   function start() {
-    closeSheet(false); clear(); rolloutElapsed = 0;
+    closeSheet(false); clear(); emittedMilestones.clear(); rolloutElapsed = 0;
     mission = target === 'moon' ? createLunarMission(design, site) : createCustomDescent(design, target, site);
     if (target !== 'moon') { const practice = getPracticeSites(target).find(s => s.id === site); mission.position[0] = practice.offset; mission.velocity[0] = practice.horizontalSpeed; }
     power = 1; guidance = true; warp = 1; paused = false; camera = 'chase'; inspectMode = false; previousPhase = ''; previousEvent = ''; lastFlightPhase = null;
@@ -250,12 +250,12 @@ export function createMissionControl({ onOpen = () => {}, onClose = () => {}, on
       $('[data-log]').replaceChildren(...(mission.events?.slice(-8).reverse().map(event => { const li = document.createElement('li'); li.textContent = `T+${time(event.time)} ${event.message}`; return li; }) ?? []));
     }
     if (phase !== previousPhase) {
-      previousPhase = phase;
+      const observedPreviousPhase = previousPhase; previousPhase = phase;
       if (!['failed', 'landed', 'rollout', 'countdown'].includes(phase)) save();
       if (ended) outcome(t);
-      if (mission.kind === 'lunar-mission' && ['orbit', 'landed'].includes(phase)) {
-        const id = phase === 'landed' ? 'lunar-touchdown' : 'earth-orbit';
-        if (!emittedMilestones.has(id)) { emittedMilestones.add(id); document.dispatchEvent(new CustomEvent('kc:milestone', { detail: { id } })); }
+      if (phase === 'landed' || mission.kind === 'lunar-mission' && phase === 'orbit') {
+        const id = phase === 'landed' ? mission.kind === 'lunar-mission' ? 'lunar-touchdown' : 'surface-' + target : 'earth-orbit';
+        if (!emittedMilestones.has(id)) { emittedMilestones.add(id); document.dispatchEvent(new CustomEvent('kc:milestone', { detail: { id, world: target, confirmedLanding: phase === 'landed' && !!observedPreviousPhase } })); }
       }
     }
     miniMap.updateMission(mission, t);
@@ -285,7 +285,7 @@ export function createMissionControl({ onOpen = () => {}, onClose = () => {}, on
       case 'depart': planDeparture(); break;
       case 'restore': restore(); break;
       case 'power': power = 1; $('[data-power]').value = 100; update(); break;
-      case 'warp': warp = nextManeuver.targetWarp; $('[data-warp]').value = String(warp); update(); break;
+      case 'warp': warp = nextManeuver.targetWarp; update(); break;
     }
   }
   function openSheet(name) {
@@ -305,10 +305,10 @@ export function createMissionControl({ onOpen = () => {}, onClose = () => {}, on
     if (sheetTrigger?.isConnected && !sheetTrigger.closest('[hidden]')) sheetTrigger.focus();
   }
   function setCamera(value) {
-    camera = value; inspectMode = false; renderer?.resetOrbit(); closeSheet(); update(); $('[data-flight-canvas]').focus();
+    camera = value; inspectMode = false; renderer?.resetOrbit(); closeSheet(activeSheet==='camera'); update(); $('[data-flight-canvas]').focus();
   }
   function inspect() {
-    camera = 'chase'; inspectMode = true; renderer?.beginOrbit?.(); closeSheet(); update(); $('[data-flight-canvas]').focus();
+    camera = 'chase'; inspectMode = true; renderer?.beginOrbit?.(); closeSheet(activeSheet==='camera'); update(); $('[data-flight-canvas]').focus();
   }
   function resetCamera() { inspectMode = false; renderer?.resetOrbit(); update(); }
   function frame(now) {
@@ -330,10 +330,11 @@ export function createMissionControl({ onOpen = () => {}, onClose = () => {}, on
     if (inspectionChanged || now - lastUI > 100) { update(); lastUI = now; }
   }
   listen('[data-action="telemetry"]', 'click', () => openSheet('tools'));
+  listen('[data-action="home"]', 'click', () => document.dispatchEvent(new CustomEvent('kc:show-home')));
   listen('[data-action="time"]', 'click', () => openSheet('time'));
   listen('[data-action="camera"]', 'click', () => openSheet('camera'));
   listen('[data-action="close-sheet"]', 'click', () => closeSheet());
-  dialog.querySelectorAll('[data-close-sheet]').forEach(button => button.addEventListener('click', () => closeSheet()));
+  dialog.querySelectorAll('[data-close-sheet]').forEach(button => button.addEventListener('click', () => closeSheet(activeSheet==='camera')));
   dialog.querySelectorAll('[data-resume-sheet]').forEach(button => button.addEventListener('click', () => { closeSheet(false); pause(false); $('[data-flight-canvas]').focus(); }));
   dialog.querySelectorAll('[data-tab]').forEach(button => button.addEventListener('click', () => {
     dialog.querySelectorAll('[data-tab]').forEach(tab => tab.setAttribute('aria-selected', String(tab === button)));
@@ -346,8 +347,8 @@ export function createMissionControl({ onOpen = () => {}, onClose = () => {}, on
   listen('[data-action="next"]', 'click', nextAction); listen('[data-action="stage"]', 'click', stage); listen('[data-action="skip-rollout"]', 'click', finishRollout);
   listen('[data-action="save"]', 'click', save); listen('[data-action="restore"]', 'click', restore); listen('[data-action="load-checkpoint"]', 'click', restore);
   listen('[data-power]', 'input', event => { power = Number(event.target.value) / 100; update(); });
-  listen('[data-warp]', 'change', event => { warp = Number(event.target.value); update(); });
-  dialog.querySelectorAll('[data-mission-time]').forEach(button => button.addEventListener('click', () => { warp = Number(button.dataset.missionTime); $('[data-warp]').value = String(warp); update(); }));
+  listen('[data-action="open-time"]', 'click', () => openSheet('time'));
+  dialog.querySelectorAll('[data-mission-time]').forEach(button => button.addEventListener('click', () => { warp = Number(button.dataset.missionTime); update(); }));
   listen('[data-action="cut"]', 'click', cutEngine);
   dialog.querySelectorAll('[data-turn]').forEach(button => {
     button.addEventListener('pointerdown', event => { if (paused || guidance || button.closest('[hidden]')) return; event.preventDefault(); button.setPointerCapture(event.pointerId); touchTurns.add(button.dataset.turn); button.classList.add('firing'); });

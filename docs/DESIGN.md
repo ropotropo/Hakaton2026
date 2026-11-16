@@ -52,10 +52,9 @@ readings for the available viewport without shrinking the touch target.
 
 The shared `.kc-tool` is a 44 px circular translucent control: `#08090ba8`, a
 `#ffffff3b` border and a 16 px backdrop blur. Its selected state uses ceramic
-white with dark content. A decorative SVG and a visible short label identify
-its purpose; give the button a matching accessible name. Scoped flight tools
-can grow for a visible label or engine state while retaining the same quiet,
-rounded character. Main actions use the shared 12 px radius; sheets use a
+white with dark content. A decorative SVG identifies the action; preserve a matching accessible name
+and hover title. Flight utility circles have no visible label and keep a stable
+44 px target. Engine state remains in the nearby instrument or pressed state. Main actions use the shared 12 px radius; sheets use a
 larger enclosing radius and component choices can retain a small radius.
 
 Use sentence case, left-aligned instructions and units beside their values.
@@ -69,7 +68,7 @@ into a card or add decorative grids, scan lines or glowing borders.
 KC / current flight                   Back / Missions       56 px
 Launch             Transfer             Orbit             Land
 ┌────────────────────────────────────────────────────────────┐
-│ Phase / elapsed time                  Camera / Map / Tools │
+│ Phase / elapsed time                  Camera / Time / Tools │
 │                                                            │
 │                    Spacecraft / world                      │
 │                                                            │
@@ -267,8 +266,7 @@ supplies a horizon away from the pad rather than moving the target with the
 craft. These are implementation budgets, not measured mobile FPS claims.
 
 The author page pairs the existing project spacesuit portrait with the exact
-name **Mykyta Borisov**, Ukraine, and sole-author credit. Preserve the full
-portrait; keep provenance in the asset credits rather than visible captions.
+name **Mykyta Borisov**, Ukraine, and sole-author credit. Preserve the face and visible KC suit patch; keep provenance in the asset credits rather than visible captions.
 Use calm type, one authorship line and a visible close action. About the author
 lives under More in the field guide, without a separate burger or duplicate
 How to play entry. Use the approved short biography and 44 px touch targets.
@@ -310,3 +308,27 @@ available and the solver untouched. Never invent a fresh separation on restore.
 Manual inspection cancels the shot, pause freezes it, and reduced motion skips
 it. Camera smoothing must not blend incompatible world frames or make a mounted
 cockpit drift away from its physical pose.
+
+
+## Final v0.5.3 visual and interaction rules
+
+- One-finger inspection uses viewport-normalized yaw/pitch; upward drag raises
+  the camera toward a surface view. Pinch zoom rebases when pointer count changes.
+- Camera selection restores a previously running flight; Escape, real blur,
+  visibility loss, context loss or depletion hold never silently resume it.
+- Standard/custom descent exhaust uses the applied thrust, soft edges and zero
+  output at cutoff. It is visual gas appearance, not a fluid solver.
+- Docking-camera sensor grain is confined to that feed. Do not distort alignment
+  or place grain above the reticle/telemetry. Joined hardware is inspectable after
+  actual capture. Port detailing must preserve its physical contact plane.
+- Ready Start actions alone receive a restrained glow/pulse; reduced motion uses
+  a static outline. This is the requested exception to the general no-pulse rule.
+- The author portrait is anchored right with room for the visible KC suit patch;
+  the biography sits below it on a low black gradient, with readable safe areas.
+
+- Attachment editing must reveal the selected inspector immediately on phones,
+  before the full list. Empty points open compatible hardware; Add/Replace is
+  explicit. Keep camera focus and existing design validation.
+- KC identity is a keyboard-accessible return to mission home. World selectors
+  share the same globe rail and a reachable primary action. Landing counts are
+  quiet, per-world confirmed history, never inferred from achievement badges.

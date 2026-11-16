@@ -1,7 +1,7 @@
 import './mode-hub.css';
 import { KC_MARKUP } from './brand.js';
 import { icon } from './ui-icons.js';
-import { MILESTONES, readProgress, saveMilestone } from './player-progress.js';
+import { MILESTONES, readProgress, saveMilestone, readLandingCounts, createLandingRecorder, LANDING_COUNTS_KEY } from './player-progress.js';
 const PREVIEW='assets/kc-moon-preview.jpg';
 const MODES=Object.freeze([
   {id:'moon-mission',name:'Moon expedition',note:'Earth launch to lunar touchdown',symbol:'moon',group:'mission'},
@@ -39,8 +39,17 @@ export function installModeHub({onOpen=()=>{},onClose=()=>{},onSelect=()=>{},ini
   function renderProgress(){
     const progress=readProgress();const list=dialog.querySelector('.mh-flight-log ul');list.replaceChildren();
     for(const [id,label]of Object.entries(MILESTONES)){const li=document.createElement('li');li.className=progress[id]?'is-complete':'';li.setAttribute('aria-label',`${progress[id]?'Completed':'Not yet completed'}: ${label}`);li.innerHTML=`<span>${progress[id]?icon('check'):'<span class="mh-pending"></span>'}</span><span>${label}</span>`;list.append(li);}
+    const counts=readLandingCounts(),total=Object.values(counts).reduce((sum,count)=>sum+BigInt(count),0n);
+    dialog.querySelector('.mh-flight-log>p').textContent=total>0n?`${total.toLocaleString('en-US')} confirmed landing${total===1n?'':'s'} · Milestones are saved on this device.`:'Milestones are saved on this device.';
   }
-  listen(document,'kc:milestone',event=>{if(saveMilestone(event.detail?.id))renderProgress();});
+  const recordConfirmedLanding=createLandingRecorder();
+  listen(document,'kc:milestone',event=>{
+    const saved=saveMilestone(event.detail?.id),world=recordConfirmedLanding(event.detail);
+    if(saved||world)renderProgress();
+    if(world)document.dispatchEvent(new CustomEvent('kc:landing-progress',{detail:{world,count:readLandingCounts()[world]}}));
+  });
+  listen(document,'kc:landing-progress',renderProgress);
+  listen(window,'storage',event=>{if(event.key===null||event.key===LANDING_COUNTS_KEY||event.key==='kinetic-core.player-milestones.v1')renderProgress();});
   function setCurrent(mode){
     current=MODES.some(item=>item.id===mode)?mode:null;
     for(const button of dialog.querySelectorAll('[data-mode]')){const selected=button.dataset.mode===current;button.classList.toggle('is-current',selected);if(selected)button.setAttribute('aria-current','true');else button.removeAttribute('aria-current');}

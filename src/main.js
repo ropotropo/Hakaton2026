@@ -25,6 +25,7 @@ import './ascent-guidance.css';
 import { advanceToStageBoundary, needsStageRelease, getAscentGuidance, getFlightTimePolicy, installAscentReadouts } from './ascent-guidance.js';
 import { installDestinationCarousel } from './destination-carousel.js';
 import './icon-controls.css';
+import './docking-feed.css';
 
 const $ = id => document.getElementById(id);
 const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
@@ -63,13 +64,14 @@ function syncOrbitView(){
 const touch = new Set();
 let vehicleSignature = '';
 let ascentReadouts = null;
+let practiceCameraReturn = null;
 let modeHub;
 let renderer, accumulator = 0, lastFrame = performance.now(), lastUI = 0, lastEvent = '', toastTimer, separationRequested = false;
 
 document.getElementById('app').innerHTML = `
 <div class="game-shell" data-workspace="assembly">
   <header class="app-header">
-    <div class="identity"><span class="brand-symbol" aria-hidden="true">${KC_MARKUP}</span><div><span class="brand">Kinetic Core</span><span class="authorship">Created by Mykyta Borisov</span></div></div>
+    <button type="button" class="identity" id="home-button" aria-label="Kinetic Core home"><span class="brand-symbol" aria-hidden="true">${KC_MARKUP}</span><span class="identity-wordmark"><span class="brand">Kinetic Core</span><span class="authorship">Created by Mykyta Borisov</span></span></button>
     <div class="flight-identity"><span class="mission-number">Flight practice</span><span class="destination-badge" id="destination-badge">Moon / Earth system</span></div>
     <div class="header-actions"><button class="kc-tool" id="guide-button" aria-label="How to play">${icon("help")}<span class="kc-sr">Guide</span></button><button class="kc-tool" id="pause-button" aria-label="Pause simulation" disabled>${icon("pause")}<span class="kc-sr">Pause</span></button></div>
   </header>
@@ -83,7 +85,7 @@ document.getElementById('app').innerHTML = `
       <div id="flight-library" hidden><p class="eyebrow" id="plan-label">Launch operations</p><h1 id="flight-heading">From Earth.<br>To orbit.</h1><div id="flight-plan" class="flight-plan"></div><details class="flight-log"><summary>Flight log</summary><ol id="log-list"></ol></details><button id="return-builder" class="quiet-button full-width">Return to vehicle assembly</button></div>
     </aside>
     <section class="flight-center" aria-label="Interactive spacecraft view">
-      <div class="viewport" id="viewport"><div id="scene-inspection" class="scene-inspection" hidden><span>Inspection</span><button id="inspection-reset" class="kc-tool" aria-label="Return to flight camera" title="Return to flight camera">${icon('reset')}<span class="kc-tool-label">Reset</span></button></div><canvas id="flight-canvas" tabindex="0" aria-label="Three-dimensional spacecraft and flight environment"></canvas><div class="view-heading"><div><p id="view-caption">Vehicle assembly bay</p><span id="view-subtitle">Pioneer / Atlas launch configuration</span></div><button class="view-button" id="camera-button" title="Change camera view">Change view <span aria-hidden="true">↗</span></button></div><div class="view-tabs" id="view-tabs" role="group" aria-label="Workbench view"><button id="vehicle-view" class="selected" aria-pressed="true">Vehicle</button><button id="destination-view" aria-pressed="false">Destination</button></div><div class="model-dimensions" id="model-dimensions"><span id="height-value">—</span><span>overall height</span></div><div class="view-location" id="view-location"><span class="location-marker" aria-hidden="true">+</span><span id="site-caption">Kennedy Space Center, Florida</span></div><div class="flight-clock" id="flight-clock" hidden><span>Mission elapsed time</span><strong id="clock-value">T+ 00:00</strong></div><div class="countdown" id="countdown" hidden><span>Ignition sequence</span><strong id="countdown-number">3</strong></div><div id="descent-hud" class="descent-hud primary-telemetry" hidden aria-label="Primary flight instruments"><div><small id="hud-label-first">Altitude</small><strong id="hud-altitude">—</strong></div><div><small id="hud-label-second">Vertical speed</small><strong id="hud-vertical">—</strong></div><div><small id="hud-label-third">Pad offset</small><strong id="hud-offset">—</strong></div></div><div id="landing-marker" class="landing-marker" hidden aria-hidden="true"><span>+</span><small>Landing zone</small></div><div id="docking-reticle" class="docking-reticle" hidden aria-hidden="true"><span class="reticle-circle"></span><span class="reticle-cross"></span><span id="alignment-dot" class="alignment-dot"></span></div><div id="view-error" class="view-error" hidden><strong>3D graphics are unavailable</strong><p>Enable WebGL in your browser, then reload the game. Your design and checkpoint are safe.</p></div><div class="viewport-bottom"><span id="view-hint">Drag to inspect the vehicle</span><span id="vehicle-label">Pioneer CM</span></div><div id="outcome-overlay" class="outcome-overlay" role="status" aria-live="polite" hidden></div><div id="paused-overlay" class="paused-overlay" hidden><div><p class="eyebrow">Simulation paused</p><h2>Take your time.</h2><p>All thrust inputs are released.</p><button id="resume-button" class="primary-button">Resume flight</button></div></div></div>
+      <div class="viewport" id="viewport"><div id="scene-inspection" class="scene-inspection" hidden><span>Inspection</span><button id="inspection-reset" class="kc-tool" aria-label="Return to flight camera" title="Return to flight camera">${icon('reset')}<span class="kc-tool-label">Reset</span></button></div><canvas id="flight-canvas" tabindex="0" aria-label="Three-dimensional spacecraft and flight environment"></canvas><div id="docking-feed-effect" class="docking-feed-effect" aria-hidden="true" hidden></div><div class="view-heading"><div><p id="view-caption">Vehicle assembly bay</p><span id="view-subtitle">Pioneer / Atlas launch configuration</span></div><button class="view-button" id="camera-button" title="Change camera view">Change view <span aria-hidden="true">↗</span></button></div><div class="view-tabs" id="view-tabs" role="group" aria-label="Workbench view"><button id="vehicle-view" class="selected" aria-pressed="true">Vehicle</button><button id="destination-view" aria-pressed="false">Destination</button></div><div class="model-dimensions" id="model-dimensions"><span id="height-value">—</span><span>overall height</span></div><div class="view-location" id="view-location"><span class="location-marker" aria-hidden="true">+</span><span id="site-caption">Kennedy Space Center, Florida</span></div><div class="flight-clock" id="flight-clock" hidden><span>Mission elapsed time</span><strong id="clock-value">T+ 00:00</strong></div><div class="countdown" id="countdown" hidden><span>Ignition sequence</span><strong id="countdown-number">3</strong></div><div id="descent-hud" class="descent-hud primary-telemetry" hidden aria-label="Primary flight instruments"><div><small id="hud-label-first">Altitude</small><strong id="hud-altitude">—</strong></div><div><small id="hud-label-second">Vertical speed</small><strong id="hud-vertical">—</strong></div><div><small id="hud-label-third">Pad offset</small><strong id="hud-offset">—</strong></div></div><div id="landing-marker" class="landing-marker" hidden aria-hidden="true"><span>+</span><small>Landing zone</small></div><div id="docking-reticle" class="docking-reticle" hidden aria-hidden="true"><span class="reticle-circle"></span><span class="reticle-cross"></span><span id="alignment-dot" class="alignment-dot"></span></div><div id="view-error" class="view-error" hidden><strong>3D graphics are unavailable</strong><p>Enable WebGL in your browser, then reload the game. Your design and checkpoint are safe.</p></div><div class="viewport-bottom"><span id="view-hint">Drag to inspect the vehicle</span><span id="vehicle-label">Pioneer CM</span></div><div id="outcome-overlay" class="outcome-overlay" role="status" aria-live="polite" hidden></div><div id="paused-overlay" class="paused-overlay" hidden><div><p class="eyebrow">Simulation paused</p><h2>Take your time.</h2><p>All thrust inputs are released.</p><button id="resume-button" class="primary-button">Resume flight</button></div></div></div>
       <section class="docking-camera-controls" id="docking-camera-controls" aria-label="Docking camera controls" hidden><div class="docking-camera-buttons" role="group" aria-label="Docking camera view"><span class="docking-camera-label">Camera</span><button type="button" data-docking-view="chase" aria-pressed="true" class="selected">External chase</button><button type="button" data-docking-view="port" aria-pressed="false">Docking camera</button><button type="button" data-docking-view="cockpit" aria-pressed="false">Cockpit</button></div><p id="docking-camera-guidance" aria-live="polite"></p></section>
       <div class="command-deck" id="command-deck"></div>
       <div class="touch-controls" id="touch-controls" hidden><div class="touch-tabs" role="group" aria-label="Thruster control group"><button id="touch-translation" class="selected" aria-pressed="true">Translate</button><button id="touch-rotation" aria-pressed="false">Rotate</button><button id="touch-fine" aria-pressed="false">Fine RCS</button><span>Hold to fire</span></div><div id="touch-pad" class="touch-pad"></div></div>
@@ -132,8 +134,8 @@ document.getElementById('app').innerHTML = `
       <div class="field-guide-next"><span data-guide-next="surface-landing">Next: resume when the engine and assists are set.</span><button class="primary-button" data-guide-mode="surface-landing">Start landing practice</button></div>
     </section>
     <section id="guide-panel-more" class="field-guide-panel" role="tabpanel" aria-labelledby="guide-tab-more" hidden>
-      <details id="guide-earth-launch-detail" class="field-guide-disclosure"><summary>Earth launch practice</summary><p><strong>Missions → Earth launch</strong> starts the standard two-stage vehicle. Guidance steers; you control the engine ceiling and stage release. Separate depleted stages and reach a bound orbit above 150 km periapsis. Docking then opens a separate terminal exercise.</p><p>Use <strong>Practice → Vehicle setup</strong> in the workbench to change standard hardware. Full keys and live flight data are in <strong>Details</strong>.</p><button class="secondary-button" data-guide-mode="earth-launch">Start Earth launch practice</button></details>
-      <details class="field-guide-disclosure"><summary>Pause, checkpoints and cameras</summary><p><kbd>Esc</kbd> pauses. Leaving the game releases held controls. Checkpoints save on this device; private browser storage may be unavailable.</p><p>Restoring pauses the flight. Set engine power deliberately before resuming. Practice uses <strong>Details → Telemetry</strong>; the expedition uses <strong>Tools → Flight data</strong>.</p><p>Drag or zoom to inspect the scene. <strong>Inspection</strong> changes the view, never the flight. Reset or choose a mounted camera to return.</p></details>
+      <details id="guide-earth-launch-detail" class="field-guide-disclosure"><summary>Earth launch practice</summary><p><strong>Missions → Earth launch</strong> starts the standard two-stage vehicle. Guidance steers; you control the engine ceiling and stage release. Separate depleted stages and reach a bound orbit above 150 km periapsis. Docking then opens a separate terminal exercise.</p><p>Use <strong>Details → Goal → Return to vehicle assembly</strong> in the workbench to change standard hardware. Full keys and live flight data are in <strong>Details</strong>.</p><button class="secondary-button" data-guide-mode="earth-launch">Start Earth launch practice</button></details>
+      <details class="field-guide-disclosure"><summary>Pause, checkpoints and cameras</summary><p><kbd>Esc</kbd> pauses. Leaving the game releases held controls. Checkpoints save on this device; private browser storage may be unavailable.</p><p>Restoring pauses the flight. Set engine power deliberately before resuming. Practice uses <strong>Details → Telemetry</strong>; the expedition uses <strong>Tools → Flight data</strong>.</p><p>Use one finger to rotate; drag upward for a view toward the surface. Pinch with two fingers to zoom. <strong>Inspection</strong> changes the view, never the flight. The curved-arrow icon returns to the flight camera; mounted docking views stay body-fixed.</p></details>
       <section id="model-section"><details id="guide-model-detail" class="field-guide-disclosure"><summary>Flight model, credits and sources</summary>
         <p>Fixed-step Newtonian flight uses inverse-square gravity, simplified atmosphere and drag, finite propellant and stage mass changes. Orbit is confirmed from physical energy and apsides.</p><p>The Moon route uses 2D patched-conic segments, ideal engine pointing and a synthetic Moon epoch. Docking uses local Hill motion and rigid-body RCS rotation. Terrain, the pad, station and fictional spacecraft are illustrative.</p><p>There is no structural flex, Earth oblateness, full weather, long-range rendezvous or certification-grade contact model. Other-world landings are local rehearsals; environmental survival, sampling and return are not implemented. Titan has simplified atmospheric drag, not a full entry or parachute model.</p>
         <p>Created by <strong>Mykyta Borisov</strong>, the sole game author. No NASA affiliation or endorsement is implied.</p><p>Earth imagery: NASA Earth Observatory / NASA Goddard, Blue Marble: Next Generation by Reto Stöckli. NASA/JPL maps provide globe imagery; local terrain and hardware are procedural reconstructions.</p>
@@ -142,7 +144,7 @@ document.getElementById('app').innerHTML = `
     </section>
   </div>
 </dialog>
-<dialog id="destination-dialog" class="destination-dialog"><div class="dialog-header"><div><p class="eyebrow">Solar System destinations</p><h2>Where will you touch down?</h2></div><button id="close-destination" class="icon-button" aria-label="Close destinations">×</button></div><p class="intro-copy">Fourteen destinations. Choose a terminal landing exercise; interplanetary transfers and environmental survival come in later missions.</p><div class="destination-layout"><div id="destination-grid" class="destination-grid" aria-label="Select a destination"></div><section id="destination-detail" class="destination-detail" aria-label="Selected destination"></section></div></dialog>
+<dialog id="destination-dialog" class="destination-dialog"><div class="dialog-header"><div><p class="eyebrow">Solar System destinations</p><h2>Where will you touch down?</h2></div><button id="close-destination" class="kc-tool" aria-label="Close destinations">${icon('close')}</button></div><p class="intro-copy">Choose a world to inspect. Surface landings are separate local exercises.</p><div class="destination-layout"><select id="destination-world-select" aria-label="Select a destination">${DESTINATIONS.map(d=>`<option value="${d.id}">${escape(d.name)}</option>`).join('')}</select><section id="destination-detail" class="destination-detail" aria-label="Selected destination"></section></div><footer class="destination-actions"><button id="inspect-destination" class="primary-button full-width">Inspect world in 3D</button></footer></dialog>
 <dialog id="confirm-dialog" class="confirm-dialog"><p class="eyebrow">Flight decision</p><h2 id="confirm-title"></h2><p id="confirm-copy"></p><div class="button-row"><button id="confirm-cancel" class="secondary-button">Keep flying</button><button id="confirm-action" class="primary-button">Confirm</button></div></dialog>`;
 
 
@@ -202,7 +204,7 @@ function setPracticeCheck(name, passed, value) {
   node.dataset.state = passed ? 'within' : 'pending';
   setText('practice-check-value-' + name, value);
 }
-function emitMilestone(id) { document.dispatchEvent(new CustomEvent('kc:milestone', { detail: { id } })); }
+function emitMilestone(id) { document.dispatchEvent(new CustomEvent('kc:milestone', { detail: { id, world: id.startsWith('surface-') ? state.destination : undefined, confirmedLanding: id.startsWith('surface-') } })); }
 
 function notify(message) { $('toast').textContent = message; $('toast').hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => { $('toast').hidden = true; }, 4300); }
 if (import.meta.env.DEV) window.addEventListener('error', event => notify(`Development error: ${event.message}`));
@@ -305,6 +307,8 @@ $('resume-practice-time').onclick = () => { practiceTimeResumeRequested = true; 
 document.querySelectorAll('[data-practice-time]').forEach(button => button.onclick = () => { state.warp = Number(button.dataset.practiceTime); updatePracticeTime(); });
 $('landing-world-select').onchange = updateLandingChoice;
 installDestinationCarousel({ select: $('landing-world-select'), dialog: $('landing-chooser') });
+const destinationCarousel = installDestinationCarousel({ select: $('destination-world-select'), dialog: $('destination-dialog') });
+$('destination-world-select').addEventListener('change',()=>{state.destination=$('destination-world-select').value;renderer?.setDestination(state.destination);renderDestinations();updateDestinationLabels();});
 $('landing-world-button').onclick = openLandingChooser;
 for (const id of ['landing-chooser-close', 'landing-chooser-cancel']) $(id).onclick = () => $('landing-chooser').close();
 $('landing-chooser').addEventListener('close', () => { clearInputs(); pause(true); if (!landingChooserDidBegin) modeHub?.setCurrent(landingChooserReturnMode); });
@@ -318,15 +322,12 @@ $('landing-chooser-begin').onclick = () => {
 };
 function openDestinations() { renderDestinations(); $('destination-dialog').showModal(); }
 function renderDestinations() {
-  $('destination-grid').innerHTML = DESTINATIONS.map(d => `<button class="destination-option ${d.id === state.destination ? 'selected' : ''}" data-destination="${d.id}" aria-pressed="${d.id === state.destination}"><small>${escape(d.parent)}</small><strong>${escape(d.name)}</strong><span>${fmt(d.gravity, d.gravity < .1 ? 4 : 2)} m/s²</span></button>`).join('');
+  $('destination-world-select').value=state.destination; destinationCarousel.render();
   const d = destination();
-  $('destination-detail').innerHTML = `<p class="eyebrow">${escape(d.parent)} system</p><h3>${escape(d.name)}</h3><p>${escape(d.surface)}</p><dl class="destination-stats"><div><dt>Surface gravity</dt><dd>${fmt(d.gravity, 4)} m/s²</dd></div><div><dt>Mean radius</dt><dd>${fmt(d.radius / 1000, 1)} km</dd></div><div><dt>Atmosphere</dt><dd>${escape(d.atmosphere)}</dd></div></dl><h4>Mission challenge</h4><p>${escape(d.hazard)}</p><h4>Sample strategy</h4><p>${escape(d.sampleMethod)}</p><p class="model-note">Terminal descent is playable. Sampling and environmental survival are mission-planning context for future versions.</p><a class="source-link" href="${escape(d.source)}" target="_blank" rel="noopener">JPL physical parameters</a> <a class="source-link" href="${escape(d.factSource)}" target="_blank" rel="noopener">NASA destination profile</a>${d.id === 'europa' ? '<button id="europa-evidence" class="secondary-button full-width">Inspect surface evidence</button>' : ''}<button id="inspect-destination" class="primary-button full-width">Inspect ${escape(d.name)} in 3D</button>`;
-  document.querySelectorAll('[data-destination]').forEach(b => b.onclick = () => {
-    state.destination = b.dataset.destination; renderer?.setDestination(state.destination);
-    renderDestinations(); updateDestinationLabels();
-  });
+  $('destination-detail').innerHTML = `<p class="eyebrow">${escape(d.parent)} system</p><h3>${escape(d.name)}</h3><p>${escape(d.hazard)}</p><dl class="destination-stats"><div><dt>Surface gravity</dt><dd>${fmt(d.gravity, 4)} m/s²</dd></div><div><dt>Atmosphere</dt><dd>${escape(d.atmosphere)}</dd></div></dl><details class="destination-science"><summary>World details & sources</summary><p>${escape(d.surface)}</p><p>Mean radius: ${fmt(d.radius / 1000, 1)} km.</p><h4>Sample strategy</h4><p>${escape(d.sampleMethod)}</p><p class="model-note">Sampling and environmental survival are planning context for future versions.</p><a class="source-link" href="${escape(d.source)}" target="_blank" rel="noopener">JPL physical parameters</a> <a class="source-link" href="${escape(d.factSource)}" target="_blank" rel="noopener">NASA destination profile</a>${d.id === 'europa' ? '<button id="europa-evidence" class="secondary-button full-width">Inspect surface evidence</button>' : ''}</details>`;
+  $('inspect-destination').textContent = `Inspect ${d.name} in 3D`;
   if($('europa-evidence')) $('europa-evidence').onclick = () => { $('destination-dialog').close(); europaGuide.open(); };
-  $('inspect-destination').onclick = () => { $('destination-dialog').close(); state.preview = true; renderPhase(); };
+  $('inspect-destination').onclick = () => { $('destination-dialog').close(); state.preview = true; renderPhase(); window.scrollTo({top:0,left:0,behavior:'instant'}); };
 }
 function updateDestinationLabels() {
   const d = destination(); setText('selected-destination', d.name);
@@ -334,7 +335,7 @@ function updateDestinationLabels() {
 }
 function renderOutcome() {
   const overlay = $('outcome-overlay');
-  if (!['failed', 'docked', 'landed'].includes(state.phase) || state.outcomeDismissed) { overlay.hidden = true; $('viewport').classList.remove('has-outcome'); return; }
+  if (!['failed', 'docked', 'landed'].includes(state.phase) || state.outcomeDismissed || state.phase === 'docked' && performance.now() < (state.dockedRevealUntil ?? 0)) { overlay.hidden = true; $('viewport').classList.remove('has-outcome'); return; }
   const failed = state.phase === 'failed', landing = state.flight.kind === 'landing';
   const t = landing ? getLandingTelemetry(state.flight) : state.flight.kind === 'docking' ? getDockingTelemetry(state.flight) : getLaunchTelemetry(state.flight);
   const title = failed ? landing ? t.impact ? 'Contact exceeded limits.' : 'Descent exercise ended.' : 'Mission interrupted.' : landing ? `Touchdown on ${destination().name}.` : 'Soft capture confirmed.';
@@ -345,6 +346,11 @@ function renderOutcome() {
   overlay.hidden = false; $('viewport').classList.add('has-outcome');
   $('outcome-close').onclick = () => { state.outcomeDismissed = true; overlay.hidden = true; $('viewport').classList.remove('has-outcome'); };
   if(landing&&!failed&&state.destination==='moon'){const watch=document.createElement('button');watch.className='quiet-button';watch.textContent='Watch flag ceremony';watch.onclick=$('outcome-close').onclick;overlay.querySelector('.outcome-actions').prepend(watch);}
+  if(state.phase==='docked'){
+    const inspect=document.createElement('button');inspect.className='primary-button';inspect.textContent='Inspect docked craft';
+    inspect.onclick=()=>{clearInputs();state.outcomeDismissed=true;state.cameraMode='chase';renderer?.resetOrbit?.(true);renderer?.beginOrbit?.();renderOutcome();syncSceneInspection();focusFlightView();};
+    overlay.querySelector('.outcome-actions').prepend(inspect);$('outcome-retry').className='quiet-button';
+  }
   $('outcome-retry').onclick = failed ? restore : landing ? () => beginLanding(state.landingAssist) : () => beginDocking(true);
   $('outcome-design').onclick = assemble;
 }
@@ -396,7 +402,7 @@ function renderCommand() {
   if (state.phase === 'assembly' && state.preview) {
     const d = destination();
     $('command-deck').innerHTML = `<div class="command-intro"><h2>${escape(d.name)} landing practice</h2><p>Standard lander. Terminal descent; transfer skipped.</p></div><div class="button-column"><button id="start-landing" class="primary-button">Start landing</button><button id="choose-world" class="quiet-button">Change destination</button></div>`;
-    $('start-landing').onclick = beginLanding; $('choose-world').onclick = openDestinations; return;
+    $('start-landing').onclick = () => beginLanding(true); $('choose-world').onclick = openDestinations; return;
   }
   if (state.phase === 'landed') {
     $('command-deck').innerHTML = `<div class="result-copy"><h2>Touchdown confirmed</h2></div><div class="button-column"><button id="land-again" class="primary-button">Repeat landing</button><button id="new-world" class="quiet-button">Change destination</button></div>`;
@@ -442,6 +448,7 @@ function toggleGuidance() { state.guidance = !state.guidance; renderCommand(); }
 
 function syncDockingCameraViews() {
   const docking = state.flight?.kind === 'docking';
+  $('docking-feed-effect').hidden = !docking || state.cameraMode !== 'port' || Boolean(renderer?.inspection);
   $('docking-camera-controls').hidden = !docking;
   if (!docking) return;
   if (!Object.hasOwn(DOCKING_CAMERA_VIEWS, state.cameraMode)) state.cameraMode = 'chase';
@@ -467,12 +474,12 @@ function renderPhase() {
   syncOrbitView();
   const assembly = state.phase === 'assembly', docking = state.flight?.kind === 'docking', landing = state.flight?.kind === 'landing';
   syncPracticeLayout();
-  $('assembly-library').hidden = !assembly; $('flight-library').hidden = assembly;
+  $('assembly-library').hidden = !assembly || state.preview; $('flight-library').hidden = assembly;
   $('model-dimensions').hidden = !assembly || state.preview; $('flight-clock').hidden = assembly;
   $('docking-reticle').hidden = !docking || ['failed', 'docked'].includes(state.phase);
   $('landing-marker').hidden = !landing || state.phase !== 'landing'; $('descent-hud').hidden = assembly;
   $('pause-button').disabled = !activeFlight(); $('save-button').disabled = !activeFlight();
-  $('practice-button').hidden = !assembly; $('landing-practice').hidden = !assembly;
+  $('practice-button').hidden = true; $('landing-practice').hidden = true;
   $('camera-button').hidden = !landing || state.phase !== 'landing';
   if (landing && !['chase', 'port'].includes(state.cameraMode)) state.cameraMode = 'chase'; $('touch-controls').hidden = state.phase !== 'docking';
   $('view-tabs').hidden = !assembly; $('countdown').hidden = state.countdown <= 0;
@@ -544,10 +551,16 @@ function simulate(dt) {
   if (state.flight.phase === 'failed') { state.phase = 'failed'; state.paused = false; clearInputs(); renderPhase(); }
   else if (state.flight.phase === 'orbit' && state.phase === 'launch') { state.phase = 'orbit'; emitMilestone('earth-orbit'); state.throttle = 0; clearInputs(); renderPhase(); save(true); }
   else if (state.flight.phase === 'landed') { state.phase = 'landed'; emitMilestone('surface-' + state.destination); clearInputs(); renderPhase(); }
-  else if (state.flight.phase === 'docked') { state.phase = 'docked'; emitMilestone('docking-capture'); clearInputs(); renderPhase(); }
+  else if (state.flight.phase === 'docked') {
+    state.phase='docked';state.cameraMode='chase';state.dockedRevealUntil=performance.now()+2200;renderer?.resetOrbit?.(true);
+    emitMilestone('docking-capture');clearInputs();renderPhase();
+    const capturedFlight=state.flight;
+    setTimeout(()=>{if(state.flight===capturedFlight&&state.phase==='docked'&&!state.outcomeDismissed)renderOutcome();},2250);
+  }
 }
 function syncSceneInspection() {
   const inspecting = Boolean(renderer?.inspection);
+  if(inspecting&&state.phase==='docked'&&!state.outcomeDismissed){state.outcomeDismissed=true;renderOutcome();}
   $('scene-inspection').hidden = !inspecting || state.phase === 'assembly';
   $('viewport').dataset.inspection = String(inspecting);
   if (state.flight?.kind === 'docking') syncDockingCameraViews();
@@ -598,7 +611,7 @@ function updateUI() {
     setPracticeCheck('core', t.stageIndex >= 1, t.stageIndex >= 1 ? 'Released' : 'Attached');
     setPracticeCheck('orbit', state.flight.phase === 'orbit', state.flight.phase === 'orbit' ? 'Confirmed' : `${km(t.periapsis)} km periapsis`);
     setPracticeCheck('spacecraft', t.stageIndex >= 2, t.stageIndex >= 2 ? 'Released' : 'Attached');
-    setText('altitude-value', km(t.altitude)); setText('speed-value', fmt(t.speed / 1000, 2)); setText('apo-value', km(t.apoapsis)); setText('peri-value', km(t.periapsis)); setText('load-value', fmt(t.loadG, 2)); setText('q-value', fmt(t.dynamicPressure / 1000, 1)); setText('active-stage-name', t.stageName); setText('fuel-percent', `${fmt(t.fuelFraction * 100)}%`); if ($('fuel-track-fill')) $('fuel-track-fill').style.width = `${t.fuelFraction * 100}%`; setText('stage-label', t.stageIndex < 2 ? `${t.stageIndex + 1} / 2 · ${t.stageName}` : 'Launch stages released'); setText('stage-action-hint', guide.stageRequired ? 'Propellant depleted. Separate now.' : `${fmt(t.fuel / 1000, 1)} t in this stage${t.stageReady ? ' · almost empty' : ''}`); if ($('stage-button')) { $('stage-button').classList.toggle('stage-ready', guide.stageRequired); $('stage-button').disabled = state.countdown > 0 || !state.flight.liftoff || t.stageIndex >= 2; } setText('throttle-label', `${Math.round(state.throttle * 100)}%`); if ($('throttle') && document.activeElement !== $('throttle')) $('throttle').value = Math.round(state.throttle * 100); setText('flight-status-label', t.stageReady ? 'Stage depletion confirmed' : state.phase === 'orbit' ? 'Bound orbit confirmed' : state.countdown > 0 ? 'Ignition sequence armed' : t.altitude < 100000 ? 'Atmospheric ascent' : 'Orbital insertion burn'); setText('flight-status-detail', t.stageReady ? 'Jettison the depleted stage to continue the mission.' : state.phase === 'orbit' ? (t.canDock ? 'Launch stages released. Terminal scenario is ready.' : 'Periapsis is above 150 km. Release the upper stage.') : `Vertical speed ${fmt(t.verticalSpeed)} m/s · pitch ${fmt(t.pitchDegrees, 1)}°`); }
+    setText('altitude-value', km(t.altitude)); setText('speed-value', fmt(t.speed / 1000, 2)); setText('apo-value', km(t.apoapsis)); setText('peri-value', km(t.periapsis)); setText('load-value', fmt(t.loadG, 2)); setText('q-value', fmt(t.dynamicPressure / 1000, 1)); setText('active-stage-name', t.stageName); setText('fuel-percent', t.fuelFraction > 0 && t.fuelFraction < .01 ? '<1%' : `${fmt(t.fuelFraction * 100)}%`); if ($('fuel-track-fill')) $('fuel-track-fill').style.width = `${t.fuelFraction * 100}%`; setText('stage-label', t.stageIndex < 2 ? `${t.stageIndex + 1} / 2 · ${t.stageName}` : 'Launch stages released'); setText('stage-action-hint', guide.stageRequired ? 'Propellant depleted. Separate now.' : `${fmt(t.fuel / 1000, 1)} t in this stage${t.stageReady ? ' · almost empty' : ''}`); if ($('stage-button')) { $('stage-button').classList.toggle('stage-ready', guide.stageRequired); $('stage-button').disabled = state.countdown > 0 || !state.flight.liftoff || t.stageIndex >= 2; } setText('throttle-label', `${Math.round(state.throttle * 100)}%`); if ($('throttle') && document.activeElement !== $('throttle')) $('throttle').value = Math.round(state.throttle * 100); setText('flight-status-label', guide.stageRequired ? 'Stage depletion confirmed' : state.phase === 'orbit' ? 'Bound orbit confirmed' : state.countdown > 0 ? 'Ignition sequence armed' : t.altitude < 100000 ? 'Atmospheric ascent' : 'Orbital insertion burn'); setText('flight-status-detail', guide.stageRequired ? 'Jettison the depleted stage to continue the mission.' : state.phase === 'orbit' ? (t.canDock ? 'Launch stages released. Terminal scenario is ready.' : 'Periapsis is above 150 km. Release the upper stage.') : `Vertical speed ${fmt(t.verticalSpeed)} m/s · pitch ${fmt(t.pitchDegrees, 1)}°`); }
   else { const t = getDockingTelemetry(state.flight);
     setPrimaryTelemetry(['Port range', 'Closing speed', 'Lateral offset'], [`${fmt(t.range, 1)} m`, `${t.closingSpeed > 0 ? '+' : ''}${fmt(t.closingSpeed, 2)} m/s`, `${fmt(t.lateralOffset, 2)} m`]);
     const attitudeLimit = state.flight.capture.angle * 180 / Math.PI;
@@ -659,9 +672,10 @@ window.addEventListener('keydown', e => {
 window.addEventListener('keyup', e => { keys.delete(e.code); if (e.code.startsWith('Shift')) keys.delete('Shift'); });
 document.addEventListener('click', e => { if (e.target.closest?.('#command-deck, #touch-controls, #docking-camera-controls') && !e.target.closest('input, select') && !document.querySelector('dialog[open]')) focusFlightView(); });
 document.addEventListener('focusin', e => { if (e.target.closest?.('button, input, select, textarea, summary, a, [contenteditable="true"]')) clearInputs(); });
-window.addEventListener('blur', () => { clearInputs(); pause(true); });
-document.addEventListener('visibilitychange', () => { if (document.hidden) { clearInputs(); pause(true); } });
+window.addEventListener('blur', () => { practiceCameraReturn=null;clearInputs(); pause(true); });
+document.addEventListener('visibilitychange', () => { if (document.hidden) { practiceCameraReturn=null;clearInputs(); pause(true); } });
 $('inspection-reset').onclick = () => { clearInputs(); renderer?.resetOrbit?.(); syncSceneInspection(); };
+$('home-button').onclick = () => document.dispatchEvent(new CustomEvent('kc:show-home'));
 $('pause-button').onclick = () => pause(); $('resume-button').onclick = () => { if (state.flight?.kind === 'launch' && needsStageRelease(state.flight)) stage(); else pause(false); focusFlightView(); }; $('save-button').onclick = () => save(); $('restore-button').onclick = restore;
 $('return-builder').onclick = () => { if ($('practice-details').open) $('practice-details').close(); confirm('Return to assembly?', 'Your last checkpoint stays available. The active flight will end.', assemble, 'Return to assembly'); };
 $('practice-button').onclick = () => { if (renderer) beginDocking(true); };
@@ -734,7 +748,7 @@ $('guide-dialog').addEventListener('close', () => { clearInputs(); pause(true); 
 
 
 try { renderer = createScene($('flight-canvas'), { onAssetWarning: message => notify(message) }); } catch (error) { $('view-error').hidden = false; console.error('3D initialization failed:', error); }
-$('flight-canvas').addEventListener('webglcontextlost', event => { event.preventDefault(); clearInputs(); pause(true); notify('Graphics context lost. Flight paused; your checkpoint is available.'); });
+$('flight-canvas').addEventListener('webglcontextlost', event => { event.preventDefault(); practiceCameraReturn=null;clearInputs(); pause(true); notify('Graphics context lost. Flight paused; your checkpoint is available.'); });
 $('flight-canvas').addEventListener('webglcontextrestored', () => notify('Graphics restored. Resume the flight when ready.'));
 renderPhase(); if (saved.error) notify(saved.error); else if (checkpoint) setText('checkpoint-label', 'Previous checkpoint available');
 window.addEventListener('resize', () => { renderer?.resize(); syncDockingHoldPlacement(); });
@@ -742,7 +756,11 @@ const europaGuide=createEuropaGuide({onOpen(){clearInputs();pause(true);},onClos
 const navigation = installNavigation({state,selectDestination(id){state.destination=id;renderer?.setDestination(id);updateDestinationLabels();renderPhase();},resetCamera(){orbitOverview=false;syncOrbitView();renderer?.resetOrbit();},zoomCamera:factor=>renderer?.zoomBy(factor),inspectCamera:()=>renderer?.beginOrbit()});
 ascentReadouts = installAscentReadouts({ scene: $('viewport'), tools: document.querySelector('.navigation-tools'), icon, onToggle: clearInputs });
 const updateLandingDirector=installLandingDirector();
-document.addEventListener('kc:pause-practice',()=>{clearInputs();pause(true);});
+document.addEventListener('kc:pause-practice',()=>{practiceCameraReturn=!state.paused&&activeFlight()?state.flight:null;clearInputs();pause(true);});
+navigation.cameraDialog.addEventListener('close',()=>{
+  const resume=navigation.cameraDialog.returnValue==='selected'&&practiceCameraReturn===state.flight&&activeFlight()&&!needsStageRelease(state.flight);
+  practiceCameraReturn=null;clearInputs();pause(!resume);focusFlightView();
+});
 installSiteMenu({onOpen(){clearInputs();pause(true);},onClose(){clearInputs();pause(true);}});
 const rollout=createRollout({onOpen(){clearInputs();pause(true);},onClose(){clearInputs();pause(true);},onReady(){rolloutReady=true;beginLaunch();}});
 const missionControl=createMissionControl({onOpen(){clearInputs();pause(true);modeHub?.setCurrent('moon-mission');},onClose(){clearInputs();pause(true);},onEditDesign(design){workshop.setDesign(design);workshop.open();}});
@@ -751,7 +769,7 @@ const workshopButton=document.createElement('button');workshopButton.className='
 let mapWasPaused=false;
 navigation.dialog.addEventListener('close',()=>{clearInputs();pause(true);});
 let solarWasPaused=false;
-const solar=createSolarView({onOpen(){solarWasPaused=state.paused;clearInputs();pause(true);modeHub?.setCurrent('solar-system');},onClose(){clearInputs();pause(true);},onLanding(id){state.destination=id;renderer?.setDestination(id);updateDestinationLabels();beginLanding();}});
+const solar=createSolarView({onOpen(){solarWasPaused=state.paused;clearInputs();pause(true);modeHub?.setCurrent('solar-system');},onClose(){clearInputs();pause(true);},onLanding(id){state.destination=id;renderer?.setDestination(id);updateDestinationLabels();beginLanding(true);}});
 const solarButton=document.createElement('button');solarButton.className='primary-button';solarButton.textContent='Explore Solar System';solarButton.onclick=()=>solar.open();document.querySelector('.navigation-tools').prepend(solarButton);
 const onlineEarth=createOnlineEarth({onOpen(){earthViewOpen=true;clearInputs();pause(true);modeHub?.setCurrent('online-earth');},onClose(){earthViewOpen=false;clearInputs();pause(true);}});
 const earthButton=document.createElement('button');earthButton.className='secondary-button';earthButton.textContent='Earth / free flight';earthButton.onclick=()=>onlineEarth.open();document.querySelector('.navigation-tools').append(earthButton);

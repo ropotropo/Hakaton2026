@@ -131,6 +131,8 @@ export function createVehicleGeometry(design,options={}){
 }
 
 export function setVehicleStage(root,index=0){root.userData.stages?.forEach((stage,i)=>{stage.visible=i>=index;});}
+// Detached hardware must not retain a visible copy of an engine/RCS effect.
+export function disableVehicleEffects(root){root.traverse(object=>{if(object.userData.effect)object.visible=false;});}
 // Visual hinge only: deployment never changes mass, power or the typed layout.
 // Contact and framing keep the canonical deployed-envelope bounds above.
 export function setVehicleSolar(root,deployed=true,dt=1/60,immediate=false){
