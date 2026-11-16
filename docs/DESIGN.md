@@ -270,8 +270,10 @@ name **Mykyta Borisov**, Ukraine, and sole-author credit. Preserve the face and 
 Use calm type, one authorship line and a visible close action. About the author
 lives directly in the fullscreen field guide's creator hero, without a separate
 burger or a hidden More-only route. Use the approved short biography and 44 px
-touch targets. Keep the portrait contain-fit so the face and KC patch remain
-visible; the lesson tabs follow below in the same scroll area.
+touch targets. Keep the face and KC patch visible. Desktop uses a contain-fit
+portrait; phones use a wider raised image with empty upper sky cropped and a
+black lower gradient. Place Play and About the author below the subject, then
+the lesson tabs in the same scroll area.
 
 ## Final branding
 

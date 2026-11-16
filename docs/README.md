@@ -7,6 +7,7 @@ Start with the [current development README](../README.md) or [Wiki](https://gith
 | Topic | Document |
 | --- | --- |
 | Current scope, preview and versioned downloads | [Project README](../README.md) |
+| Compact mobile creator portrait and bottom actions | [v0.5.6 verification](QA-V056.md) |
 | Coherent Sun, glare and centered wide activity titles | [v0.5.5 verification](QA-V055.md) |
 | Subtly rotating 3D Moon on home | [v0.5.4 verification](QA-V054.md) |
 | Final phone, camera and detail changes | [v0.5.3 verification](QA-V053.md) |

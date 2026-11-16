@@ -50,16 +50,20 @@
   #guide-dialog.flight-guide>.guide-header{gap:12px;padding-left:max(18px,env(safe-area-inset-left,0px));padding-right:max(18px,env(safe-area-inset-right,0px));}
   .guide-brand{gap:8px;}.guide-brand strong{font-size:14px;}.guide-brand>span,.guide-brand .kc-mark{width:29px;}.guide-brand .kc-mark{height:21px;}
   #guide-dialog.flight-guide .guide-header h2{font-size:11px;}
-  .guide-scroll{padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px));}
-  .guide-creator{min-height:530px;align-items:flex-start;}
-  .guide-creator-portrait{right:-15px;width:353px;height:530px;}
-  .guide-creator-copy{padding:29px 0;max-width:210px;}
-  #guide-dialog .guide-eyebrow{margin-bottom:12px;font-size:11px;}
-  .guide-creator h1{font-size:51px;}
-  #guide-dialog .guide-creator-intro{font-size:12px;line-height:1.65;max-width:24ch;margin-top:17px;}
-  .guide-creator-actions{flex-direction:column;align-items:flex-start;gap:10px;margin-top:22px;}
-  .guide-creator-actions .guide-play{min-width:118px;min-height:46px;padding:12px 22px;}
-  #guide-dialog .guide-play-hint{max-width:15ch;margin-top:9px;font-size:10px;}
+  .guide-scroll{--guide-side-left:max(20px,env(safe-area-inset-left,0px));--guide-side-right:max(20px,env(safe-area-inset-right,0px));padding-left:var(--guide-side-left);padding-right:var(--guide-side-right);}
+  /* A full-width, naturally scaled portrait removes the source's upper sky.
+     Both actions follow the picture in normal flow, clear of the face/patch. */
+  .guide-creator{--guide-photo-height:80vw;display:block;min-height:0;margin:0 calc(-1 * var(--guide-side-right)) 0 calc(-1 * var(--guide-side-left));}
+  .guide-creator-portrait{position:relative;z-index:0;inset:auto;width:100%;height:var(--guide-photo-height);overflow:hidden;}
+  .guide-creator-portrait img{height:auto;object-fit:contain;object-position:center top;transform:translateY(-30%);}
+  .guide-creator-portrait::after{content:'';position:absolute;inset:0;pointer-events:none;background:linear-gradient(to bottom,transparent 84%,#0006 96%,#000 100%);}
+  .guide-creator-copy{display:contents;max-width:none;padding:0;}
+  #guide-dialog .guide-creator-copy>.guide-eyebrow{position:absolute;z-index:1;top:calc(var(--guide-photo-height) * .34 - 23px);left:var(--guide-side-left);margin:0;font-size:10px;line-height:1.4;}
+  .guide-creator h1{position:absolute;z-index:1;top:calc(var(--guide-photo-height) * .34);left:var(--guide-side-left);max-width:150px;font-size:32px;line-height:1.04;text-shadow:0 2px 12px #0009;}
+  #guide-dialog .guide-creator-intro{display:none;}
+  .guide-creator-actions{flex-direction:row;align-items:center;justify-content:space-between;flex-wrap:nowrap;gap:12px;margin:0;padding:8px var(--guide-side-right) 0 var(--guide-side-left);}
+  .guide-creator-actions .guide-play{min-width:104px;min-height:46px;padding:12px 18px;}
+  #guide-dialog .guide-play-hint{max-width:none;margin:8px var(--guide-side-right) 16px var(--guide-side-left);font-size:10px;line-height:1.5;}
   .guide-lessons{padding-top:23px;}.guide-lessons-heading{display:block;margin-bottom:16px;}.guide-lessons-heading h2{font-size:25px;}
   #guide-dialog .guide-lessons-heading>p{margin-top:9px;font-size:12px;}
   #guide-dialog.flight-guide .field-guide-tabs{gap:4px;padding-top:8px;}
@@ -72,10 +76,8 @@
   #guide-dialog.flight-guide .field-guide-next{flex-direction:column;align-items:stretch;gap:16px;}
   #guide-dialog.flight-guide .field-guide-next>button{width:100%;}
 }
-@media(max-width:370px){
-  .guide-creator{min-height:720px;}
-  .guide-creator h1{font-size:47px;}
-  .guide-creator-copy{max-width:260px;}
-  .guide-creator-portrait{inset:auto 0 0 auto;width:280px;height:420px;}
+@media(max-width:700px) and (max-height:500px) and (orientation:landscape){
+  .guide-creator{--guide-photo-height:230px;}
+  .guide-creator-portrait img{position:relative;left:calc(50% - 140px);width:280px;max-width:none;}
 }
 @media(max-height:500px) and (min-width:701px){.guide-creator{min-height:360px;}.guide-creator-portrait{width:330px;}.guide-creator-copy{padding:26px 0;}.guide-creator h1{font-size:58px;}#guide-dialog .guide-creator-intro{font-size:13px;margin-top:14px;}.guide-creator-actions{margin-top:19px;}.guide-lessons{padding-top:22px;}}
