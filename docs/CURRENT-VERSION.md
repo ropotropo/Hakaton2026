@@ -1,4 +1,8 @@
-# Kinetic Core — current review version
+# Kinetic Core — submitted v0.4.4 review record
+
+This is the historical submitted baseline. The current development build,
+temporary playable preview and downloads are listed in [README](../README.md);
+new camera/phone checks are in [v0.5.3 verification](QA-V053.md).
 
 **Game:** v0.4.4 development preview · **Author:** Mykyta Borisov · **Review preparation:** 15 November 2026 (America/Los_Angeles).
 

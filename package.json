@@ -1,6 +1,6 @@
 {
   "name": "kineti-core",
-  "version": "0.5.0",
+  "version": "0.5.6",
   "private": true,
   "type": "module",
   "description": "Mykyta's modular spacecraft and orbital flight game",

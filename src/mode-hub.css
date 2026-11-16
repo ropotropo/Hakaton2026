@@ -45,3 +45,15 @@
 .mh-return{min-height:44px;}
 @media(max-width:700px){.mh-header{height:calc(60px + env(safe-area-inset-top,0px));min-height:calc(60px + env(safe-area-inset-top,0px));padding-top:calc(8px + env(safe-area-inset-top,0px));}.mh-primary-actions>.kc-action:not(.kc-action-primary){min-height:44px;}.mh-scroll{padding-left:max(20px,env(safe-area-inset-left));padding-right:max(20px,env(safe-area-inset-right));}}
 @media(max-height:500px) and (min-width:701px){.mh-header{height:calc(56px + env(safe-area-inset-top,0px));min-height:calc(56px + env(safe-area-inset-top,0px));padding-top:calc(6px + env(safe-area-inset-top,0px));}}
+/* Initial/programmatic focus stays quiet; keyboard navigation retains its ring. */
+.mode-hub-dialog[data-focus-origin="pointer"] button:focus-visible{outline:none;box-shadow:none;}
+.mh-moon{pointer-events:none;}
+.mh-moon-fallback,.mh-moon-canvas{position:absolute;inset:0;display:block;width:100%;height:100%;object-fit:cover;pointer-events:none;transition:opacity .25s ease;}
+.mh-moon-canvas{opacity:0;}
+.mh-moon[data-ready="true"] .mh-moon-canvas{opacity:1;}
+.mh-moon[data-ready="true"] .mh-moon-fallback{opacity:0;}
+@media(prefers-reduced-motion:reduce){.mh-moon-fallback,.mh-moon-canvas{transition:none;}}
+
+@media(max-width:700px){.mh-moon{opacity:.72;}}
+
+.mh-brand .mh-build{color:#858993;font-size:10px;font-weight:400;letter-spacing:0;padding-left:9px;border-left:1px solid #ffffff24;white-space:nowrap;}

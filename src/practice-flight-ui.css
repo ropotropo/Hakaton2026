@@ -650,3 +650,15 @@ body .game-shell[data-workspace="flight"] { height: 100dvh; min-height: 0; overf
   .landing-chooser-facts { padding: 12px 0; }
   .landing-chooser-actions { padding-top: 12px; padding-bottom: max(12px, env(safe-area-inset-bottom)); }
 }
+/* One help entry; the author lives in More, rather than a duplicate burger. */
+.game-shell .header-actions #guide-button{display:inline-grid!important;place-items:center;min-width:44px;min-height:44px;}
+/* The debrief owns the scene while open; its close control cannot cover a camera tool. */
+#viewport:has(#outcome-overlay:not([hidden]))>.navigation-tools,
+#viewport:has(#outcome-overlay:not([hidden]))>.scene-inspection,
+#viewport:has(#outcome-overlay:not([hidden]))>.view-heading{visibility:hidden;pointer-events:none;}
+#outcome-overlay #outcome-close{position:sticky;align-self:flex-end;flex:0 0 44px;width:44px;height:44px;min-height:44px;padding:0;margin:0 0 8px auto;border:1px solid #ffffff35;border-radius:50%;display:grid;place-items:center;top:0;right:0;background:#08090bd9;z-index:2;}
+.scene-inspection{gap:8px;top:14px;left:14px;}.scene-inspection>span{font-size:11px;}
+@media(max-width:650px){.scene-inspection{top:12px;left:12px;}.game-shell .identity .authorship{display:none;}.game-shell .identity .brand{font-size:16px;}}
+@media(min-width:651px) and (max-width:980px) and (max-height:600px){
+  .game-shell[data-workspace="flight"][data-flight-kind="landing"] .view-heading{top:84px;}
+}

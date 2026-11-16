@@ -52,10 +52,9 @@ readings for the available viewport without shrinking the touch target.
 
 The shared `.kc-tool` is a 44 px circular translucent control: `#08090ba8`, a
 `#ffffff3b` border and a 16 px backdrop blur. Its selected state uses ceramic
-white with dark content. A decorative SVG and a visible short label identify
-its purpose; give the button a matching accessible name. Scoped flight tools
-can grow for a visible label or engine state while retaining the same quiet,
-rounded character. Main actions use the shared 12 px radius; sheets use a
+white with dark content. A decorative SVG identifies the action; preserve a matching accessible name
+and hover title. Flight utility circles have no visible label and keep a stable
+44 px target. Engine state remains in the nearby instrument or pressed state. Main actions use the shared 12 px radius; sheets use a
 larger enclosing radius and component choices can retain a small radius.
 
 Use sentence case, left-aligned instructions and units beside their values.
@@ -69,7 +68,7 @@ into a card or add decorative grids, scan lines or glowing borders.
 KC / current flight                   Back / Missions       56 px
 Launch             Transfer             Orbit             Land
 ┌────────────────────────────────────────────────────────────┐
-│ Phase / elapsed time                  Camera / Map / Tools │
+│ Phase / elapsed time                  Camera / Time / Tools │
 │                                                            │
 │                    Spacecraft / world                      │
 │                                                            │
@@ -218,10 +217,10 @@ within the ceiling. Manual flight exposes held pitch controls. In separate
 landing practice, **Landing assist** and **Upright hold** retain separate names
 and states; an attitude controller does not imply an automatic descent.
 
-Full telemetry, checkpoint actions, time warp and the controls guide belong in
-an optional tools sheet. The map shows actual position, direction and target
-bearing with its frame and illustrative geometry identified. It is not a
-solved collision-free route. Tools, map and camera sheets are exclusive and
+Full telemetry, checkpoint actions and the controls guide belong in
+an optional tools sheet. Time has its own direct control. A small passive map
+shows actual position and target range in the scene; its geometry is schematic,
+not a solved collision-free route. Tools, time and camera sheets are exclusive and
 bounded; each has a stationary, labelled close control. Opening a sheet
 releases held controls and pauses the maneuver. Closing it leaves the maneuver paused. Resuming is an explicit
 player action, available as a short Resume control in the sheet and on the
@@ -267,11 +266,14 @@ supplies a horizon away from the pad rather than moving the target with the
 craft. These are implementation budgets, not measured mobile FPS claims.
 
 The author page pairs the existing project spacesuit portrait with the exact
-name **Микита Борисов**, Ukraine, and sole-author credit. Preserve the full
-portrait; keep provenance in the asset credits rather than visible captions.
-Use calm type, one authorship line and a visible Back to game action, without
-invented biography or repeated explanations. The burger and its anchored black
-menu use quiet lines, clear labels and 44 px targets.
+name **Mykyta Borisov**, Ukraine, and sole-author credit. Preserve the face and visible KC suit patch; keep provenance in the asset credits rather than visible captions.
+Use calm type, one authorship line and a visible close action. About the author
+lives directly in the fullscreen field guide's creator hero, without a separate
+burger or a hidden More-only route. Use the approved short biography and 44 px
+touch targets. Keep the face and KC patch visible. Desktop uses a contain-fit
+portrait; phones use a wider raised image with empty upper sky cropped and a
+black lower gradient. Place Play and About the author below the subject, then
+the lesson tabs in the same scroll area.
 
 ## Final branding
 
@@ -279,3 +281,81 @@ Kinetic Core is the confirmed name. Use the approved Latin KC vector from
 public/assets/branding in the interface, menu and post-contact flag. Keep only
 Created by Mykyta Borisov as the game authorship line. How to play introduces
 the full Moon mission before detailed controls.
+
+
+## v0.5.1 flight polish
+
+- Workshop focus follows the selected hardware or compatible attachment point,
+  with effect-free bounds, a short eased transition and above-platform limits.
+- Chase framing uses stable hardware bounds. Tiny pressure-driven launch shake
+  disappears in vacuum; a pointing controller may still turn the actual craft.
+- Empty launch stages hold for explicit release. The release action uses a red
+  attention state, with no pulse under reduced motion. Fuel and current-thrust
+  burn estimates accompany the stage; altitude is a reference, not orbit proof.
+- Critical flight phases run at 1×. Safe coasts may use the chosen rate; crossing
+  a physical phase boundary discards unused warp budget before a powered event.
+- Passive maps cannot cover camera, inspection or contact controls at phone sizes.
+- World selection is a horizontal globe rail with keyboard navigation, explicit
+  Begin/Cancel and the same destination gravity/context as the original selector.
+- Lunar terrain and panel deployment in this patch are bounded visual changes.
+  The deeper lunar stage is tracked in LUNAR-EXPERIENCE-NEXT.md.
+
+Round flight utilities are icon-only on phone and desktop. Keep an accessible
+name and a hover title; do not shrink or wrap labels inside the circles. View
+utilities use 44 × 44 px targets. Return to flight camera shares their reset
+icon and second-row alignment. Expanded Data replaces the phase heading at the
+left edge and must not cover a tool or reset action.
+
+Stage separation may use one brief external presentation shot, based on the
+actual departing hardware. Ease into the view and back to chase; keep controls
+available and the solver untouched. Never invent a fresh separation on restore.
+Manual inspection cancels the shot, pause freezes it, and reduced motion skips
+it. Camera smoothing must not blend incompatible world frames or make a mounted
+cockpit drift away from its physical pose.
+
+
+## Final v0.5.3 visual and interaction rules
+
+- One-finger inspection uses viewport-normalized yaw/pitch; upward drag raises
+  the camera toward a surface view. Pinch zoom rebases when pointer count changes.
+- Camera selection restores a previously running flight; Escape, real blur,
+  visibility loss, context loss or depletion hold never silently resume it.
+- Standard/custom descent exhaust uses the applied thrust, soft edges and zero
+  output at cutoff. It is visual gas appearance, not a fluid solver.
+- Docking-camera sensor grain is confined to that feed. Do not distort alignment
+  or place grain above the reticle/telemetry. Joined hardware is inspectable after
+  actual capture. Port detailing must preserve its physical contact plane.
+- Ready primary actions and the single next-maneuver action receive a restrained
+  soft shadow pulse; reduced motion uses a static soft shadow. No animated rings,
+  scaling or attention effect on disabled/secondary controls. This is the
+  requested exception to the general no-pulse rule.
+- The author portrait is anchored right with room for the visible KC suit patch;
+  the biography sits below it on a low black gradient, with readable safe areas.
+
+- Attachment editing must reveal the selected inspector immediately on phones,
+  before the full list. Empty points open compatible hardware; Add/Replace is
+  explicit. Keep camera focus and existing design validation.
+- KC identity is a keyboard-accessible return to mission home. World selectors
+  share the same globe rail and a reachable primary action. Landing counts are
+  quiet, per-world confirmed history, never inferred from achievement badges.
+
+
+The home Moon may use a slow decorative 3D rotation, with a lit near side,
+existing NASA maps and image fallback. Keep its canvas non-interactive, stop
+hidden/closed work and render reduced-motion static frames. A single reusable
+low-power context, modest mesh and capped DPR/draw rate bound the extra work.
+
+## v0.5.5 navigation finish
+
+How to play uses Missions' fullscreen black shell, a fixed safe-area header and
+one scrolling body. The creator hero offers Play and direct About the author;
+Moon, Docking, Landing and More retain their existing lesson and keyboard APIs.
+Play opens Missions with the current flight paused. Closing or reading a guide
+never starts a vehicle. Wide activity headings are centered between identity and
+navigation while narrow layouts preserve their reachable controls.
+
+The Solar System body selector shares the horizontal globe rail. Native select
+values remain the source for selection and 3D focus; only verified body/system
+pairs enable a separate local landing. Legacy launch payloads use three explicit
+mass-labelled cards and the existing flight-mass calculation. Assembly orbit,
+pan, zoom and smooth reset remain above the actual platform deck.

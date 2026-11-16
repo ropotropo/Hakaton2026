@@ -34,12 +34,13 @@ export function getMissionJourney(mission, telemetry = {}, { guidance = true, po
   if (phase === 'countdown') return paused ? result('Countdown paused', 'Resume to continue the ignition sequence.', 'resume', 'Resume countdown') : result('Ignition sequence', 'Five-second countdown. Flight director flies the first 100 metres.');
   if (phase === 'launch' && !mission.handedOver) return paused ? result('Ascent paused', 'The flight director hands over above 100 metres.', 'resume', 'Resume ascent') : result('Flight director has control', 'Actual thrust lifts the vehicle. Your controls unlock above 100 metres.');
   const stageIndex = telemetry.stageIndex ?? mission?.stageIndex ?? 2;
-  if (!rehearsal && stageIndex < 2 && telemetry.stageReady) return result(stageIndex === 0 ? 'Booster propellant depleted' : 'Upper-stage propellant depleted', paused ? 'Flight is held for manual stage release. The next engine uses its own fuel.' : 'Release the depleted stage. The next engine uses its own fuel.', 'stage', stageIndex === 0 ? 'Separate booster' : 'Separate upper stage', { urgent: true });
+  if (!rehearsal && stageIndex < 2 && telemetry.stageReady && (telemetry.fuel === undefined || telemetry.fuel <= .001)) return result(stageIndex === 0 ? 'Booster propellant depleted' : 'Upper-stage propellant depleted', paused ? 'Flight is held for manual stage release. The next engine uses its own fuel.' : 'Release the depleted stage. The next engine uses its own fuel.', 'stage', stageIndex === 0 ? 'Separate booster' : 'Separate upper stage', { urgent: true });
   if (phase === 'orbit' && !mission.resources) return result('Release the attached core', 'Earth orbit is confirmed. Release the core before planning the transfer.', 'stage', 'Release core stage');
   if (phase === 'orbit') return result('Plan lunar departure', 'Use the moving Moon to calculate the next departure window.', 'depart', 'Plan departure');
   if (POWERED.has(phase) && telemetry.fuel <= .001) return result('Active engine is out of fuel', 'Restore a checkpoint and review the fuel budget.', 'restore', 'Restore checkpoint', { urgent: true });
   if (POWERED.has(phase) && power <= 0) return result('Engine ceiling is zero', 'Set a ceiling before continuing. Guidance cannot burn with the engine cut.', 'power', 'Set 100% ceiling');
   if (paused) return result('Continue the maneuver', 'All held flight inputs have been released.', 'resume', 'Resume flight');
+  if (!guidance && ['lunar-coast', 'lunar-orbit'].includes(phase)) return result('Manual lunar flight', 'Engine and pitch are manual. Time stays at 1×; enable Guidance for an unpowered coast.');
   if (COAST_WARP[phase]) {
     const targetWarp = COAST_WARP[phase];
     const [goal, detail] = ({
@@ -48,7 +49,7 @@ export function getMissionJourney(mission, telemetry = {}, { guidance = true, po
       'lunar-coast': ['Coast to lunar capture', 'The targeted periapsis sets the next braking point.'],
       'lunar-orbit': ['Coast to the landing approach', 'Lunar orbit is confirmed. Descent begins near the selected site.'],
     })[phase];
-    return result(goal, detail, warp < targetWarp ? 'warp' : null, warp < targetWarp ? `Coast at ${targetWarp.toLocaleString('en-US')}×` : '', { targetWarp });
+    return result(goal, warp <= 1 ? `${detail} Use Time to accelerate this coast.` : detail, warp < targetWarp ? 'warp' : null, warp < targetWarp ? `Coast at ${targetWarp.toLocaleString('en-US')}×` : '', { targetWarp });
   }
   const [goal, detail] = GOALS[phase] ?? ['Follow the mission', 'Flight data and controls are available in the tools.'];
   if (!guidance && POWERED.has(phase)) return result(goal, 'Manual flight: use engine ceiling and held pitch controls. Guidance is optional.');
