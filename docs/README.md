@@ -7,6 +7,7 @@ Start with the [current development README](../README.md) or [Wiki](https://gith
 | Topic | Document |
 | --- | --- |
 | Current scope, preview and versioned downloads | [Project README](../README.md) |
+| Subtly rotating 3D Moon on home | [v0.5.4 verification](QA-V054.md) |
 | Final phone, camera and detail changes | [v0.5.3 verification](QA-V053.md) |
 | Flight Deck and earlier flight-polish checks | [v0.5 verification](QA-V05.md) · [v0.5.1 verification](QA-V051.md) |
 | First Moon mission, controls and saves | [How to play](GETTING-STARTED.md) |

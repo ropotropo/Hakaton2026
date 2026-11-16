@@ -332,3 +332,9 @@ cockpit drift away from its physical pose.
 - KC identity is a keyboard-accessible return to mission home. World selectors
   share the same globe rail and a reachable primary action. Landing counts are
   quiet, per-world confirmed history, never inferred from achievement badges.
+
+
+The home Moon may use a slow decorative 3D rotation, with a lit near side,
+existing NASA maps and image fallback. Keep its canvas non-interactive, stop
+hidden/closed work and render reduced-motion static frames. A single reusable
+low-power context, modest mesh and capped DPR/draw rate bound the extra work.
