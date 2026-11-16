@@ -34,7 +34,7 @@ This repository and its GitHub files require collaborator sign-in. The temporary
 
 | Review material | Link |
 | --- | --- |
-| Current playable preview | **[Open the current Kinetic Core build](https://advertisement-href-meet-titanium.trycloudflare.com/)** — temporary, while the development Mac is online |
+| Current playable preview | **[Open the current Kinetic Core build](https://nonprofit-analyses-fridge-michelle.trycloudflare.com/)** — temporary, while the development Mac is online |
 | Earlier submitted publication | [Separate public snapshot](https://ropotropo.github.io/Kinetic-Core-2026/) — not synchronized with this branch |
 | Repository web hosting | Hakaton Pages is not enabled; use the preview above |
 | Submitted presentation | **[English PDF — original submitted link](https://github.com/ropotropo/Hakaton2026/blob/codex/final-presentations/presentation/Kinetic-Core-EN.pdf)** |
