@@ -15,6 +15,7 @@ const MODES=Object.freeze([
 let activeHub=null;
 function guardKeys(event){
   if(!activeHub?.isOpen())return;
+  if(event.type==='keydown')activeHub.keyboard?.();
   event.stopImmediatePropagation();
   if(event.type==='keydown'&&event.code==='Escape'){event.preventDefault();if(!event.repeat)activeHub.close();}
   else if(event.type==='keydown'&&['ArrowDown','ArrowUp','Home','End'].includes(event.code)){event.preventDefault();activeHub.moveFocus(event.code);}
@@ -37,7 +38,7 @@ export function installModeHub({onOpen=()=>{},onClose=()=>{},onSelect=()=>{},ini
   for(const b of dialog.querySelectorAll('[data-mode]'))listen(b,'click',()=>{const next=b.dataset.mode;close();setCurrent(next);onSelect(next);});
   function renderProgress(){
     const progress=readProgress();const list=dialog.querySelector('.mh-flight-log ul');list.replaceChildren();
-    for(const [id,label]of Object.entries(MILESTONES)){const li=document.createElement('li');li.className=progress[id]?'is-complete':'';li.innerHTML=`<span>${progress[id]?icon('check'):'<span class="mh-pending"></span>'}</span><span>${label}</span>`;list.append(li);}
+    for(const [id,label]of Object.entries(MILESTONES)){const li=document.createElement('li');li.className=progress[id]?'is-complete':'';li.setAttribute('aria-label',`${progress[id]?'Completed':'Not yet completed'}: ${label}`);li.innerHTML=`<span>${progress[id]?icon('check'):'<span class="mh-pending"></span>'}</span><span>${label}</span>`;list.append(li);}
   }
   listen(document,'kc:milestone',event=>{if(saveMilestone(event.detail?.id))renderProgress();});
   function setCurrent(mode){
@@ -46,8 +47,8 @@ export function installModeHub({onOpen=()=>{},onClose=()=>{},onSelect=()=>{},ini
     for(const trigger of triggers)trigger.title=current?`Missions · ${MODES.find(mode=>mode.id===current).name}`:'Choose mission or practice';
   }
   function moveFocus(key){const buttons=[...dialog.querySelectorAll('button')],index=buttons.indexOf(document.activeElement);const next=key==='Home'?0:key==='End'?buttons.length-1:key==='ArrowDown'?(index+1)%buttons.length:(index-1+buttons.length)%buttons.length;buttons[next]?.focus();}
-  const controller={isOpen:()=>openNow,close,moveFocus};
-  function open(){if(destroyed||openNow)return;previousFocus=document.activeElement;onOpen();dialog.showModal();openNow=true;activeHub=controller;renderProgress();setCurrent(current);dialog.querySelector('[data-mode="moon-mission"]').focus({preventScroll:true});}
+  const controller={isOpen:()=>openNow,close,moveFocus,keyboard(){dialog.dataset.focusOrigin='keyboard';}};
+  function open(){if(destroyed||openNow)return;previousFocus=document.activeElement;dialog.dataset.focusOrigin=previousFocus?.matches?.(':focus-visible')?'keyboard':'pointer';onOpen();dialog.showModal();openNow=true;activeHub=controller;renderProgress();setCurrent(current);dialog.querySelector('[data-mode="moon-mission"]').focus({preventScroll:true});}
   function close(){if(!openNow)return;openNow=false;if(activeHub===controller)activeHub=null;dialog.close();try{onClose();}finally{if(previousFocus?.isConnected)previousFocus.focus({preventScroll:true});}}
   function addTrigger(host){if(host.querySelector(':scope>.mode-hub-trigger'))return;const trigger=document.createElement('button');trigger.type='button';trigger.className='mode-hub-trigger';trigger.innerHTML=`${icon('missions')}<span>Missions</span>`;trigger.setAttribute('aria-haspopup','dialog');trigger.setAttribute('aria-label','Choose mission or practice');listen(trigger,'click',open);host.prepend(trigger);triggers.add(trigger);}
   function mountTriggers(){
@@ -56,6 +57,7 @@ export function installModeHub({onOpen=()=>{},onClose=()=>{},onSelect=()=>{},ini
       let host=header.querySelector(':scope>.mode-hub-header-actions');if(!host){host=document.createElement('div');host.className='mode-hub-header-actions';for(const button of [...header.children].filter(node=>node.tagName==='BUTTON'))host.append(button);header.append(host);wrappers.add(host);}addTrigger(host);
     }
   }
+  listen(dialog,'pointerdown',()=>{dialog.dataset.focusOrigin='pointer';});
   listen(dialog.querySelector('.mh-guide'),'click',()=>{close();document.getElementById('guide-button')?.click();});
   listen(dialog.querySelector('.mh-close'),'click',close);listen(dialog.querySelector('.mh-return'),'click',close);
   listen(dialog,'cancel',event=>{event.preventDefault();close();});listen(dialog,'close',()=>{if(openNow)close();});

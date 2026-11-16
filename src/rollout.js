@@ -324,6 +324,8 @@ export function createRollout({ onOpen = () => {}, onClose = () => {}, onReady =
   });
   listen(window, 'keydown', event => {
     if (!active) return;
+    const focusedDialog = event.target.closest?.('dialog');
+    if (focusedDialog && focusedDialog !== info) return;
     if(event.code==='Escape'){event.preventDefault();event.stopImmediatePropagation();if(info.open)info.close();else close();return;}
     if(info.open)return;
     if(event.target instanceof Element&&(event.target.closest('input,select,textarea,summary,a,[contenteditable="true"]')||event.target.closest('button')&&['Space','Enter'].includes(event.code)))return;

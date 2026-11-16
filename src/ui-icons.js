@@ -1,5 +1,6 @@
 import './ui-kit.css';
 const paths = {
+  time:'<circle cx="12" cy="12" r="9"/><path d="M12 6v6l4 2"/>',
   missions:'<circle cx="12" cy="12" r="9"/><path d="m15 9-2 4-4 2 2-4 4-2Z"/>',
   rocket:'<path d="M9 16V8l3-5 3 5v8M9 12l-3 4v3l3-2m6-5 3 4v3l-3-2M10 21v-2m4 2v-2"/>',
   moon:'<path d="M20 14.5A8.5 8.5 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5Z"/>',

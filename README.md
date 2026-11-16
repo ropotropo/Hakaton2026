@@ -8,6 +8,16 @@ Created by **Mykyta Borisov** · **NASA Space Apps Challenge 2026** · Challenge
 
 Build a modular spacecraft, see how engineering choices change its performance, and fly a continuous Earth-to-Moon landing mission. Practice docking and surface landings as clearly separate exercises.
 
+## Flight polish v0.5.1
+
+The workshop now frames selected hardware and attachment points. Empty launch
+stages pause for a highlighted release action. Critical maneuvers run at 1×,
+with a direct Time control for safe coasts and a passive position mini-map.
+Destination selection uses a globe rail, and launch/surface cameras and terrain
+receive bounded visual corrections. See [patch validation](docs/QA-V051.md) and
+the planned [detailed Moon stage](docs/LUNAR-EXPERIENCE-NEXT.md).
+
+
 ## Start here
 
 | Review material | Link |

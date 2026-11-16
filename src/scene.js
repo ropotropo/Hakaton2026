@@ -1,12 +1,13 @@
 import * as THREE from 'three';
-import { createCelestials, createFlightSky, VISUAL_PROFILES } from './celestial.js';
-import { createVehicleGeometry, setVehicleStage, setVehicleThrust, getVehicleBounds } from './vehicle-geometry.js';
+import { createCelestials, createFlightSky, createSurfaceSky, VISUAL_PROFILES } from './celestial.js';
+import { createVehicleGeometry, setVehicleStage, setVehicleThrust, setVehicleSolar, getVehicleBounds } from './vehicle-geometry.js';
 import { createSurfaceFinale, createSurfaceThrustEffects } from './cinematic.js';
 import { getDestination } from './destinations.js';
 import { advanceBallistic, inertialToLocal, releaseBody } from './separation-motion.js';
 import { createOrbitOverview } from './orbit-overview.js';
 import { boxClearance } from './separation-contact.js';
 import { shouldShowOrbitOverview } from './flight-view.js';
+import { chaseDistance, atmosphericShake, easeLaunchPitch, aboveTerrain } from './visual-framing.js';
 
 // Presentation only. SI simulation stays in physics.js; camera and celestial
 // background use a local origin so GPU float precision never drives the flight.
@@ -14,6 +15,21 @@ import { shouldShowOrbitOverview } from './flight-view.js';
 const TAU = Math.PI * 2;
 const clamp = THREE.MathUtils.clamp;
 const mix = THREE.MathUtils.lerp;
+
+// Cache rigid hardware in model coordinates, excluding invisible/animated jets.
+// World-axis bounds breathe as a pitched rocket turns, and plume bounds pulse.
+function hardwareFrames(model) {
+  model.updateWorldMatrix(true,true);
+  const inverse=model.matrixWorld.clone().invert(),groups=[model.userData.core,model.userData.upper,model.userData.spacecraft];
+  const boxes=model.userData.custom?model.userData.stageBounds:groups.map(group=>{
+    const box=new THREE.Box3();group?.traverse(object=>{
+      if(!object.isMesh||object.userData.effect||object.material?.blending===THREE.AdditiveBlending)return;
+      if(!object.geometry.boundingBox)object.geometry.computeBoundingBox();
+      box.union(object.geometry.boundingBox.clone().applyMatrix4(new THREE.Matrix4().multiplyMatrices(inverse,object.matrixWorld)));
+    });return box;
+  });
+  return [0,1,2].map(stage=>{const box=new THREE.Box3();boxes.forEach((b,i)=>{if(i>=stage&&!b.isEmpty())box.union(b);});const size=box.getSize(new THREE.Vector3());return {center:box.getCenter(new THREE.Vector3()),radius:Math.max(4,size.length()*.5),top:box.max.y};});
+}
 
 function canvasTexture(draw, width = 1024, height = 1024) {
   const canvas = document.createElement('canvas');
@@ -89,9 +105,11 @@ function makeTextures() {
   const coastalGround=canvasTexture((ctx,w,h)=>{
     ctx.fillStyle='#576052';ctx.fillRect(0,0,w,h);let seed=1776;
     const rand=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;};
-    for(let i=0;i<420;i++){ctx.fillStyle=i%4?'rgba(34,61,43,.24)':'rgba(149,143,102,.2)';ctx.beginPath();ctx.ellipse(rand()*w,rand()*h,8+rand()*65,8+rand()*90,rand()*3.14,0,TAU);ctx.fill();}
+    for(let i=0;i<420;i++){ctx.fillStyle=i%4?'rgba(34,61,43,.2)':'rgba(149,143,102,.15)';ctx.beginPath();ctx.ellipse(rand()*w,rand()*h,8+rand()*65,8+rand()*90,rand()*3.14,0,TAU);ctx.fill();}
+    // One broad, continuous coastline; no repeated square terrain tiles.
+    for(let y=0;y<h;y++){const coast=w*(.506+.025*Math.sin(y/h*7.1)+.012*Math.sin(y/h*18.2));ctx.fillStyle='#a09b80';ctx.fillRect(coast-2,y,8,1);ctx.fillStyle='#2c5867';ctx.fillRect(coast+5,y,w-coast,1);}
     for(let i=0;i<16000;i++){ctx.fillStyle=i%2?'rgba(18,37,23,.11)':'rgba(202,201,158,.1)';ctx.fillRect(rand()*w,rand()*h,1,1);}
-  });coastalGround.wrapS=coastalGround.wrapT=THREE.RepeatWrapping;coastalGround.repeat.set(64,64);
+  });coastalGround.wrapS=coastalGround.wrapT=THREE.ClampToEdgeWrapping;
   return { hull, thermal, solar, deck, earthFallback,coastalGround };
 }
 
@@ -385,22 +403,25 @@ function makeLander(materials) {
   const cabin=cylinder(lander,1.07,1.36,1.78,[0,3.98,0],materials.white,8);cabin.rotation.y=Math.PI/8;
   cylinder(lander,.64,1.08,.45,[0,5.08,0],materials.thermal,8);
   cylinder(lander,.43,.43,.12,[0,5.34,0],materials.darkMetal,24);
-  ring(lander,.47,.035,[0,5.41,0],materials.titanium);
+  ring(lander,.43,.035,[0,5.38,0],materials.titanium);
   for(const x of [-.53,.53]){
     box(lander,[.62,.5,.08],[x,4.23,1.08],materials.darkMetal,[.17,0,0]);
     box(lander,[.51,.39,.085],[x,4.25,1.13],materials.glass,[.17,0,0]);
   }
   box(lander,[.72,1.04,.13],[0,3.47,1.31],materials.titanium);
   box(lander,[.56,.84,.08],[0,3.49,1.4],materials.thermal);
-  for(let i=0;i<9;i++)box(lander,[.67,.045,.09],[0,.35+i*.34,1.8],materials.titanium);
-  for(const x of [-.39,.39])beam(lander,[x,.2,1.8],[x,3.14,1.8],.035,materials.titanium);
+  box(lander,[1.0,.1,.62],[0,2.98,1.65],materials.titanium);
+  // A connected, slightly inclined ladder reaches the hatch sill and ground.
+  for(let i=0;i<9;i++){const t=i/8;box(lander,[.67,.045,.1],[0,.28+t*2.7,2.4-t*.6],materials.titanium);}
+  for(const x of [-.39,.39])beam(lander,[x,.18,2.42],[x,3.02,1.79],.035,materials.titanium);
   for(let i=0;i<4;i++){
     const a=Math.PI/4+i*Math.PI/2;
-    const foot=[Math.sin(a)*3.6,.13,Math.cos(a)*3.6];
-    beam(lander,[Math.sin(a)*1.3,2.77,Math.cos(a)*1.3],foot,.095,materials.titanium);
-    beam(lander,[Math.sin(a)*1.4,1.54,Math.cos(a)*1.4],[foot[0]*.9,.57,foot[2]*.9],.07,materials.darkMetal);
-    beam(lander,[Math.sin(a)*1.95,1.95,Math.cos(a)*1.95],[foot[0]*.88,.7,foot[2]*.88],.11,materials.copper);
-    cylinder(lander,.55,.62,.17,foot,materials.titanium,24);
+    const s=Math.sin(a),c=Math.cos(a),foot=[s*3.6,.09,c*3.6],hinge=[s*1.5,2.72,c*1.5],knee=[s*2.85,.96,c*2.85];
+    beam(lander,hinge,foot,.095,materials.titanium);
+    beam(lander,[s*1.53,1.55,c*1.53],knee,.07,materials.darkMetal);
+    beam(lander,hinge,knee,.065,materials.copper);
+    cylinder(lander,.55,.62,.18,foot,materials.titanium,24);
+    const mount=box(lander,[.32,.23,.18],hinge,materials.titanium);mount.rotation.y=a;
     const pod=new THREE.Group();pod.position.set(Math.sin(a)*1.39,4.55,Math.cos(a)*1.39);pod.rotation.y=a;lander.add(pod);
     box(pod,[.32,.25,.31],[0,0,0],materials.darkMetal);
     const jet=cylinder(pod,.05,.1,.2,[0,.18,0],materials.nozzle,12);jet.rotation.z=Math.PI/2;
@@ -429,16 +450,9 @@ function makeLander(materials) {
   const dish=new THREE.Mesh(new THREE.SphereGeometry(.43,24,12,0,TAU,0,.55),materials.white);dish.rotation.set(.9,0,.3);dish.position.y=1.14;antenna.add(dish);
   box(lander,[1.3,.055,.83],[1.9,4.8,-.3],materials.solar,[0,0,-.18]);
   beam(lander,[1,4.7,-.3],[2.5,4.7,-.3],.025,materials.titanium);
-  for(let i=0;i<4;i++){
-    const a=Math.PI/4+i*Math.PI/2,s=Math.sin(a),c=Math.cos(a);
-    beam(lander,[s*1.8,2.7,c*1.8],[s*2.6,.9,c*2.6],.045,materials.copper);
-    const bracket=box(lander,[.32,.2,.12],[s*1.58,2.81,c*1.58],materials.titanium);bracket.rotation.y=a;
-    const valve=box(lander,[.2,.19,.12],[s*1.6,1.76,c*1.6],materials.darkMetal);valve.rotation.y=a;
-    ring(lander,.55,.018,[s*2.545,.235,c*2.545],materials.darkMetal);
-  }
   for(const x of [-.48,.48]){
-    beam(lander,[x,3.01,1.61],[x,4.02,1.61],.025,materials.titanium);
-    beam(lander,[x,4.02,1.61],[x,4.14,1.35],.025,materials.titanium);
+    beam(lander,[x,3.01,1.8],[x,4.02,1.49],.025,materials.titanium);
+    beam(lander,[x,4.02,1.49],[x,4.14,1.35],.025,materials.titanium);
   }
   box(lander,[.35,.29,.17],[-1.2,3.9,.73],materials.black);
   const lens=cylinder(lander,.08,.08,.14,[-1.2,3.91,.89],materials.glass,16);lens.rotation.x=Math.PI/2;
@@ -448,10 +462,17 @@ function makeLander(materials) {
 
 function makeSurface(destination,materials) {
   const profile=VISUAL_PROFILES[destination.id]||VISUAL_PROFILES.moon;
-  const ice=profile.kind.includes('ice'),titan=destination.id==='titan';
+  const ice=profile.kind.includes('ice'),titan=destination.id==='titan',mars=destination.id==='mars';
   const group=new THREE.Group();
   const meanRadius=Math.max(10000,Number(destination.radius)||1737400);
-  const heightAt=(x,z=0)=>-.5*(x*x+z*z)/meanRadius*THREE.MathUtils.smoothstep(Math.hypot(x,z),600,6000);
+  const craters=destination.id==='moon'?Array.from({length:12},(_,i)=>{const a=i*2.39996323,r=1050+i*281;return {x:Math.cos(a)*r,z:Math.sin(a)*r,radius:115+i%4*75};}):[];
+  const heightAt=(x,z=0)=>{
+    const r=Math.hypot(x,z),fade=THREE.MathUtils.smoothstep(r,600,1800),curvature=-.5*r*r/meanRadius*THREE.MathUtils.smoothstep(r,600,6000);
+    let relief=(Math.sin(x*.0031)*Math.cos(z*.0027)*42+Math.sin(x*.0012+z*.0018)*80+Math.sin(x*.0073-z*.0039)*13)*(ice?.4:titan?.65:1);
+    if(mars)relief+=Math.pow(Math.max(0,Math.sin(Math.atan2(z,x)*7.3+.4)),3)*240*Math.exp(-(((r-4100)/2300)**2));
+    for(const crater of craters){const d=Math.hypot(x-crater.x,z-crater.z)/crater.radius;if(d<1.35){const depth=crater.radius*.13;relief-=depth*Math.max(0,1-d*d)**2;relief+=depth*.3*Math.max(0,1-Math.abs(d-1)/.35)**2;}}
+    return curvature+relief*fade;
+  };
   let seed=destination.id.split('').reduce((n,c)=>n+c.charCodeAt(0),131);
   const rand=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;};
   const surfaceMap=canvasTexture((ctx,w,h)=>{
@@ -475,16 +496,12 @@ function makeSurface(destination,materials) {
       }
     }
   },1024,1024);
-  surfaceMap.wrapS=surfaceMap.wrapT=THREE.RepeatWrapping;surfaceMap.repeat.set(140,140);
+  surfaceMap.wrapS=surfaceMap.wrapT=THREE.RepeatWrapping;surfaceMap.repeat.set(32,32);
   const groundMaterial=new THREE.MeshStandardMaterial({map:surfaceMap,color:0xffffff,roughness:ice?.88:1,metalness:0,envMapIntensity:0});
   const geometry=new THREE.PlaneGeometry(12000,12000,144,144);geometry.rotateX(-Math.PI/2);
   const vertices=geometry.attributes.position;
   for(let i=0;i<vertices.count;i++){
-    const x=vertices.getX(i),z=vertices.getZ(i),r=Math.hypot(x,z);
-    const fade=clamp((r-600)/1200,0,1);
-    let h=Math.sin(x*.0031)*Math.cos(z*.0027)*42+Math.sin(x*.0012+z*.0018)*80+Math.sin(x*.0073-z*.0039)*13;
-    if(ice)h*=.4;if(titan)h*=.65;
-    vertices.setY(i,h*fade+heightAt(x,z)-.035);
+    const x=vertices.getX(i),z=vertices.getZ(i);vertices.setY(i,heightAt(x,z)-.035);
   }
   geometry.computeVertexNormals();
   const ground=new THREE.Mesh(geometry,groundMaterial);ground.receiveShadow=true;group.add(ground);
@@ -498,10 +515,11 @@ function makeSurface(destination,materials) {
     const horizon=new THREE.Mesh(outerGeometry,groundMaterial);horizon.receiveShadow=true;group.add(horizon);
   }
   const rockGeometry=new THREE.DodecahedronGeometry(1,0),rockMaterial=new THREE.MeshStandardMaterial({color:profile.color,roughness:.97,metalness:0,envMapIntensity:0});
-  const rocks=new THREE.InstancedMesh(rockGeometry,rockMaterial,190),dummy=new THREE.Object3D();
-  for(let i=0;i<190;i++){
-    const a=rand()*TAU,r=34+rand()*410,size=.18+rand()**3*2.1;
-    dummy.position.set(Math.cos(a)*r,size*.32,Math.sin(a)*r);dummy.rotation.set(rand(),rand()*TAU,rand());dummy.scale.set(size*(1+rand()),size*.55,size);dummy.updateMatrix();rocks.setMatrixAt(i,dummy.matrix);
+  const rockCount=destination.id==='moon'||mars?384:190;
+  const rocks=new THREE.InstancedMesh(rockGeometry,rockMaterial,rockCount),dummy=new THREE.Object3D();
+  for(let i=0;i<rockCount;i++){
+    const a=rand()*TAU,r=29+rand()**1.6*490,size=.12+rand()**3*2.3,x=Math.cos(a)*r,z=Math.sin(a)*r;
+    dummy.position.set(x,heightAt(x,z)+size*.22,z);dummy.rotation.set(rand(),rand()*TAU,rand());dummy.scale.set(size*(1+rand()*.7),size*(.38+rand()*.3),size);dummy.updateMatrix();rocks.setMatrixAt(i,dummy.matrix);rocks.setColorAt(i,new THREE.Color().setScalar(.68+rand()*.45));
   }
   rocks.castShadow=true;rocks.receiveShadow=true;group.add(rocks);
   // Survey beacons mark a real-scale 25 m zone on unpaved terrain. These are
@@ -630,10 +648,10 @@ export function createScene(canvas, options = {}) {
   }
   const assemblyPad=makePad(materials);assembly.add(assemblyPad);
   const launchPad=makePad(materials);launchPad.position.y=-1.1;launchEnvironment.add(launchPad);
-  const launchGround=new THREE.Mesh(new THREE.PlaneGeometry(80000,80000),new THREE.MeshStandardMaterial({map:textures.coastalGround,color:0xffffff,roughness:1}));launchGround.rotation.x=-Math.PI/2;launchGround.position.set(-39080,-1.6,0);launchGround.receiveShadow=true;launchEnvironment.add(launchGround);
-  const ocean=new THREE.Mesh(new THREE.PlaneGeometry(80000,80000),new THREE.MeshStandardMaterial({color:0x295d72,roughness:.42,metalness:.03}));ocean.rotation.x=-Math.PI/2;ocean.position.set(41000,-2.2,-100);launchEnvironment.add(ocean);
-  const shore=new THREE.Mesh(new THREE.PlaneGeometry(80,80000),new THREE.MeshStandardMaterial({color:0xa49e82,roughness:1}));shore.rotation.x=-Math.PI/2;shore.position.set(960,-1.8,0);launchEnvironment.add(shore);
-  const localGroundMaterials=[launchGround,ocean,shore].map(mesh=>mesh.material);
+  const launchTerrain=new THREE.PlaneGeometry(160000,160000,128,128);launchTerrain.rotateX(-Math.PI/2);
+  const launchVertices=launchTerrain.attributes.position;for(let i=0;i<launchVertices.count;i++){const x=launchVertices.getX(i),z=launchVertices.getZ(i);launchVertices.setY(i,-1.6-(x*x+z*z)/(2*6371000));}launchTerrain.computeVertexNormals();
+  const launchGround=new THREE.Mesh(launchTerrain,new THREE.MeshStandardMaterial({map:textures.coastalGround,color:0xffffff,roughness:1,flatShading:false}));launchGround.receiveShadow=false;launchEnvironment.add(launchGround);
+  const localGroundMaterials=[launchGround.material];
   localGroundMaterials.forEach(material=>{material.transparent=true;material.depthWrite=false;});
   for(const x of [-48,48])box(launchEnvironment,[9,.12,600],[x,-1.3,190],materials.concrete);
   box(launchEnvironment,[34,.08,1900],[0,-1.42,1120],materials.grate);
@@ -646,6 +664,8 @@ export function createScene(canvas, options = {}) {
   for(const x of [-34,0,34])box(operations,[21,83,1.5],[x,47,51],materials.tower);
   const rocketRoot=new THREE.Group();scene.add(rocketRoot);
   let vehicle={},rocket=makeRocket(materials,vehicle);rocketRoot.add(rocket);
+  let framing=hardwareFrames(rocket),chaseReady=false,chaseRange=0,displayedLaunchPitch=null;
+  const chaseCenter=new THREE.Vector3();
   const crawler=new THREE.Group();crawler.visible=false;scene.add(crawler);
   box(crawler,[16,.8,17],[0,-.7,0],materials.deck);
   for(const x of [-7.4,7.4])for(const z of [-5.4,-1.8,1.8,5.4]){const wheel=cylinder(crawler,1.05,1.05,1.8,[x,-1.5,z],materials.darkMetal,24);wheel.rotation.z=Math.PI/2;}
@@ -657,6 +677,7 @@ export function createScene(canvas, options = {}) {
   const dockingCockpit=makeDockingCockpit(materials);camera.add(dockingCockpit.root);
   const reducedMotion=options.reducedMotion??window.matchMedia?.('(prefers-reduced-motion: reduce)').matches??false;
   const celestials=createCelestials(renderer,options),earth=celestials.earth,earthAtmosphere=celestials.earthAtmosphere;
+  const surfaceSky=createSurfaceSky(celestials);
   const flightSky=createFlightSky(celestials);
   earth.position.set(-650,-1760,-1700);earth.rotation.set(.2,2.6,-.3);earth.visible=false;scene.add(earth);
   const destinationPreview=celestials.preview;destinationPreview.visible=false;scene.add(destinationPreview);
@@ -703,7 +724,8 @@ export function createScene(canvas, options = {}) {
   }
   function setMode(next){
     if(!['assembly','rollout','launch','transfer','docking','destination','landing','finale'].includes(next)||next===mode)return;
-    mode=next;resetOrbit();clearDebris();resetOutcomeVisuals();previousStage=0;previousPhase=null;previousMissionTime=null;
+    mode=next;resetOrbit();clearDebris();resetOutcomeVisuals();previousStage=0;previousPhase=null;previousMissionTime=null;chaseReady=false;displayedLaunchPitch=null;
+    if(rocket.userData.custom){if(['rollout','launch'].includes(mode)||['landing','finale'].includes(mode)&&['mars','titan'].includes(selectedDestination))setVehicleSolar(rocket,false,0,true);else if(mode==='assembly')setVehicleSolar(rocket,true,0,true);}
     assembly.visible=mode==='assembly';launchEnvironment.visible=['launch','rollout'].includes(mode);rocketRoot.visible=['assembly','launch','rollout','transfer'].includes(mode);docking.visible=mode==='docking';
     crawler.visible=mode==='rollout';destinationPreview.visible=mode==='destination';landing.visible=['landing','finale'].includes(mode);landingParent.visible=mode==='landing'&&selectedDestination!=='titan';
     earth.visible=earthAtmosphere.visible=mode==='docking';stars.visible=['docking','destination','landing'].includes(mode);
@@ -733,6 +755,7 @@ export function createScene(canvas, options = {}) {
     vehicle=next;clearDebris();rocketRoot.remove(rocket);if(rocket.userData.custom)rocket.userData.dispose();else disposeGeometries(rocket);
     const design=next.design||(next.format==='kineti-core-rocket'?next:null);
     rocket=design?createVehicleGeometry(design,{materials}):makeRocket(materials,vehicle);rocketRoot.add(rocket);
+    framing=hardwareFrames(rocket);chaseReady=false;displayedLaunchPitch=null;
     for(const pad of [assemblyPad,launchPad])pad.userData.tower.scale.y=clamp(rocket.userData.height/52,.7,1.65);
     craftAttitude.remove(dockingCraft);if(dockingCraft.userData.dispose)dockingCraft.userData.dispose();else disposeGeometries(dockingCraft);
     if(design){
@@ -752,6 +775,7 @@ export function createScene(canvas, options = {}) {
     if(view.mode)setMode(view.mode);
     const frameDt=clamp(Number.isFinite(dt)?dt:1/60,0,.1);elapsed+=frameDt;
     const t=Number.isFinite(view.time)?view.time:elapsed;
+    if(rocket.userData.custom){const airless=!['mars','titan'].includes(selectedDestination),released=Number(view.stageIndex??view.activeStageIndex)>=2;const deployed=mode==='assembly'||mode==='transfer'&&released||mode==='launch'&&view.phase==='orbit'&&released||['landing','finale'].includes(mode)&&airless;setVehicleSolar(rocket,deployed,view.paused?0:frameDt);}
     const smooth=1-Math.exp(-frameDt*5.2);
     dockingCockpit.root.visible=false;
     const cockpitView=mode==='docking'&&view.cameraMode==='cockpit'&&!freeOrbit;
@@ -767,7 +791,7 @@ export function createScene(canvas, options = {}) {
     const terminalPhases=['failed','docked','landed','orbit'];
     const restarted=terminalPhases.includes(previousPhase)&&!terminalPhases.includes(phase)&&!['assembly','destination'].includes(phase);
     if(rewound||restarted){
-      resetOutcomeVisuals();clearDebris();phaseAt=elapsed;
+      resetOutcomeVisuals();clearDebris();phaseAt=elapsed;chaseReady=false;displayedLaunchPitch=null;
       const restoredStage=Number(view.stageIndex??view.activeStageIndex);
       previousStage=Number.isFinite(restoredStage)?clamp(Math.floor(restoredStage),0,2):0;
     }
@@ -814,7 +838,7 @@ export function createScene(canvas, options = {}) {
       rocket.userData.core.visible=stage===0;rocket.userData.upper.visible=stage<2;
       const space=THREE.MathUtils.smoothstep(altitude,7000,80000);
       scene.background=new THREE.Color(0x87aabd).lerp(new THREE.Color(0x000000),space);
-      scene.fog=space<.7?new THREE.Fog(scene.background,700+altitude*1.8,Math.max(18000,altitude*35)):null;
+      scene.fog=space<.7?new THREE.Fog(new THREE.Color(0xb6c4c9).lerp(new THREE.Color(0x000000),space),1000+altitude*1.5,Math.max(24000,altitude*28)):null;
       stars.visible=space>.65;stars.material.opacity=clamp((space-.65)*2,.0,.75);
       earth.visible=earthAtmosphere.visible=altitude>14000;
       const longitude=Array.isArray(view.positionSI)?Math.atan2(view.positionSI[1],view.positionSI[0]):0;
@@ -832,35 +856,39 @@ export function createScene(canvas, options = {}) {
         launchEnvironment.position.set(ground[0],ground[1],0);
       }else launchEnvironment.position.set(0,-altitude,0);
       // Blend the local site into the always-present globe, without a blue gap.
-      const groundOpacity=1-THREE.MathUtils.smoothstep(altitude,6000,24000);
+      const groundOpacity=1-THREE.MathUtils.smoothstep(altitude,2500,10000);
       localGroundMaterials.forEach(material=>{material.opacity=groundOpacity;});
-      launchEnvironment.visible=altitude<26000;crawler.visible=false;
+      launchEnvironment.visible=altitude<11000;crawler.visible=false;
       // Rocket positions are local to its active stage. This frame follows the
       // vehicle, while the actual altitude is represented by atmosphere/ground.
       const pivot=rocket.userData.height*.48;
-      rocketRoot.rotation.z=-pitch;rocketRoot.position.set(-Math.sin(pitch)*pivot,pivot*(1-Math.cos(pitch)),0);
+      // The ascent solver uses ideal pointing. Ease only its displayed attitude;
+      // a stage handover must not masquerade as a rigid-body angular impulse.
+      displayedLaunchPitch=easeLaunchPitch(displayedLaunchPitch,pitch,view.paused?0:frameDt);
+      rocketRoot.rotation.z=-displayedLaunchPitch;rocketRoot.position.set(-Math.sin(displayedLaunchPitch)*pivot,pivot*(1-Math.cos(displayedLaunchPitch)),0);
       if(rocket.userData.custom){setVehicleStage(rocket,stage);setVehicleThrust(rocket,stage,throttle,1-space,t);}
-      rocket.userData.engines.forEach((e,i)=>{e.visible=stage===0&&throttle>.01;e.scale.set(1,mix(.45,1.35,throttle)*(1+Math.sin(elapsed*53+i)*.05),1);});
-      rocket.userData.upperPlume.visible=stage===1&&throttle>.01;rocket.userData.upperPlume.scale.set(1,1+Math.sin(elapsed*43)*.045,1);
+      else{rocket.userData.engines.forEach((e,i)=>{e.visible=stage===0&&throttle>.01;e.scale.set(1,mix(.45,1.35,throttle)*(1+Math.sin(elapsed*53+i)*.025),1);});rocket.userData.upperPlume.visible=stage===1&&throttle>.01;rocket.userData.upperPlume.scale.set(1,1+Math.sin(elapsed*43)*.02,1);}
       engineLight.intensity=throttle*(stage===0?750:240);engineLight.position.set(0,stage===0?1:30,0);
-      // Keep the transform pivot stable, but follow the hardware that remains.
-      // A fixed full-stack camera target crops the upper stage and capsule.
-      const followedBounds=rocket.userData.custom?getVehicleBounds(rocket,stage):new THREE.Box3().setFromObject(rocket.userData.spacecraft);
-      if(!rocket.userData.custom&&stage<2)followedBounds.union(new THREE.Box3().setFromObject(rocket.userData.upper));
-      if(!rocket.userData.custom&&stage===0)followedBounds.union(new THREE.Box3().setFromObject(rocket.userData.core));
-      followedBounds.getCenter(desiredLook);
-      const extent=followedBounds.getSize(new THREE.Vector3()),fit=Math.max(24,Math.max(extent.x,extent.y,extent.z)/(2*Math.tan(camera.fov*Math.PI/360))/Math.min(1,camera.aspect)*1.3);
+      rocketRoot.updateMatrixWorld(true);
+      const rigid=framing[stage];desiredLook.copy(rigid.center).applyMatrix4(rocket.matrixWorld);
+      const fit=chaseDistance(rigid.radius,camera.fov,camera.aspect);
       const followOffset=new THREE.Vector3(.61,.14,.8).normalize().multiplyScalar(fit);
       desiredCamera.copy(desiredLook).add(followOffset);
       if(stage===0&&altitude<180&&!freeOrbit){
         const blend=THREE.MathUtils.smoothstep(altitude,70,180);
-        const padHeight=Math.max(rocket.userData.height,followedBounds.max.y-launchEnvironment.position.y);
+        const top=rigid.center.clone().setY(rigid.top).applyMatrix4(rocket.matrixWorld).y;
+        const padHeight=Math.max(rocket.userData.height,top-launchEnvironment.position.y);
         const padFit=padHeight/(2*Math.tan(camera.fov*Math.PI/360))/Math.min(1,camera.aspect)*1.22;
-        const padLook=new THREE.Vector3(desiredLook.x,(followedBounds.max.y+launchEnvironment.position.y)*.5,0);
+        const padLook=new THREE.Vector3(desiredLook.x,(top+launchEnvironment.position.y)*.5,0);
         const padCamera=padLook.clone().add(new THREE.Vector3(.61,.14,.8).normalize().multiplyScalar(padFit));
         desiredCamera.lerpVectors(padCamera,desiredCamera,blend);desiredLook.lerpVectors(padLook,desiredLook,blend);
       }
-      camera.position.copy(desiredCamera);look.copy(desiredLook);camera.lookAt(look);
+      const wantedRange=desiredCamera.distanceTo(desiredLook),ease=1-Math.exp(-frameDt*4.5);
+      if(!chaseReady){chaseCenter.copy(desiredLook);chaseRange=wantedRange;chaseReady=true;}
+      else{chaseCenter.lerp(desiredLook,ease);chaseRange=mix(chaseRange,wantedRange,ease);}
+      look.copy(chaseCenter);camera.position.copy(look).add(new THREE.Vector3(.61,.14,.8).normalize().multiplyScalar(chaseRange));
+      const shake=atmosphericShake(altitude,Number(view.dynamicPressure)||0,throttle,view.paused,reducedMotion);
+      camera.position.x+=Math.sin(elapsed*31)*shake;camera.position.y+=Math.sin(elapsed*23)*shake*.6;camera.lookAt(look);
       hemi.intensity=mix(1.7,.58,space);key.intensity=mix(3.7,4.6,space);fill.intensity=mix(.9,.3,space);rim.intensity=1;scene.environmentIntensity=mix(.8,.35,space);
       for(const d of debris){
         const age=Math.max(0,t-d.start),step=Math.max(0,t-d.last);d.last=t;
@@ -896,7 +924,7 @@ export function createScene(canvas, options = {}) {
         if(contact){const {axis,amount}=contact;b.object.position[axis]+=amount;b.base[axis]+=amount;}
       }
       rocketRoot.visible=phase!=='failed'||elapsed-phaseAt<.28;
-      surfaceThrust.update(frameDt,{throttle:stage===0?throttle:0,height:altitude,x:launchEnvironment.position.x,z:24,groundY:launchEnvironment.position.y-1.2,paused:view.paused,vacuum:false,anchorToGround:true});
+      surfaceThrust.update(frameDt,{throttle:stage===0?throttle:0,height:altitude,x:launchEnvironment.position.x,z:24,groundY:launchEnvironment.position.y-1.2,paused:view.paused,vacuum:altitude>=80000,anchorToGround:true});
     }else if(mode==='transfer'){
       scene.background=new THREE.Color(0x000000);scene.fog=null;stars.visible=false;launchEnvironment.visible=crawler.visible=landingParent.visible=false;
       const stage=clamp(Number(view.stageIndex??view.activeStageIndex??2),0,2),throttle=clamp(Number(view.throttle)||0,0,1);
@@ -907,11 +935,10 @@ export function createScene(canvas, options = {}) {
       const angle=Number.isFinite(view.craftAngle)?view.craftAngle:longitude+Math.PI/2;
       const localNose=new THREE.Vector2(-Math.sin(longitude)*Math.cos(angle)+Math.cos(longitude)*Math.sin(angle),Math.cos(longitude)*Math.cos(angle)+Math.sin(longitude)*Math.sin(angle));
       rocketRoot.rotation.z=Math.atan2(localNose.y,localNose.x)-Math.PI/2;
-      const localBounds=rocket.userData.custom?getVehicleBounds(rocket,stage):new THREE.Box3().setFromObject(rocket.userData.spacecraft);
-      localBounds.getCenter(cameraPoint);rocketRoot.position.sub(cameraPoint);rocketRoot.updateMatrixWorld(true);
-      const bounds=rocket.userData.custom?getVehicleBounds(rocket,stage):new THREE.Box3().setFromObject(rocket.userData.spacecraft),size=bounds.getSize(new THREE.Vector3());
-      bounds.getCenter(desiredLook);const fit=Math.max(22,Math.max(size.x,size.y,size.z)/(2*Math.tan(camera.fov*Math.PI/360))/Math.min(1,camera.aspect)*1.35);
-      desiredCamera.copy(desiredLook).add(new THREE.Vector3(.55,.28,.88).normalize().multiplyScalar(fit));camera.position.copy(desiredCamera);look.copy(desiredLook);camera.lookAt(look);
+      rocketRoot.updateMatrixWorld(true);cameraPoint.copy(framing[stage].center).applyMatrix4(rocket.matrixWorld);rocketRoot.position.sub(cameraPoint);rocketRoot.updateMatrixWorld(true);
+      desiredLook.set(0,0,0);const fit=chaseDistance(framing[stage].radius,camera.fov,camera.aspect);
+      if(!chaseReady){chaseRange=fit;chaseReady=true;}else chaseRange=mix(chaseRange,fit,1-Math.exp(-frameDt*4.5));
+      desiredCamera.copy(desiredLook).add(new THREE.Vector3(.55,.28,.88).normalize().multiplyScalar(chaseRange));camera.position.copy(desiredCamera);look.copy(desiredLook);camera.lookAt(look);
       hemi.intensity=.3;key.color.set(0xfffaf2);key.intensity=4;fill.intensity=.15;rim.intensity=.55;scene.environmentIntensity=.25;
       surfaceThrust.clear();
     }else if(mode==='docking'){
@@ -947,14 +974,14 @@ export function createScene(canvas, options = {}) {
       hemi.intensity=.035;key.position.set(-60,25,45);key.color.set(0xfffaf2);key.intensity=4.3;fill.intensity=.015;rim.intensity=0;scene.environmentIntensity=0;
       camera.position.set(0,5,69*clamp(zoom,.78,1.3));look.set(0,0,0);camera.lookAt(look);
     }else if(mode==='landing'||mode==='finale'){
-      const destination=getDestination(selectedDestination),titan=selectedDestination==='titan',ice=VISUAL_PROFILES[selectedDestination].kind.includes('ice');
+      const destination=getDestination(selectedDestination),titan=selectedDestination==='titan',mars=selectedDestination==='mars',ice=VISUAL_PROFILES[selectedDestination].kind.includes('ice');
       const position=view.position||[0,800],x=Number(position[0])||0,height=Math.max(0,Number(position[1])||0),angle=Number(view.angle)||0;
       const terrainY=surface.userData.heightAt?.(x)||0,renderHeight=height+terrainY;
       const custom=view.customMission&&rocket.userData.custom,activeDescent=['landing','descent'].includes(phase),throttle=activeDescent?clamp(Number(view.throttle)||0,0,1):0;
-      scene.background=new THREE.Color(titan?0x44382a:0x020407);scene.fog=titan?new THREE.FogExp2(0x8d7454,.0018):null;
-      stars.visible=!titan;stars.material.opacity=.62;
+      scene.background=new THREE.Color(titan?0x44382a:mars?0x281710:0x020407);scene.fog=titan?new THREE.FogExp2(0x8d7454,.0018):mars?new THREE.FogExp2(0x9d7154,.000075):null;
+      stars.visible=!titan&&!mars;stars.material.opacity=.62;
       key.target.position.set(x,renderHeight+2,0);key.position.copy(key.target.position).add(new THREE.Vector3(-65,100,75));key.color.set(ice?0xf5f8ff:0xfff8ec);key.intensity=titan?1.55:4.1;
-      hemi.intensity=titan?.75:.09;fill.intensity=titan?.18:.045;rim.intensity=.15;scene.environmentIntensity=.12;
+      hemi.intensity=titan?.75:mars?.23:.09;fill.intensity=titan?.18:mars?.12:.045;rim.intensity=.15;scene.environmentIntensity=.12;
       lander.position.set(x,renderHeight,0);lander.rotation.z=-angle;lander.visible=true;
       let craftHeight=6;
       if(custom){
@@ -972,21 +999,18 @@ export function createScene(canvas, options = {}) {
         jet.scale.setScalar(.4+.6*clamp(Math.abs(torque)/900,0,1));
       });
       engineLight.position.copy(lander.position).add(new THREE.Vector3(0,1.4,0));engineLight.intensity=throttle*(titan?12:5);
-      const terminal=1-THREE.MathUtils.smoothstep(height,70,200);
       const descentCamera=['cockpit','port','docking'].includes(view.cameraMode)&&activeDescent;
       if(descentCamera){
         lander.visible=false;if(custom)rocketRoot.visible=false;camera.position.set(x,terrainY+Math.max(8,height+craftHeight*.8),.08);camera.up.set(0,0,-1);camera.lookAt(new THREE.Vector3(0,0,0));
       }else{
-        desiredCamera.set(x+mix(18,Math.max(15,height*.12),terminal),renderHeight+mix(Math.max(11,craftHeight*.85),Math.max(11,height*.25),terminal),mix(Math.max(32,craftHeight*2.6),Math.max(30,height*1.6+30),terminal));
-        desiredLook.set(mix(x,x*.5,terminal),terrainY+mix(height+craftHeight*.45,Math.max(3,craftHeight*.42,height*.52),terminal),0);
-        if(Math.abs(camera.position.y-height)>200){camera.position.copy(desiredCamera);look.copy(desiredLook);}
+        desiredCamera.set(x+Math.max(18,craftHeight*.9),renderHeight+Math.max(6.8,craftHeight*.7),Math.max(34,craftHeight*2.4));
+        desiredCamera.y=aboveTerrain(desiredCamera.y,surface.userData.heightAt(desiredCamera.x,desiredCamera.z));
+        desiredLook.set(x,renderHeight+craftHeight*.42,0);
         camera.position.copy(desiredCamera);look.copy(desiredLook);camera.lookAt(look);
       }
       // Context is composed in camera space, rather than pretending to be an
       // ephemeris. Keep the complete silhouette inside the upper-left view.
-      landingParent.visible=!custom&&!titan&&!['mars','mercury'].includes(selectedDestination);landingParent.position.copy(camera.position).add(new THREE.Vector3(-2500,1600,-11000).applyQuaternion(camera.quaternion));
-      const parentScale=clamp(VISUAL_PROFILES[selectedDestination].parentSize*35,100,VISUAL_PROFILES[selectedDestination].parent==='saturn'?310:650);
-      landingParent.scale.setScalar(parentScale);
+      landingParent.visible=false; // Parent context is drawn by surfaceSky, above terrain.
       if(phase==='landed')surface.userData.beacons.forEach(beacon=>beacon.material.color.set(0x9dcba9));
       else if(phase==='failed')surface.userData.beacons.forEach(beacon=>beacon.material.color.set(0xd0a17d));
       else surface.userData.beacons.forEach(beacon=>beacon.material.color.set(0xc6d6bf));
@@ -1006,14 +1030,16 @@ export function createScene(canvas, options = {}) {
     const showOverview=!view.customMission&&shouldShowOrbitOverview({...view,mode});
     if(wasOverview&&!showOverview){camera.position.copy(desiredCamera);look.copy(desiredLook);camera.lookAt(look);}
     if(freeOrbit){
-      let center=mode==='docking'?craftAttitude.position:['landing','finale'].includes(mode)?lander.position:mode==='destination'?new THREE.Vector3():desiredLook;
+      let center=mode==='docking'?craftAttitude.position:['landing','finale'].includes(mode)?lander.position.clone().add(new THREE.Vector3(0,2.7,0)):mode==='destination'?new THREE.Vector3():desiredLook;
       let radius=(mode==='assembly'?Math.max(55,rocket.userData.height*1.7):mode==='destination'?69:38)*orbitZoom;
-      if(rocket.userData.custom&&['assembly','rollout','launch','transfer','landing','finale'].includes(mode)){
-        const bounds=getVehicleBounds(rocket,['landing','finale','transfer'].includes(mode)?2:Number(view.stageIndex??view.activeStageIndex)||0),size=bounds.getSize(new THREE.Vector3());
-        center=bounds.getCenter(new THREE.Vector3());radius=Math.max(16,Math.max(size.x,size.y,size.z)*1.8)/Math.min(1,camera.aspect)*orbitZoom;
+      if(['assembly','rollout','launch','transfer'].includes(mode)||rocket.userData.custom&&view.customMission&&['landing','finale'].includes(mode)){
+        const index=['landing','finale','transfer'].includes(mode)?2:clamp(Number(view.stageIndex??view.activeStageIndex)||0,0,2),rigid=framing[index];rocketRoot.updateMatrixWorld(true);
+        center=rigid.center.clone().applyMatrix4(rocket.matrixWorld);radius=Math.max(16,rigid.radius*2.2)/Math.min(1,camera.aspect)*orbitZoom;
       }
       camera.up.set(0,1,0);
       camera.position.set(center.x+radius*Math.cos(orbitPitch)*Math.sin(orbitYaw),center.y+radius*Math.sin(orbitPitch),center.z+radius*Math.cos(orbitPitch)*Math.cos(orbitYaw));
+      if(['landing','finale'].includes(mode))camera.position.y=aboveTerrain(camera.position.y,surface.userData.heightAt(camera.position.x,camera.position.z));
+      else if(['launch','rollout'].includes(mode)&&launchEnvironment.visible)camera.position.y=aboveTerrain(camera.position.y,launchEnvironment.position.y-1.6);
       camera.lookAt(center);
       if(mode==='docking')dockingCraft.visible=true;
       if(['landing','finale'].includes(mode)){lander.visible=!(view.customMission&&rocket.userData.custom);if(view.customMission)rocketRoot.visible=true;}
@@ -1026,13 +1052,16 @@ export function createScene(canvas, options = {}) {
       camera.position.set(0,0,24/Math.tan(camera.fov*Math.PI/360)/Math.min(1,camera.aspect));camera.lookAt(0,0,0);
     }
     wasOverview=showOverview;
-    const useFlightSky=!showOverview&&(['launch','rollout','transfer','docking'].includes(mode)||(view.customMission&&['landing','finale'].includes(mode)));
+    const useFlightSky=!showOverview&&(['launch','rollout','transfer','docking'].includes(mode)||(view.customMission&&selectedDestination==='moon'&&['landing','finale'].includes(mode)));
+    const useSurfaceSky=!showOverview&&!useFlightSky&&['landing','finale'].includes(mode);
     let celestialMarkers=[];
     if(useFlightSky){
       earth.visible=earthAtmosphere.visible=stars.visible=false;
       celestialMarkers=flightSky.update({...view,mode},camera);
       const background=scene.background;scene.background=null;renderer.autoClear=false;renderer.clear(true,true,true);
       renderer.render(flightSky.scene,flightSky.camera);renderer.clearDepth();renderer.render(scene,camera);renderer.autoClear=true;scene.background=background;
+    }else if(useSurfaceSky){
+      surfaceSky.update(selectedDestination,camera);const background=scene.background;scene.background=null;renderer.autoClear=false;renderer.clear(true,true,true);renderer.render(surfaceSky.scene,surfaceSky.camera);renderer.clearDepth();renderer.render(scene,camera);renderer.autoClear=true;scene.background=background;
     }else renderer.render(scene,camera);
     targetProjection.set(0,0,0).project(camera);
     return {targetX:(targetProjection.x+1)/2,targetY:(1-targetProjection.y)/2,targetVisible:Math.abs(targetProjection.x)<=1&&Math.abs(targetProjection.y)<=1&&targetProjection.z>=-1&&targetProjection.z<=1,celestialMarkers};
@@ -1053,7 +1082,7 @@ export function createScene(canvas, options = {}) {
   function dispose(){
     if(disposed)return;disposed=true;observer?.disconnect();clearDebris();
     canvas.removeEventListener('pointerdown',onPointerDown);canvas.removeEventListener('pointermove',onPointerMove);canvas.removeEventListener('pointerup',onPointerUp);canvas.removeEventListener('pointercancel',onPointerUp);canvas.removeEventListener('wheel',onWheel);
-    disposeGeometries(scene);const allMaterials=new Set();scene.traverse(o=>{if(o.material){(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>allMaterials.add(m));}});allMaterials.forEach(m=>m.dispose());Object.values(textures).forEach(t=>t.dispose());surface.userData.surfaceMap.dispose();dockingCockpit.dispose();finale.dispose();surfaceThrust.dispose();flightSky.dispose();celestials.dispose();environment.dispose();renderer.dispose();
+    disposeGeometries(scene);const allMaterials=new Set();scene.traverse(o=>{if(o.material){(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>allMaterials.add(m));}});allMaterials.forEach(m=>m.dispose());Object.values(textures).forEach(t=>t.dispose());surface.userData.surfaceMap.dispose();dockingCockpit.dispose();finale.dispose();surfaceThrust.dispose();flightSky.dispose();surfaceSky.dispose();celestials.dispose();environment.dispose();renderer.dispose();
   }
   return {setMode,setVehicle,setDestination,update,resize,dispose,resetOrbit,get inspection(){return freeOrbit;},beginOrbit(){freeOrbit=true;},zoomBy(factor){if(!Number.isFinite(factor)||factor<=0)return;freeOrbit=true;orbitZoom=clamp(orbitZoom*factor,.25,4);},renderer,scene,camera};
 }

@@ -27,8 +27,8 @@ export const BODY_TEXTURE_PATHS = Object.freeze({
 });
 
 export const VISUAL_PROFILES = Object.freeze({
-  mercury: { parent:'earth', color:'#91867b', kind:'regolith', parentSize:2 },
-  mars: { parent:'earth', color:'#ae7051', kind:'regolith', parentSize:2 },
+  mercury: { parent:null, color:'#91867b', kind:'regolith', parentSize:0 },
+  mars: { parent:null, color:'#ae7051', kind:'regolith', parentSize:0 },
   moon: { parent: 'earth', color: '#97938d', kind: 'regolith', parentSize: 2.4 },
   phobos: { parent: 'mars', color: '#7b7367', kind: 'regolith', parentSize: 28, shape: [1.28, 1.03, .83] },
   deimos: { parent: 'mars', color: '#8b8074', kind: 'regolith', parentSize: 14, shape: [1.2, .94, .86] },
@@ -104,6 +104,23 @@ function makeRingTexture() {
     ctx.fillRect(i,0,1,4);
   }
   return textureFromCanvas(canvas);
+}
+
+function makeSkyDome(zenith=0x547f9c,horizon=0xc0ced2){
+  const material=new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,depthTest:false,
+    uniforms:{strength:{value:1},zenith:{value:new THREE.Color(zenith)},horizon:{value:new THREE.Color(horizon)}},
+    vertexShader:'varying vec3 direction;void main(){direction=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
+    fragmentShader:'uniform float strength;uniform vec3 zenith;uniform vec3 horizon;varying vec3 direction;void main(){float elevation=normalize(direction).y;float band=exp(-abs(elevation)*9.0);vec3 sky=mix(zenith,horizon,band);sky*=mix(.45,1.0,smoothstep(-.2,.5,elevation));gl_FragColor=vec4(sky*strength,1.0);}'});
+  const object=new THREE.Mesh(new THREE.SphereGeometry(80000,48,24),material);object.renderOrder=-1000;
+  return object;
+}
+
+function makeSun(){
+  const root=new THREE.Group(),disk=new THREE.Mesh(new THREE.SphereGeometry(1,24,16),new THREE.MeshBasicMaterial({color:0xfff8e9,toneMapped:false}));root.add(disk);
+  const canvas=document.createElement('canvas');canvas.width=canvas.height=128;const ctx=canvas.getContext('2d'),gradient=ctx.createRadialGradient(64,64,0,64,64,64);
+  gradient.addColorStop(0,'rgba(255,248,224,.9)');gradient.addColorStop(.12,'rgba(255,240,208,.48)');gradient.addColorStop(.4,'rgba(255,232,199,.08)');gradient.addColorStop(1,'rgba(255,232,199,0)');ctx.fillStyle=gradient;ctx.fillRect(0,0,128,128);
+  const map=textureFromCanvas(canvas),glow=new THREE.Sprite(new THREE.SpriteMaterial({map,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,toneMapped:false}));glow.scale.set(9,9,1);root.add(glow);
+  return {root,dispose(){disk.geometry.dispose();disk.material.dispose();glow.material.dispose();map.dispose();}};
 }
 
 export function createCelestials(renderer, options = {}) {
@@ -187,6 +204,7 @@ export function createCelestials(renderer, options = {}) {
     bodyPivot.rotation.set(.11,-.8,.035);
     titanHaze.visible=id==='titan';
     parentBody.material.map=getTexture(profile.parent);parentBody.material.needsUpdate=true;
+    parentContext.visible=!!profile.parent;
     parentContext.scale.setScalar(profile.parentSize);
     parentContext.position.set(-43,19,-116);
     parentContext.rotation.set(.2,-.4,-.32);
@@ -218,10 +236,20 @@ export function createCelestials(renderer, options = {}) {
 export function createFlightSky(celestials){
   const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(38,1,5,90000);
   scene.background=new THREE.Color(0x000000);
+  const sky=makeSkyDome();scene.add(sky);
   const key=new THREE.DirectionalLight(0xfffaf4,4.6);scene.add(key);scene.add(new THREE.AmbientLight(0xb5c6d7,.075));
   const earth=celestials.earth.clone(true);scene.add(earth);
+  // The celestial pass has its own display response. Studio lights and ocean
+  // roughness from the metre-scale scene must not bleach the dated NASA map.
+  const earthMaterial=new THREE.ShaderMaterial({toneMapped:false,
+    uniforms:{surfaceMap:{value:celestials.getTexture('earth')},sunDirection:{value:new THREE.Vector3(.5,.7,-.5).normalize()}},
+    vertexShader:'varying vec2 surfaceUV;varying vec3 surfaceNormal;void main(){surfaceUV=uv;surfaceNormal=normalize(mat3(modelMatrix)*normal);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
+    fragmentShader:'uniform sampler2D surfaceMap;uniform vec3 sunDirection;varying vec2 surfaceUV;varying vec3 surfaceNormal;void main(){vec3 albedo=texture2D(surfaceMap,surfaceUV).rgb;float day=smoothstep(-.2,.55,dot(normalize(surfaceNormal),sunDirection));gl_FragColor=vec4(albedo*mix(.28,1.0,day),1.0);\n#include <colorspace_fragment>\n}'});
+  earth.children[0].material=earthMaterial;
+  const cloudMaterial=earth.children[1].material.clone();cloudMaterial.opacity=.09;earth.children[1].material=cloudMaterial;
+  const limbMaterial=earth.children[2].material.clone();limbMaterial.uniforms.strength.value=.1;earth.children[2].material=limbMaterial;
   const moon=new THREE.Mesh(new THREE.SphereGeometry(1,128,80),new THREE.MeshStandardMaterial({map:celestials.getTexture('moon'),roughness:1,metalness:0,envMapIntensity:0}));scene.add(moon);
-  const sun=new THREE.Mesh(new THREE.SphereGeometry(1,32,24),new THREE.MeshBasicMaterial({color:0xfff6df,toneMapped:false}));scene.add(sun);
+  const sunlightVisual=makeSun(),sun=sunlightVisual.root;scene.add(sun);
   const context=[
     {id:'mercury',name:'Mercury',p:[-5.2e10,2.8e10,1.5e10],color:0xaaa29a},
     {id:'venus',name:'Venus',p:[-8.5e10,-6.3e10,-2e10],color:0xd3c8a5},
@@ -267,12 +295,14 @@ export function createFlightSky(celestials){
     const spin=Number(view.effectiveRotation)||7.2921159e-5*Math.cos(latitude);
     earth.quaternion.setFromAxisAngle(new THREE.Vector3(0,0,1),angle-spin*(view.time||0)).multiply(new THREE.Quaternion().setFromRotationMatrix(basis));
     put(moon,[mp[0]-p[0],mp[1]-p[1],0],1737400);moon.visible=!surface;moon.rotation.set(.02,-.8,-angle);
-    const sunlight=Array.isArray(view.sunDirectionSI)?[...view.sunDirectionSI,.35]:[.55,.75,.5];
-    const sunDirection=local(sunlight).normalize();key.position.copy(sunDirection).multiplyScalar(50);
+    const sunDirection=Array.isArray(view.sunDirectionSI)?local([...view.sunDirectionSI,.35]).normalize():new THREE.Vector3(0,0,-1).applyQuaternion(mainCamera.quaternion);
+    if(!Array.isArray(view.sunDirectionSI)){sunDirection.y=0;if(sunDirection.lengthSq()<.001)sunDirection.set(0,0,-1);sunDirection.normalize();const right=new THREE.Vector3().crossVectors(sunDirection,new THREE.Vector3(0,1,0));sunDirection.addScaledVector(right,.12).add(new THREE.Vector3(0,.13,0)).normalize();}
+    key.position.copy(sunDirection).multiplyScalar(50);
+    earthMaterial.uniforms.sunDirection.value.copy(sunDirection);limbMaterial.uniforms.sunDirection.value.copy(sunDirection);
     celestials.setSunDirection(sunDirection);
     sun.position.copy(sunDirection).multiplyScalar(43000);sun.scale.setScalar(200);
     const atmospheric=['launch','rollout'].includes(view.mode)?1-THREE.MathUtils.smoothstep(view.altitude||0,7000,80000):0;
-    scene.background.set(0x000000).lerp(new THREE.Color(0x87aabd),atmospheric);
+    scene.background.set(0x000000);sky.material.uniforms.strength.value=atmospheric;sky.visible=atmospheric>0;
     stars.material.opacity=atmospheric>.95?0:(1-atmospheric)*.65;
     const markers=[{id:'earth',name:'Earth',object:earth,approximate:false},{id:'moon',name:'Moon',object:moon,approximate:false},{id:'sun',name:'Sun',object:sun,approximate:true}];
     context.forEach(body=>{
@@ -282,6 +312,30 @@ export function createFlightSky(celestials){
     });
     return markers.map(body=>{projected.copy(body.object.position).project(camera);return{id:body.id,name:body.name,x:(projected.x+1)/2,y:(1-projected.y)/2,visible:body.object.visible&&projected.z<1&&Math.abs(projected.x)<1&&Math.abs(projected.y)<1,approximate:body.approximate};});
   }
-  function dispose(){moon.geometry.dispose();moon.material.dispose();sun.geometry.dispose();sun.material.dispose();starGeometry.dispose();stars.material.dispose();context.forEach(b=>{b.object.geometry.dispose();b.object.material.dispose();});}
+  function dispose(){earthMaterial.dispose();cloudMaterial.dispose();limbMaterial.dispose();moon.geometry.dispose();moon.material.dispose();sunlightVisual.dispose();sky.geometry.dispose();sky.material.dispose();starGeometry.dispose();stars.material.dispose();context.forEach(b=>{b.object.geometry.dispose();b.object.material.dispose();});}
   return {scene,camera,update,dispose};
+}
+
+/** Illustrative parent-world context for local exercises, never an ephemeris.
+ * A separate sky pass and a world-up elevation keep the globe above terrain.
+ */
+export function createSurfaceSky(celestials){
+  const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(38,1,5,90000);scene.background=new THREE.Color(0x020407);
+  const sky=makeSkyDome(0x432c23,0xb38665);scene.add(sky);
+  const parent=celestials.parentContext.clone(true),body=parent.children[0];body.material=body.material.clone();scene.add(parent);
+  const light=new THREE.DirectionalLight(0xfff7e9,3.2);scene.add(light,new THREE.AmbientLight(0xb4bac1,.12));
+  const sunlightVisual=makeSun(),sun=sunlightVisual.root;scene.add(sun);let current='';
+  const up=new THREE.Vector3(0,1,0),forward=new THREE.Vector3(),right=new THREE.Vector3(),sunDirection=new THREE.Vector3();
+  function update(id,mainCamera){
+    const profile=VISUAL_PROFILES[id]||VISUAL_PROFILES.moon,mars=id==='mars',titan=id==='titan';
+    if(id!==current){current=id;body.material.map=profile.parent?celestials.getTexture(profile.parent):null;body.material.color.set(0xffffff);body.material.needsUpdate=true;parent.children[1].visible=profile.parent==='saturn';parent.rotation.set(.2,-.4,-.32);}
+    camera.fov=mainCamera.fov;camera.aspect=mainCamera.aspect;camera.quaternion.copy(mainCamera.quaternion);camera.updateProjectionMatrix();camera.updateMatrixWorld(true);
+    forward.set(0,0,-1).applyQuaternion(mainCamera.quaternion);const lookingDown=forward.y<-.58;forward.y=0;if(forward.lengthSq()<.001)forward.set(0,0,-1);forward.normalize();right.crossVectors(forward,up).normalize();
+    parent.visible=!!profile.parent&&!titan&&!lookingDown;
+    parent.position.copy(forward).multiplyScalar(.97).addScaledVector(right,-.16).addScaledVector(up,.13).normalize().multiplyScalar(20000);
+    parent.scale.setScalar(20000*THREE.MathUtils.clamp(profile.parentSize*.0035,.018,profile.parent==='saturn'?.03:.05));
+    sunDirection.copy(forward).multiplyScalar(.97).addScaledVector(right,.2).addScaledVector(up,.19).normalize();sun.position.copy(sunDirection).multiplyScalar(43000);sun.scale.setScalar(200);sun.visible=!titan&&!lookingDown;light.position.copy(sunDirection).multiplyScalar(50);
+    sky.visible=mars||titan;sky.material.uniforms.strength.value=titan?.68:mars?.5:0;sky.material.uniforms.zenith.value.set(titan?0x493b29:0x432c23);sky.material.uniforms.horizon.value.set(titan?0xb59a68:0xb38665);scene.background.set(titan?0x44382a:mars?0x1e100c:0x020407);
+  }
+  return {scene,camera,update,dispose(){body.material.dispose();sky.geometry.dispose();sky.material.dispose();sunlightVisual.dispose();}};
 }

@@ -1,4 +1,6 @@
 import './mission-panel.css';
+import './ascent-guidance.css';
+import { advanceToStageBoundary, needsStageRelease, getFlightTimePolicy, installAscentReadouts } from './ascent-guidance.js';
 import { createScene } from './scene.js';
 import { createVehicleConfig, resolveConfig } from './catalog.js';
 import { evaluateVehicle } from './physics.js';
@@ -10,6 +12,8 @@ import { LUNAR_SITES, getPracticeSites, LUNAR_SITE_SOURCE } from './mission-site
 import { drawMissionMap } from './mission-map.js';
 import { getMissionJourney, getRetainedSpacecraftBudget } from './mission-journey.js';
 import { icon } from './ui-icons.js';
+import { createMiniMap } from './mini-map.js';
+import { installDestinationCarousel } from './destination-carousel.js';
 import kcMark from '../public/assets/branding/kinetic-core-kc-mark.svg?raw';
 const KEY = 'kinetic-core.integrated-mission.v1';
 // Presentation time only; the tested 3 s ground sequence and flight clock are unchanged.
@@ -47,9 +51,9 @@ export function createMissionControl({ onOpen = () => {}, onClose = () => {}, on
       <div class="mc-scene">
         <canvas data-flight-canvas tabindex="0" aria-label="Spacecraft view. Drag to inspect in 360 degrees; use Camera for view and zoom controls."></canvas>
         <div class="mc-scene-heading"><span data-phase>Rollout</span><strong data-clock>T+00:00</strong></div>
-        <div class="mc-scene-tools" aria-label="Flight views and tools">${tool('pause', 'pause', 'Pause')}${tool('camera', 'camera', 'Camera')}${tool('map', 'map', 'Map')}${tool('telemetry', 'sliders', 'Tools')}</div>
+        <div class="mc-scene-tools" aria-label="Flight views and tools">${tool('pause', 'pause', 'Pause')}${tool('camera', 'camera', 'Camera')}${tool('time', 'time', 'Time')}${tool('telemetry', 'sliders', 'Tools')}</div>
         <div class="mc-inspect-hint" hidden><span>360° inspection · drag to rotate</span><button data-action="reset-view">Return to camera</button></div>
-        <div class="mc-cinematic" data-cinematic hidden></div>
+        <div class="mc-mini-map" data-mini-map></div><div class="mc-cinematic" data-cinematic hidden></div>
         <div class="mc-live" aria-label="Critical flight readings"><span><small>Altitude</small><strong data-altitude>—</strong></span><span><small>Vertical speed</small><strong data-vertical>—</strong></span><span><small data-offset-label>Propellant</small><strong data-offset>—</strong></span></div>
         <div class="mc-paused" hidden><span>Paused</span><p data-pause-detail>Resume when ready.</p></div>
         <div class="mc-outcome" hidden></div>
@@ -74,14 +78,18 @@ export function createMissionControl({ onOpen = () => {}, onClose = () => {}, on
         </div>
       </section>
       <section class="mc-sheet mc-map-sheet" data-sheet="map" aria-label="Navigation map" hidden><header><h2>Navigation map</h2><div class="mc-sheet-header-actions"><button class="mc-sheet-resume" data-resume-sheet>${icon('play')}<span>Resume</span></button><button class="mc-close" data-close-sheet aria-label="Close navigation map">${icon('close')}</button></div></header><div class="mc-sheet-body"><canvas width="380" height="220" data-map aria-label="Actual spacecraft position, direction and selected mission target"></canvas><p>Actual spacecraft position and direction. A local schematic, with illustrative surface geometry.</p></div></section>
+      <section class="mc-sheet mc-time-sheet" data-sheet="time" aria-label="Time controls" hidden><header><h2>Time</h2><div class="mc-sheet-header-actions"><button class="mc-sheet-resume" data-resume-sheet>${icon('play')}<span>Resume</span></button><button class="mc-close" data-close-sheet aria-label="Close time controls">${icon('close')}</button></div></header><div class="mc-sheet-body"><p data-time-state></p><div class="flight-time-options" role="group" aria-label="Coast speed">${[1,10,100,1000,10000,50000].map(rate=>`<button data-mission-time="${rate}" aria-pressed="false">${rate.toLocaleString('en-US')}×</button>`).join('')}</div><p data-time-reason></p></div></section>
       <section class="mc-sheet mc-camera-sheet" data-sheet="camera" aria-label="Camera controls" hidden><header><h2>Camera</h2><div class="mc-sheet-header-actions"><button class="mc-sheet-resume" data-resume-sheet>${icon('play')}<span>Resume</span></button><button class="mc-close" data-close-sheet aria-label="Close camera controls">${icon('close')}</button></div></header><div class="mc-sheet-body"><div class="mc-camera-options"><button data-camera="chase" aria-pressed="true">${icon('camera')}<span>External chase<small>Follow the spacecraft</small></span></button><button data-camera="port" aria-pressed="false">${icon('arrow-down')}<span>Descent camera<small data-descent-camera-note>Available during local descent</small></span></button><button data-action="view" aria-pressed="false">${icon('rotate')}<span>360° inspection<small>Drag the scene to rotate</small></span></button></div><div class="mc-zoom"><span>Inspection zoom</span><button data-action="zoom-out" aria-label="Zoom out">−</button><button data-action="zoom-in" aria-label="Zoom in">+</button><button data-action="reset-camera">Reset view</button></div></div></section>
     </section>`;
   document.body.append(dialog);
   const $ = s => dialog.querySelector(s);
   const listen = (s, event, fn) => $(s).addEventListener(event, fn);
-  let active = false, planner = true, design = null, target = 'moon', site = 'tranquility', mission = null, renderer = null, paused = false, power = 1, guidance = true, warp = 10, camera = 'chase', last = performance.now(), animation, checkpoint = null, previousEvent = '', previousPhase = '', lastUI = 0, launchSite = { latitude: 28.5729, longitude: -80.649 };
+  let active = false, planner = true, design = null, target = 'moon', site = 'tranquility', mission = null, renderer = null, paused = false, power = 1, guidance = true, warp = 1, camera = 'chase', last = performance.now(), animation, checkpoint = null, previousEvent = '', previousPhase = '', lastUI = 0, launchSite = { latitude: 28.5729, longitude: -80.649 };
   let rolloutElapsed = 0, activeSheet = null, sheetWasPaused = false, inspectMode = false, nextManeuver = null, lastFlightPhase = null, sheetTrigger = null;
   const keys = new Set(), touchTurns = new Set(), emittedMilestones = new Set();
+  const miniMap = createMiniMap($('[data-mini-map]'));
+  const destinationCarousel = installDestinationCarousel({ select: $('[data-target]'), dialog });
+  const ascentReadouts = installAscentReadouts({ scene: $('.mc-scene'), tools: $('.mc-scene-tools'), icon, buttonClass: 'mc-tool', onToggle: () => clear() });
   const clear = () => { keys.clear(); touchTurns.clear(); dialog.querySelectorAll('[data-turn]').forEach(button => button.classList.remove('firing')); };
   const telemetry = () => mission?.kind === 'custom-descent' ? getCustomDescentTelemetry(mission) : getLunarMissionTelemetry(mission);
   const setHTML = (node, html) => { if (node.innerHTML !== html) node.innerHTML = html; };
@@ -124,6 +132,7 @@ export function createMissionControl({ onOpen = () => {}, onClose = () => {}, on
     const destination = DESTINATIONS.find(d => d.id === target), sites = target === 'moon' ? LUNAR_SITES : getPracticeSites(target);
     if (!sites.some(s => s.id === site)) site = sites[0].id;
     $('[data-target]').value = target;
+    destinationCarousel.render();
     $('[data-site-list]').replaceChildren(...sites.map(s => {
       const button = document.createElement('button'); button.type = 'button'; button.className = s.id === site ? 'selected' : '';
       button.setAttribute('aria-pressed', String(s.id === site));
@@ -154,7 +163,7 @@ export function createMissionControl({ onOpen = () => {}, onClose = () => {}, on
     closeSheet(false); clear(); rolloutElapsed = 0;
     mission = target === 'moon' ? createLunarMission(design, site) : createCustomDescent(design, target, site);
     if (target !== 'moon') { const practice = getPracticeSites(target).find(s => s.id === site); mission.position[0] = practice.offset; mission.velocity[0] = practice.horizontalSpeed; }
-    power = 1; guidance = true; warp = target === 'moon' ? 10 : 1; paused = false; camera = 'chase'; inspectMode = false; previousPhase = ''; previousEvent = ''; lastFlightPhase = null;
+    power = 1; guidance = true; warp = 1; paused = false; camera = 'chase'; inspectMode = false; previousPhase = ''; previousEvent = ''; lastFlightPhase = null;
     activateFlight(); renderer.resetOrbit(); pause(false); save(); if (target !== 'moon') pause(true);
   }
   function stage() {
@@ -165,23 +174,10 @@ export function createMissionControl({ onOpen = () => {}, onClose = () => {}, on
     if (result.ok) { closeSheet(false); save(); if (wasPaused) pause(false); update(); }
   }
   function planDeparture() {
-    try { if (beginLunarDeparture(mission)) { warp = 1000; $('[data-warp]').value = '1000'; save(); update(); } else status(mission.event); }
+    try { if (beginLunarDeparture(mission)) { save(); update(); } else status(mission.event); }
     catch (error) { status(error.message); }
   }
-  function safeWarp(t) {
-    if (['rollout', 'countdown'].includes(mission.phase)) return 1;
-    if (mission.phase === 'launch') return mission.handedOver ? Math.min(warp, 10) : 1;
-    if (mission.phase === 'departure') return Math.min(warp, 20);
-    if (mission.kind === 'custom-descent') return Math.min(warp, 5);
-    if (t.primary === 'moon') {
-      if (['capture', 'descent'].includes(mission.phase)) return Math.min(warp, 20);
-      if (['lunar-coast', 'lunar-orbit'].includes(mission.phase)) return Math.min(warp, 5000);
-      if (t.altitude < 5000) return Math.min(warp, 5);
-      if (t.altitude < 50000) return Math.min(warp, 20);
-      return Math.min(warp, 500);
-    }
-    return warp;
-  }
+  function safeWarp(t) { return getFlightTimePolicy(mission, warp, { guidance, altitude: t.altitude }).applied; }
   function renderView(t, dt) {
     const local = mission.kind === 'custom-descent' || t.primary === 'moon' && t.altitude < 30000;
     const phase = mission.phase;
@@ -216,9 +212,14 @@ export function createMissionControl({ onOpen = () => {}, onClose = () => {}, on
     if (guidance || paused || locked) touchTurns.clear();
     const stageButton = $('[data-action="stage"]');
     stageButton.hidden = mission.kind === 'custom-descent' || t.stageIndex >= 2 || ['descent', 'landing'].includes(phase);
-    stageButton.disabled = locked || ended; stageButton.classList.toggle('stage-ready', !!t.stageReady);
+    stageButton.disabled = locked || ended; stageButton.classList.toggle('stage-ready', needsStageRelease(mission));
     $('[data-action="skip-rollout"]').hidden = !rolling;
-    $('[data-applied-warp]').textContent = `Applied ${fmt(safeWarp(t), 0)}×. Phase and altitude safety limits remain active.`;
+    const timePolicy = getFlightTimePolicy(mission, warp, { guidance, altitude: t.altitude });
+    const timeState = `Selected coast rate ${fmt(warp, 0)}× · ${paused ? 'paused; resumes at' : 'applied'} ${fmt(timePolicy.applied, 0)}×`;
+    $('[data-applied-warp]').textContent = `${timeState}. ${timePolicy.reason}`;
+    const timeButton = $('[data-action="time"]'); timeButton.querySelector('span').textContent = `Time ${timePolicy.applied >= 1000 ? fmt(timePolicy.applied / 1000, 0) + 'k' : fmt(timePolicy.applied, 0)}×`; timeButton.setAttribute('aria-label', `Time controls. Applied rate ${timePolicy.applied} times`);
+    $('[data-time-state]').textContent = timeState; $('[data-time-reason]').textContent = timePolicy.reason;
+    dialog.querySelectorAll('[data-mission-time]').forEach(button => { const rate = Number(button.dataset.missionTime); button.disabled = rate > timePolicy.maximum; button.setAttribute('aria-pressed', String(rate === warp)); });
     const descentAvailable = !ended && (mission.kind === 'custom-descent' || t.primary === 'moon' && t.altitude < 30000);
     $('[data-camera="port"]').disabled = !descentAvailable;
     $('[data-descent-camera-note]').textContent = descentAvailable ? 'Look down toward the selected pad' : 'Available below 30 km during descent';
@@ -233,6 +234,8 @@ export function createMissionControl({ onOpen = () => {}, onClose = () => {}, on
     $('[data-next-title]').textContent = nextManeuver.title; $('[data-guidance-hint]').textContent = nextManeuver.detail;
     const nextButton = $('[data-action="next"]'); nextButton.hidden = !nextManeuver.action || ended; nextButton.textContent = nextManeuver.label;
     $('.mc-coach').classList.toggle('is-urgent', !!nextManeuver.urgent);
+    $('.mc-coach').dataset.stageUrgent = String(nextManeuver.action === 'stage' && !!nextManeuver.urgent);
+    ascentReadouts.update(mission, t, { paused, guidance });
     $('.mc-paused').hidden = !paused || !!activeSheet || ended;
     $('[data-pause-detail]').textContent = nextManeuver.action === 'stage' ? 'Release the depleted stage below.' : 'The maneuver continues when you resume.';
     dialog.querySelectorAll('[data-resume-sheet]').forEach(button => {
@@ -247,8 +250,6 @@ export function createMissionControl({ onOpen = () => {}, onClose = () => {}, on
     }
     if (phase !== previousPhase) {
       previousPhase = phase;
-      if (phase === 'coast') { warp = 50000; $('[data-warp]').value = '50000'; }
-      else if (['lunar-coast', 'lunar-orbit'].includes(phase)) { warp = 1000; $('[data-warp]').value = '1000'; }
       if (!['failed', 'landed', 'rollout', 'countdown'].includes(phase)) save();
       if (ended) outcome(t);
       if (mission.kind === 'lunar-mission' && ['orbit', 'landed'].includes(phase)) {
@@ -256,6 +257,7 @@ export function createMissionControl({ onOpen = () => {}, onClose = () => {}, on
         if (!emittedMilestones.has(id)) { emittedMilestones.add(id); document.dispatchEvent(new CustomEvent('kc:milestone', { detail: { id } })); }
       }
     }
+    miniMap.updateMission(mission, t);
     if (activeSheet === 'map') drawMissionMap($('[data-map]'), mission, t);
   }
   function outcome(t) {
@@ -317,9 +319,9 @@ export function createMissionControl({ onOpen = () => {}, onClose = () => {}, on
       const input = { throttle: locked ? 1 : power, guidance: locked ? true : guidance, turn: locked ? 0 : Number(keys.has('KeyD') || keys.has('ArrowRight') || touchTurns.has('1')) - Number(keys.has('KeyA') || keys.has('ArrowLeft') || touchTurns.has('-1')) }, t = telemetry();
       if (mission.phase === 'rollout') { rolloutElapsed = Math.min(ROLLOUT_SECONDS, rolloutElapsed + dt); if (rolloutElapsed >= ROLLOUT_SECONDS) finishRollout(); }
       else if (mission.kind === 'custom-descent') stepCustomDescent(mission, input, dt * safeWarp(t));
-      else stepLunarMission(mission, input, dt * safeWarp(t));
+      else advanceToStageBoundary(mission, input, dt * safeWarp(t), stepLunarMission);
       const next = telemetry();
-      if (next.stageReady && next.stageIndex < 2 && ['launch', 'departure'].includes(mission.phase) && !paused) { pause(true); status('Stage depleted. Select the stage-release action to continue.'); }
+      if (needsStageRelease(mission) && !paused) { pause(true); status('Stage depleted. Select the stage-release action to continue.'); }
     }
     const t = telemetry(); renderView(t, dt);
     // The renderer may end inspection when a physical phase changes the scene.
@@ -327,7 +329,7 @@ export function createMissionControl({ onOpen = () => {}, onClose = () => {}, on
     if (inspectionChanged || now - lastUI > 100) { update(); lastUI = now; }
   }
   listen('[data-action="telemetry"]', 'click', () => openSheet('tools'));
-  listen('[data-action="map"]', 'click', () => openSheet('map'));
+  listen('[data-action="time"]', 'click', () => openSheet('time'));
   listen('[data-action="camera"]', 'click', () => openSheet('camera'));
   listen('[data-action="close-sheet"]', 'click', () => closeSheet());
   dialog.querySelectorAll('[data-close-sheet]').forEach(button => button.addEventListener('click', () => closeSheet()));
@@ -344,6 +346,7 @@ export function createMissionControl({ onOpen = () => {}, onClose = () => {}, on
   listen('[data-action="save"]', 'click', save); listen('[data-action="restore"]', 'click', restore); listen('[data-action="load-checkpoint"]', 'click', restore);
   listen('[data-power]', 'input', event => { power = Number(event.target.value) / 100; update(); });
   listen('[data-warp]', 'change', event => { warp = Number(event.target.value); update(); });
+  dialog.querySelectorAll('[data-mission-time]').forEach(button => button.addEventListener('click', () => { warp = Number(button.dataset.missionTime); $('[data-warp]').value = String(warp); update(); }));
   listen('[data-action="cut"]', 'click', cutEngine);
   dialog.querySelectorAll('[data-turn]').forEach(button => {
     button.addEventListener('pointerdown', event => { if (paused || guidance || button.closest('[hidden]')) return; event.preventDefault(); button.setPointerCapture(event.pointerId); touchTurns.add(button.dataset.turn); button.classList.add('firing'); });
@@ -368,6 +371,8 @@ export function createMissionControl({ onOpen = () => {}, onClose = () => {}, on
   dialog.addEventListener('cancel', event => { event.preventDefault(); if (activeSheet) closeSheet(); else if (planner) close(); else pause(); });
   window.addEventListener('keydown', event => {
     if (!active || planner) return;
+    const focusedDialog = event.target.closest?.('dialog');
+    if (focusedDialog && focusedDialog !== dialog) return;
     if (event.code === 'Escape') { event.preventDefault(); event.stopImmediatePropagation(); if (!event.repeat) { if (activeSheet) closeSheet(); else pause(); } return; }
     // Space/Enter on a focused control belong to that control, never flight shortcuts.
     const interactive = document.activeElement?.closest('button, a, input, select, textarea, summary, [role="button"], [contenteditable="true"]');
@@ -389,5 +394,5 @@ export function createMissionControl({ onOpen = () => {}, onClose = () => {}, on
   function pauseExternally(value = !paused) {
     if (activeSheet) { sheetWasPaused = value; pause(true); } else pause(value);
   }
-  return { open, close, pause: pauseExternally, getState: () => mission ? structuredClone(mission) : null, destroy() { close(); renderer?.dispose(); dialog.remove(); } };
+  return { open, close, pause: pauseExternally, getState: () => mission ? structuredClone(mission) : null, destroy() { close(); renderer?.dispose(); miniMap.destroy(); dialog.remove(); } };
 }

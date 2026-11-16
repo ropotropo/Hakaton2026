@@ -25,3 +25,24 @@
 /* Standalone/mobile browsers may draw beneath a display cutout. */
 .rocket-workshop .rw-header{height:calc(64px + env(safe-area-inset-top,0px));min-height:calc(64px + env(safe-area-inset-top,0px));padding-top:calc(8px + env(safe-area-inset-top,0px));padding-left:max(22px,env(safe-area-inset-left));padding-right:max(22px,env(safe-area-inset-right));}
 @media(max-width:760px),(max-height:500px) and (max-width:1000px){.rocket-workshop .rw-header{height:calc(56px + env(safe-area-inset-top,0px));min-height:calc(56px + env(safe-area-inset-top,0px));padding-top:calc(6px + env(safe-area-inset-top,0px));padding-left:max(14px,env(safe-area-inset-left));padding-right:max(14px,env(safe-area-inset-right));}.rocket-workshop .rw-layout{padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px);}.rocket-workshop .rw-placement button{min-height:44px;}}
+
+/* Attachment crosses use geometry rather than a font baseline. The 44 px hit
+   target stays centered on the projected attachment coordinate. */
+.rw-scene-top {z-index:4;}
+.rocket-workshop .rw-attachment-marker > span {position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:block;width:28px;height:28px;padding:0;border:1px solid #9bcaff;border-radius:50%;background:#07111ee8;color:#d6eaff;font-size:0;line-height:0;}
+.rocket-workshop .rw-attachment-marker > span::before,
+.rocket-workshop .rw-attachment-marker > span::after {content:'';position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);border-radius:1px;background:currentColor;}
+.rocket-workshop .rw-attachment-marker > span::before {width:12px;height:1.5px;}
+.rocket-workshop .rw-attachment-marker > span::after {width:1.5px;height:12px;}
+.rocket-workshop .rw-attachment-marker.rw-focus-point > span {border-color:#d6eaff;background:#18344ce8;}
+.rocket-workshop .rw-attachment-marker small {font-size:11px;line-height:1.3;margin:0;}
+.rocket-workshop .rw-attachment-marker.rw-focus-point small {opacity:1;}
+.rocket-workshop .rw-placement {align-items:center;}
+.rocket-workshop .rw-placement [data-placement-hint] {display:block;line-height:1.45;}
+.rocket-workshop .rw-placement button {min-height:44px;}
+@media(max-width:760px) {
+  .rocket-workshop .rw-placement {gap:10px;padding-top:8px;padding-bottom:8px;}
+  .rocket-workshop .rw-placement strong {font-size:11px;line-height:1.4;}
+  .rocket-workshop .rw-placement [data-placement-hint] {font-size:10px;line-height:1.4;max-width:40ch;margin-top:4px;}
+  .rocket-workshop .rw-placement button {padding:8px 10px;font-size:10px;}
+}

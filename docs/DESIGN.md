@@ -218,10 +218,10 @@ within the ceiling. Manual flight exposes held pitch controls. In separate
 landing practice, **Landing assist** and **Upright hold** retain separate names
 and states; an attitude controller does not imply an automatic descent.
 
-Full telemetry, checkpoint actions, time warp and the controls guide belong in
-an optional tools sheet. The map shows actual position, direction and target
-bearing with its frame and illustrative geometry identified. It is not a
-solved collision-free route. Tools, map and camera sheets are exclusive and
+Full telemetry, checkpoint actions and the controls guide belong in
+an optional tools sheet. Time has its own direct control. A small passive map
+shows actual position and target range in the scene; its geometry is schematic,
+not a solved collision-free route. Tools, time and camera sheets are exclusive and
 bounded; each has a stationary, labelled close control. Opening a sheet
 releases held controls and pauses the maneuver. Closing it leaves the maneuver paused. Resuming is an explicit
 player action, available as a short Resume control in the sheet and on the
@@ -267,11 +267,11 @@ supplies a horizon away from the pad rather than moving the target with the
 craft. These are implementation budgets, not measured mobile FPS claims.
 
 The author page pairs the existing project spacesuit portrait with the exact
-name **Микита Борисов**, Ukraine, and sole-author credit. Preserve the full
+name **Mykyta Borisov**, Ukraine, and sole-author credit. Preserve the full
 portrait; keep provenance in the asset credits rather than visible captions.
-Use calm type, one authorship line and a visible Back to game action, without
-invented biography or repeated explanations. The burger and its anchored black
-menu use quiet lines, clear labels and 44 px targets.
+Use calm type, one authorship line and a visible close action. About the author
+lives under More in the field guide, without a separate burger or duplicate
+How to play entry. Use the approved short biography and 44 px touch targets.
 
 ## Final branding
 
@@ -279,3 +279,21 @@ Kinetic Core is the confirmed name. Use the approved Latin KC vector from
 public/assets/branding in the interface, menu and post-contact flag. Keep only
 Created by Mykyta Borisov as the game authorship line. How to play introduces
 the full Moon mission before detailed controls.
+
+
+## v0.5.1 flight polish
+
+- Workshop focus follows the selected hardware or compatible attachment point,
+  with effect-free bounds, a short eased transition and above-platform limits.
+- Chase framing uses stable hardware bounds. Tiny pressure-driven launch shake
+  disappears in vacuum; a pointing controller may still turn the actual craft.
+- Empty launch stages hold for explicit release. The release action uses a red
+  attention state, with no pulse under reduced motion. Fuel and current-thrust
+  burn estimates accompany the stage; altitude is a reference, not orbit proof.
+- Critical flight phases run at 1×. Safe coasts may use the chosen rate; crossing
+  a physical phase boundary discards unused warp budget before a powered event.
+- Passive maps cannot cover camera, inspection or contact controls at phone sizes.
+- World selection is a horizontal globe rail with keyboard navigation, explicit
+  Begin/Cancel and the same destination gravity/context as the original selector.
+- Lunar terrain and panel deployment in this patch are bounded visual changes.
+  The deeper lunar stage is tracked in LUNAR-EXPERIENCE-NEXT.md.
