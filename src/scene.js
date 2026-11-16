@@ -306,40 +306,41 @@ function makeLaunchSiteDetail(palette){
   // A flame-channel apron, retaining walls, service lanes and launch markings.
   add('box',concrete,[106,.13,138],[0,-1.48,31]);add('box',asphalt,[11,.07,75],[0,-1.36,55]);
   for(const x of [-6.8,6.8])add('box',concrete,[2.1,1.2,77],[x,-.9,55]);
-  for(const x of [-32,32]){add('box',asphalt,[7,.1,260],[x,-1.29,133]);for(let z=26;z<254;z+=18)add('box',amber,[.18,.02,7],[x,-1.22,z]);for(const sign of [-1,1])add('box',white,[.12,.02,260],[x+sign*3.1,-1.22,133]);}
-  add('box',asphalt,[230,.1,8],[63,-1.31,150]);for(let x=-42;x<171;x+=18)add('box',amber,[7,.02,.18],[x,-1.24,150]);
+  for(const x of [-32,32]){add('box',asphalt,[7,.2,260],[x,-1.51,133]);for(let z=26;z<254;z+=18)add('box',amber,[.18,.016,7],[x,-1.398,z]);for(const sign of [-1,1])add('box',white,[.12,.016,260],[x+sign*3.1,-1.398,133]);}
+  add('box',asphalt,[230,.2,8],[63,-1.51,150]);for(let x=-42;x<171;x+=18)add('box',amber,[7,.016,.18],[x,-1.398,150]);
   for(const x of [-23,23])for(let z=-12;z<=31;z+=7)add('box',amber,[2.8,.025,.45],[x,-1.35,z],[0,.55,0]);
   // Cryogenic storage, with plinths, support saddles, caps and tank bands.
+  add('box',concrete,[42,.18,24],[61,-1.50,-43]);add('box',concrete,[14,.18,14],[-61,-1.50,-26]);
   for(const [x,z,r,h] of [[48,-42,4.2,16],[61,-43,3.2,12],[73,-42,3.2,12],[-61,-26,3.8,10]]){
-    add('box',concrete,[r*2.7,.45,r*2.7],[x,-1.13,z]);add('cylinder',white,[r,h,r],[x,h*.5+.3,z]);
+    add('box',concrete,[r*2.7,.51,r*2.7],[x,-1.155,z]);add('cylinder',white,[r,h,r],[x,h*.5+.3,z]);
     add('sphere',white,[r,.38*r,r],[x,h+.3,z]);for(const y of [1.1,h*.6])add('ring',steel,[r*1.015,r*1.015,r*1.015],[x,y,z],[Math.PI/2,0,0]);
-    for(const dx of [-r*.65,r*.65])pipe([x+dx,-.9,z],[x+dx,1,z],.2,dark);
+    for(const dx of [-r*.6,r*.6])for(const dz of [-r*.6,r*.6])add('box',dark,[.6,1.2,.6],[x+dx,-.3,z+dz]);
   }
   // Pipe racks, isolation valves and a separate cable tray avoid the craft axis.
   for(const offset of [0,1.05,2.1]){
     const points=[[48,-.2,-35-offset],[26,-.2,-35-offset],[26,-.2,-10-offset],[16,-.2,-10-offset]];
     for(let i=1;i<points.length;i++)pipe(points[i-1],points[i],.18+i*.025,i===2?amber:steel);
-    for(const x of [29,39,46])add('box',concrete,[.75,.65,4.7],[x,-1.05,-36]);
     pipe([39,-.2,-35-offset],[39,1.0,-35-offset],.09,amber);add('ring',amber,[.38,.38,.38],[39,1.06,-35-offset],[Math.PI/2,0,0]);
   }
+  for(const x of [29,39,46])add('box',concrete,[.75,1.0,4.7],[x,-.9,-36]);
   add('box',dark,[1.6,.3,68],[-22,-.97,54]);for(let z=25;z<84;z+=5)add('box',steel,[1.7,.06,.16],[-22,-.78,z]);
   // Low service buildings, protected vents, doors and medium-distance bunkers.
   for(const [x,z,w,d,h] of [[68,67,18,12,5],[-62,78,21,14,5.5],[114,135,29,17,7],[-110,-97,24,18,5]]){
-    add('box',concrete,[w,h,d],[x,h*.5-1.25,z]);add('box',dark,[w+1,.3,d+1],[x,h-1.1,z]);
-    add('box',asphalt,[3.5,3.7,.12],[x,h*.5-1.2,z+d*.5+.08]);add('box',white,[w*.45,1.15,.13],[x-w*.18,h*.6-1.25,z+d*.5+.1]);
-    for(const dx of [-w*.25,w*.25])add('box',steel,[2,.8,2],[x+dx,h-.5,z]);
+    add('box',concrete,[w+2,.3,d+2],[x,-1.45,z]);add('box',concrete,[w,h,d],[x,h*.5-1.30,z]);add('box',dark,[w+1,.3,d+1],[x,h-1.15,z]);
+    add('box',asphalt,[3.5,3.7,.12],[x,.55,z+d*.5+.08]);add('box',white,[w*.45,1.15,.13],[x-w*.18,h*.6-1.30,z+d*.5+.1]);
+    for(const dx of [-w*.25,w*.25])add('box',steel,[2,.8,2],[x+dx,h-.6,z]);
   }
   // Lightning/service masts: thin poles and guy lines leave the tower clear.
   for(const [x,z,h] of [[-78,-73,52],[82,-79,56],[-85,107,48],[95,104,46]]){
-    add('box',concrete,[4,.7,4],[x,-1.15,z]);pipe([x,-.8,z],[x,h,z],.22,white);pipe([x,h,z],[x,h+5,z],.075,steel);
-    for(const sign of [-1,1])pipe([x,h*.72,z],[x+sign*13,-1.3,z+8],.035,steel);
+    add('box',concrete,[4,.7,4],[x,-1.25,z]);pipe([x,-.9,z],[x,h,z],.22,white);pipe([x,h,z],[x,h+5,z],.075,steel);
+    for(const sign of [-1,1]){pipe([x,h*.72,z],[x+sign*13,-1.3,z+8],.035,steel);add('box',concrete,[1,.35,1],[x+sign*13,-1.425,z+8]);}
     add('sphere',lamp,[.2,.2,.2],[x,h+5.1,z]);
   }
-  for(const [x,z] of [[-29,55],[29,88],[48,141],[-58,116]]){pipe([x,-1.2,z],[x,7,z],.09,dark);pipe([x,7,z],[x+1.5,7,z],.07,dark);add('box',lamp,[.7,.12,.45],[x+1.4,6.97,z]);}
+  for(const [x,z] of [[-29,55],[29,88],[48,141],[-58,116]]){pipe([x,-1.6,z],[x,7,z],.09,dark);pipe([x,7,z],[x+1.5,7,z],.07,dark);add('box',lamp,[.7,.12,.45],[x+1.4,6.97,z]);}
   // A few uncrewed scale vehicles, pallets and enclosed utility cabinets.
-  for(const [x,z] of [[35,56],[-32,106],[88,148]]){
-    add('box',dark,[2.5,.45,5],[x,-.42,z]);add('box',white,[2.4,1.55,2.1],[x,.47,z-1.05]);add('box',glass,[2.05,.67,.04],[x,.87,z+.02]);add('box',steel,[2.4,.8,2.7],[x,.02,z+1.3]);
-    for(const dx of [-1.25,1.25])for(const dz of [-1.5,1.6])add('cylinder',asphalt,[.45,.22,.45],[x+dx,-.72,z+dz],[0,0,Math.PI/2]);
+  for(const [x,z] of [[32,56],[-32,106],[88,148]]){
+    add('box',dark,[2.5,.45,5],[x,-.66,z]);add('box',white,[2.4,1.55,2.1],[x,.23,z-1.05]);add('box',glass,[2.05,.67,.04],[x,.63,z+.02]);add('box',steel,[2.4,.8,2.7],[x,-.22,z+1.3]);
+    for(const dx of [-1.25,1.25])for(const dz of [-1.5,1.6])add('cylinder',asphalt,[.45,.22,.45],[x+dx,-.96,z+dz],[0,0,Math.PI/2]);
   }
   for(let i=0;i<9;i++){const x=41+i%3*2.1,z=14+Math.floor(i/3)*2.4;add('box',dark,[1.65,1.25,1.65],[x,-.78,z]);add('box',steel,[1.75,.08,1.75],[x,-.115,z]);}
   let instances=0;for(const batch of batches.values()){const mesh=new THREE.InstancedMesh(batch.geometry,batch.material,batch.matrices.length);batch.matrices.forEach((matrix,i)=>mesh.setMatrixAt(i,matrix));mesh.castShadow=false;mesh.receiveShadow=false;root.add(mesh);instances+=batch.matrices.length;}
@@ -379,12 +380,12 @@ function makeAtmosphericTrail(reducedMotion=false){
     }else if(!view.paused){samples.length=0;emission=0;}
     if(!view.paused)wasEmitting=burning;
     let visible=false;
-    particles.forEach((puff,i)=>{puff.age+=h;if(puff.age>=puff.life){opacity[i]=0;return;}visible=true;const local=localHistory(puff),size=1.6+puff.age*2.5;dummy.position.set(local[0],local[1],puff.z);dummy.quaternion.copy(camera.quaternion);dummy.scale.set(size,size,1);dummy.updateMatrix();puffs.setMatrixAt(i,dummy.matrix);opacity[i]=.2*puff.density*Math.pow(1-puff.age/puff.life,1.35);});
+    particles.forEach((puff,i)=>{puff.age+=h;if(puff.age>=puff.life){opacity[i]=0;return;}visible=true;const local=localHistory(puff),size=5.2+puff.age*4;dummy.position.set(local[0],local[1],puff.z);dummy.quaternion.copy(camera.quaternion);dummy.scale.set(size,size,1);dummy.updateMatrix();puffs.setMatrixAt(i,dummy.matrix);opacity[i]=.38*puff.density*Math.pow(1-puff.age/puff.life,1.35);});
     puffs.instanceMatrix.needsUpdate=true;geometry.attributes.trailOpacity.needsUpdate=true;puffs.visible=visible;
     // A continuous near-nozzle ribbon bridges sparse history samples at high
     // speed. Both endpoints come from the recorded physical flight path.
     near.visible=samples.length>1&&(burning||view.paused&&wasEmitting);
-    if(near.visible){const first=samples[0],last=samples.at(-1),a=localHistory(first),b=localHistory(last),tail=new THREE.Vector3(a[0],a[1],first.z),head=new THREE.Vector3(b[0],b[1],last.z),axis=head.clone().sub(tail);if(axis.length()>150){tail.copy(head).addScaledVector(axis,-150/axis.length());axis.copy(head).sub(tail);}const length=axis.length();if(length<.1)near.visible=false;else{axis.normalize();const toward=camera.position.clone().sub(head).normalize(),side=new THREE.Vector3().crossVectors(axis,toward).normalize(),normal=new THREE.Vector3().crossVectors(side,axis).normalize();near.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(side,axis,normal));near.position.copy(head).add(tail).multiplyScalar(.5);near.scale.set(3.4,length,1);nearMaterial.uniforms.strength.value=.14*density;}}
+    if(near.visible){const first=samples[0],last=samples.at(-1),a=localHistory(first),b=localHistory(last),tail=new THREE.Vector3(a[0],a[1],first.z),head=new THREE.Vector3(b[0],b[1],last.z),axis=head.clone().sub(tail);if(axis.length()>150){tail.copy(head).addScaledVector(axis,-150/axis.length());axis.copy(head).sub(tail);}const length=axis.length();if(length<.1)near.visible=false;else{axis.normalize();const toward=camera.position.clone().sub(head).normalize(),side=new THREE.Vector3().crossVectors(axis,toward).normalize(),normal=new THREE.Vector3().crossVectors(side,axis).normalize();near.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(side,axis,normal));near.position.copy(head).add(tail).multiplyScalar(.5);near.scale.set(5.2,length,1);nearMaterial.uniforms.strength.value=.22*density;}}
     root.visible=puffs.visible||near.visible;
   }
   clear();return {root,update,clear,dispose(){geometry.dispose();material.dispose();near.geometry.dispose();nearMaterial.dispose();}};
@@ -748,10 +749,9 @@ export function createScene(canvas, options = {}) {
   const launchVertices=launchTerrain.attributes.position;for(let i=0;i<launchVertices.count;i++){const x=launchVertices.getX(i),z=launchVertices.getZ(i);launchVertices.setY(i,-1.6-(x*x+z*z)/(2*6371000));}launchTerrain.computeVertexNormals();
   const launchGround=new THREE.Mesh(launchTerrain,new THREE.MeshStandardMaterial({map:textures.coastalGround,color:0xffffff,roughness:1,flatShading:false}));launchGround.receiveShadow=false;launchEnvironment.add(launchGround);
   const localGroundMaterials=[launchGround.material];
-  for(const x of [-48,48])box(launchEnvironment,[9,.12,600],[x,-1.3,190],materials.concrete);
   box(launchEnvironment,[34,.08,1900],[0,-1.42,1120],materials.grate);
   const waterTank=new THREE.Group();waterTank.position.set(-95,-1.6,-70);launchEnvironment.add(waterTank);
-  for(const x of [-4,4])for(const z of [-4,4])beam(waterTank,[x,0,z],[x,35,z],.27,materials.tower);
+  for(const x of [-4,4])for(const z of [-4,4])beam(waterTank,[x,0,z],[x,36,z],.27,materials.tower);
   cylinder(waterTank,8,8,8,[0,40,0],materials.white);const tankCap=new THREE.Mesh(new THREE.SphereGeometry(8,32,16),materials.white);tankCap.scale.y=.45;tankCap.position.y=44;waterTank.add(tankCap);
   beam(waterTank,[5,0,0],[5,38,0],.24,materials.titanium);
   const operations=new THREE.Group();operations.position.set(-1250,-1.6,1550);launchEnvironment.add(operations);
@@ -974,7 +974,10 @@ export function createScene(canvas, options = {}) {
       engineLight.intensity=throttle*(stage===0?750:240);engineLight.position.set(0,stage===0?1:30,0);
       rocketRoot.updateMatrixWorld(true);
       const rigid=framing[stage];desiredLook.copy(rigid.center).applyMatrix4(rocket.matrixWorld);
-      const fit=chaseDistance(rigid.radius,camera.fov,camera.aspect);
+      // Leave a little room behind the vehicle for its atmospheric trail.
+      const tailContext=THREE.MathUtils.smoothstep(altitude,80,300)*(1-THREE.MathUtils.smoothstep(altitude,30000,50000));
+      desiredLook.addScaledVector(new THREE.Vector3(0,1,0).transformDirection(rocket.matrixWorld),-rigid.radius*.24*tailContext);
+      const fit=chaseDistance(rigid.radius,camera.fov,camera.aspect)*(1+.35*tailContext);
       const followOffset=new THREE.Vector3(.61,.14,.8).normalize().multiplyScalar(fit);
       desiredCamera.copy(desiredLook).add(followOffset);
       if(stage===0&&altitude<180&&!freeOrbit){
