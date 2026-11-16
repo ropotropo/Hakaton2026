@@ -16,7 +16,7 @@
   padding: 11px;
   background: transparent;
   border: 1px solid transparent;
-  border-radius: 5px;
+  border-radius: 50%;
   cursor: pointer;
 }
 .site-menu-trigger > span { display: grid; gap: 5px; width: 21px; opacity: .82; }
@@ -24,8 +24,8 @@
 .site-menu-trigger:hover > span { opacity: 1; }
 .site-menu-dialog {
   position: fixed;
-  inset: 74px 24px auto auto;
-  width: min(440px, calc(100vw - 32px));
+  inset: 68px 16px auto auto;
+  width: min(380px, calc(100vw - 32px));
   max-width: calc(100vw - 32px);
   max-height: calc(100dvh - 32px);
   margin: 0;
@@ -95,14 +95,14 @@
   position: sticky;
   top: 0;
   z-index: 2;
-  min-height: 76px;
-  padding: 12px max(24px, env(safe-area-inset-right)) 12px max(24px, env(safe-area-inset-left));
+  min-height: 56px;
+  padding: 6px max(16px, env(safe-area-inset-right)) 6px max(16px, env(safe-area-inset-left));
   border-bottom: 1px solid #303034;
   background: #000;
 }
 .site-menu-brand { font-size: 20px; font-weight: 600; letter-spacing: -.045em; }
 .site-biography-back { padding: 10px 16px; border: 0; border-radius: 7px; background: #f5f5f7; color: #000 !important; }
-.site-biography-content { display: grid; grid-template-columns: minmax(240px, 1fr) minmax(260px, 1fr); align-items: center; gap: clamp(40px, 7vw, 96px); max-width: 1160px; min-height: calc(100dvh - 76px); margin: 0 auto; padding: 42px 34px 48px; }
+.site-biography-content { display: grid; grid-template-columns: minmax(240px, 1fr) minmax(260px, 1fr); align-items: center; gap: clamp(40px, 7vw, 96px); max-width: 1160px; min-height: calc(100dvh - 56px); margin: 0 auto; padding: 42px 34px 48px; }
 .site-author-portrait { width: 100%; max-width: 470px; margin: 0; justify-self: center; }
 .site-author-image { display: flex; align-items: center; justify-content: center; width: 100%; height: min(66dvh, 620px); overflow: hidden; background: #000; }
 .site-author-image img { display: block; width: 100%; height: 100%; object-fit: contain; object-position: center; }
@@ -114,14 +114,13 @@
 .site-author-attribution { max-width: 34ch; margin: 30px 0 0; padding-top: 23px; border-top: 1px solid #303034; font-size: 14px; line-height: 1.85; color: #aaaab7; }
 @media (max-width: 650px) {
   .header-actions:has(.site-menu-trigger) { gap: 8px; }
-  .app-header:has(.site-menu-trigger) { height: auto; min-height: 70px; flex-wrap: wrap; padding-top: 8px; padding-bottom: 8px; }
-  .site-menu-dialog { inset: 82px 12px auto auto; width: calc(100vw - 24px); max-width: calc(100vw - 24px); padding: 20px 23px 6px; }
+  .site-menu-dialog { inset: 68px 12px auto auto; width: calc(100vw - 24px); max-width: calc(100vw - 24px); padding: 20px 23px 6px; }
   .site-menu-heading { margin-bottom: 15px; }
   .site-menu-dialog nav button { padding: 22px 0; font-size: 21px; }
-  .site-biography-header { flex-wrap: wrap; padding: 12px 16px; }
+  .site-biography-header { min-height:56px; padding:6px 16px; }
   .site-biography-content { display: flex; flex-direction: column; align-items: stretch; gap: 32px; padding: 26px 22px 42px; }
   .site-author-portrait { max-width: 470px; margin: 0 auto; }
-  .site-author-image { height: min(61dvh, 590px); }
+  .site-author-image { height: min(45dvh, 470px); }
   .site-author-copy { padding-bottom: 0; }
   .site-biography-content h1 { font-size: clamp(43px, 11vw, 63px); max-width: none; }
   .site-author-country { margin-top: 18px; }
@@ -138,3 +137,6 @@
 .site-menu-heading h2,.site-menu-brand {display:flex;align-items:center;gap:13px;}
 .menu-kc {display:block;width:42px;flex:0 0 42px;}
 .menu-kc .kc-mark {max-height:26px;}
+.site-biography-header{min-height:calc(56px + env(safe-area-inset-top,0px));padding-top:calc(6px + env(safe-area-inset-top,0px));}
+.site-menu-dialog{top:calc(68px + env(safe-area-inset-top,0px));max-height:calc(100dvh - 84px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));}
+.site-biography-content{padding-bottom:max(42px,env(safe-area-inset-bottom));}
