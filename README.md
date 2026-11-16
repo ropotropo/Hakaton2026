@@ -2,99 +2,75 @@
 
 **Design a mission. Fly its critical moments.**
 
-An original spaceflight game by **Mykyta Borisov (ropotropo), the sole game author**.
-Andrii coordinates feedback; Codex and specialist agents assist development.
-See [authorship](AUTHORS.md).
-The site menu's **About the author** page shows **Микита Борисов**, Ukraine,
-with the project spacesuit portrait.
+> **Development archive.** The author-owned publication repository is **[Kinetic-Core-2026](https://github.com/ropotropo/Kinetic-Core-2026)**. This archive stays available for the original submitted PDF, historical sources and its existing playable.
 
-## Play v0.5.0
+Created by **Mykyta Borisov** · **NASA Space Apps Challenge 2026** · Challenge: **Space Mission Design Game**
 
-Open **[the browser game](https://ropotropo.github.io/Hakaton2026/kinetic-core/)**
-or download the portable HTML from the
-**[v0.5.0 release](https://github.com/ropotropo/Hakaton2026/releases/tag/v0.5.0)**.
-The portable `dist/Kineti-Core.html` includes the renderer and local textures;
-open the downloaded file directly. The core game needs no account or backend.
-The optional **Earth / free flight** map mode needs internet.
+Build a modular spacecraft, see how engineering choices change its performance, and fly a continuous Earth-to-Moon landing mission. Practice docking and surface landings as clearly separate exercises.
+
+## Start here
+
+| Review material | Link |
+| --- | --- |
+| Publication game | **[Open Kinetic Core](https://ropotropo.github.io/Kinetic-Core-2026/)** |
+| Archive game | [Existing submitted/archive playable](https://ropotropo.github.io/Hakaton2026/kinetic-core/) |
+| Submitted presentation | **[English PDF — original submitted link](https://github.com/ropotropo/Hakaton2026/blob/codex/final-presentations/presentation/Kinetic-Core-EN.pdf)** |
+| Project guide | **[Read the Wiki](https://github.com/ropotropo/Hakaton2026/wiki)** |
+| Gameplay video | **[Video and update status](VIDEO.md)** — completed film, maintained separately |
+| Portable game and preview installers | [v0.4.4 downloads](https://github.com/ropotropo/Hakaton2026/releases/tag/v0.4.4) |
+
+**This branch: v0.5.0 Flight Deck, a development preview candidate.** The published v0.4.4 downloads and original submitted links remain available above. Merging this source does not publish a release or synchronize the separate publication repository. The PDF keeps its original URL and bytes; video revisions are maintained independently.
+
+![Recorded Kinetic Core gameplay](docs/media/v04-custom-moon-touchdown.jpg)
+
+*Recorded gameplay from the documented guided Moon-mission check. This image is historical test evidence, not a new run of the final build.*
+
+## Flight Deck v0.5
 
 The opening **Missions** screen gives the Moon expedition one primary action,
 with the spacecraft workshop, separate maneuver practice and exploration below.
-A live journey shows physical flight phases; the local flight log records only
-completed milestones. Camera, map and detailed instruments stay out of the way
-until needed. See the [v0.5 UX audit](docs/UX-AUDIT-V05.md).
+The journey shows actual flight phases; the local flight log records confirmed
+milestones. Three critical readings, the scene and touch controls share one
+bounded viewport. Camera, map and detailed instruments open only when needed.
+Closing tools leaves flight paused until an explicit **Resume** action.
 
-The final **KC** brand appears in the game, menu and landing flag. Open **How to play** from the header or site menu for a short first-flight guide.
+## Try the first mission
 
-## Your first Moon mission
+1. Open **Missions → Prepare expedition**. The Lunar demonstrator is ready.
+   For a custom vehicle, choose **Build a spacecraft**, place compatible hardware
+   and select **Plan flight**. Dimensions change geometry and performance.
+2. Choose **Moon · full expedition**, select one of four Apollo-reference
+   approaches and start. Other destinations are labelled surface rehearsals.
+3. A skippable 12 s rollout and 5 s countdown precede actual powered ascent.
+   The flight director hands over at 100 m. Keep **Powered guidance** on initially;
+   the engine slider sets its ceiling. At depletion choose **Separate booster**.
+4. In confirmed Earth orbit, choose **Plan departure**. Use time warp for coasts
+   and release the depleted upper stage when prompted. The same retained craft
+   uses finite fuel for departure, approach, capture and descent. Safe contact
+   starts the KC crew/flag ceremony and physical debrief.
 
-1. Open **Missions → Prepare expedition**. The Lunar demonstrator is ready
-   to fly. For a custom vehicle, choose **Build a spacecraft**, place compatible
-   hardware and use **Plan flight**. Dimensions change geometry and performance.
-2. Select **Moon · full expedition** and one of four Apollo-reference approaches.
-   Other destinations are explicitly labelled surface rehearsals.
-3. Start the mission: a skippable 12 s rollout cinematic and 5 s countdown precede a
-   real powered ascent. The flight director hands over at actual 100 m altitude.
-4. Keep **Powered guidance** on for the first run. Power is an engine ceiling.
-   At core depletion the game pauses: choose **Separate booster** or press
-   **Space** to release it and continue.
-5. In the confirmed Earth orbit, choose **Plan departure**. Coast to the
-   burn window and separate the depleted upper stage when asked. All burns
-   use the retained craft's finite propellant.
-6. Time warp compresses the actual Earth–Moon coast. Guidance performs lunar
-   approach, capture, coast to the chosen longitude and powered descent. You
-   can change power, disable guidance or pause. The live map follows the actual
-   trajectory; a dashed bearing is not a collision-free flight plan.
-7. Safe contact produces the Moon crew/flag finale and physical debrief.
-   Surface samples, lunar ascent, return and atmospheric entry are future work.
+For a quick maneuver, choose **Missions → Docking** or **Missions → Surface
+landing**. Docking starts a separate 70 m terminal approach with External chase,
+Docking camera and Cockpit; changing view does not align, brake or move the
+craft. Landing assist is powered descent guidance, separate from Upright hold.
+Both use finite propellant. See [How to play](docs/GETTING-STARTED.md) for
+controls, checkpoints and recovery.
 
-The named approaches use real reference coordinates; latitude is metadata in
-this **2D** model and surface terrain is illustrative. The model uses a synthetic
-circular Moon epoch and patched conics, not live ephemerides.
+## What the prototype demonstrates
 
-## Docking and landing controls
+- The same assembled spacecraft carries its mass, finite propellant and flight state through Earth launch, staging, orbit, lunar departure, capture and touchdown.
+- Dimensions and hardware choices change mass, thrust, fuel and performance. Powered guidance and RCS assistance spend the available propellant.
+- A separate manual docking exercise offers external, docking and cockpit cameras. Other-world surface rehearsals explicitly skip interplanetary transfers.
 
-**Missions → Docking** starts a separate 70 m terminal approach. Choose
-**External chase**, **Docking camera** or **Cockpit** above the command surface.
-The nose camera supplies alignment optics; the crew-eye camera follows actual
-craft attitude. External views support mouse inspection. Changing cameras does
-not align, brake or move the craft.
+The mission model uses **2D patched conics, ideal engine pointing and a synthetic circular Moon epoch**. Terrain and spacecraft are illustrative. Sampling, lunar ascent, return and complete interplanetary transfers are future work. Desktop keyboard is the primary precision-control baseline; real-phone performance and Windows/Android device acceptance remain unverified.
 
-| Input | Manual docking | Surface landing exercise |
-| --- | --- | --- |
-| W / S | Approach / retreat | Engine power |
-| A / D | Translate left / right | Tilt left / right |
-| R / F | Translate up / down | — |
-| Arrow keys | Pitch / yaw | Left/right tilt |
-| Q / E | Roll | — |
-| Shift | Fine RCS, 20% thrust | — |
-| Space | Hold powered translation brake | Cut engine |
-| B | Powered attitude hold | Powered upright hold |
-| Esc | Pause | Pause |
+## Evidence and source
 
-Every docking assist spends RCS fuel. No passive vacuum braking or automatic
-forward motion. Keep contact below 0.15 m/s, lateral alignment within 0.35 m,
-axis error below 5° and rotation below 1°/s; these are game tolerances.
+[Flight Deck v0.5 verification](docs/QA-V05.md) · [v0.5 UX audit](docs/UX-AUDIT-V05.md) · [Original v0.4.4 review baseline](docs/CURRENT-VERSION.md) · [Physics and references](docs/PHYSICS.md) · [Documentation index](docs/README.md) · [Presentation materials](presentation/README.md) · [Archive/publication continuity](docs/MIGRATION.md)
 
-**Missions → Surface landing** opens the standard training lander with an obvious
-**Landing assist** toggle. It is powered descent guidance, separate from upright
-hold. Commands obey the power ceiling and use fuel. Manual controls, a readable
-throttle slider and descent camera remain available.
+The current suite contains **99 tests**, including numerical/state/geometry regressions, mission-journey and retained-mass checks, and local milestone persistence. Build checks and historical browser evidence are identified separately in the documentation; a passing suite is not certification or a universal accuracy score.
 
-Phone flight uses a bounded viewport: three critical readings, the scene and
-touch controls remain together. Docking has Translate/Rotate groups, Fine RCS,
-three mounted cameras and a separate inspection state. Optional sheets pause
-flight and release held controls. See [v0.5 verification](docs/QA-V05.md) for
-checked viewports, scenarios and remaining real-device limits.
-
-Fourteen destinations are available: Moon, Phobos, Deimos, Io, Europa, Ganymede,
-Callisto, Titan, Enceladus, Rhea, Iapetus, Triton, Mercury and Mars. The workshop
-also starts **your own retained spacecraft** in local surface rehearsals; it
-does not simulate interplanetary transfers there. Some designs lack sufficient
-thrust on higher-gravity bodies. The planner warns rather than changing hardware.
-
-## Develop and transfer
-
-Node.js **22.12+** and npm are required. Run in the extracted project folder:
+To run locally with Node.js **22.12+** and npm:
 
 ```sh
 npm ci
@@ -103,29 +79,10 @@ npm run build
 npm run preview
 ```
 
-`npm run dev` starts development. Build outputs are static `dist/` and portable
-`dist/Kineti-Core.html`. Relative assets support root or subpath hosting. No
-private service or developer-machine path is required.
+A source build produces the v0.5.0 candidate at `dist/Kineti-Core.html`. For the previously published portable copy, download `Kineti-Core.html` from the [v0.4.4 release](https://github.com/ropotropo/Hakaton2026/releases/tag/v0.4.4) and open the downloaded file. The legacy filename is retained for compatibility. The core Moon game has bundled assets; optional online Earth flight needs internet. Browser saves stay local to the current origin and device.
 
-After committing a tested version, `npm run export` creates a source ZIP and
-SHA-256 manifest from that commit, without Git history or scratch files. Follow
-[REPOSITORY-TRANSFER.md](docs/REPOSITORY-TRANSFER.md) before moving repositories.
-Browser saves remain origin/device-local; a new URL does not inherit them.
+## Authorship and credits
 
-## Evidence and next milestone
+**Mykyta Borisov is the sole game author.** Andrii relays feedback and coordinates development; Codex and specialist agents provide implementation, design and verification assistance. See [AUTHORS.md](AUTHORS.md).
 
-- [v0.4 changes and limits](docs/RELEASE-V04.md)
-- [Independent QA](docs/QA-V04.md), with numerical and browser evidence separated
-- [North Star and v1 gates](docs/NORTH-STAR.md)
-- [Physical models](docs/PHYSICS.md) and [Europa research](docs/EUROPA.md)
-- [Design language](docs/DESIGN.md) and [reusable skill](skills/kineti-design/SKILL.md)
-- [Windows/macOS/Android plan](docs/DISTRIBUTION.md)
-
-NASA/JPL/USGS data and images retain credits in
-[public/assets/SOURCES.md](public/assets/SOURCES.md). Dependency notices ship in
-`dist/THIRD_PARTY_NOTICES.txt` and the portable HTML. Spacecraft, pad and surface
-geometry are illustrative fictional hardware. No NASA affiliation or endorsement.
-
-Completed versions are tested, built, committed and pushed with a portable build
-and a pull request requesting **@ropotropo** review, without automatic merging.
-Windows `.exe` and Android `.apk` previews are available in the [v0.5.0 release](https://github.com/ropotropo/Hakaton2026/releases/tag/v0.5.0). See [installation and platform limits](docs/DISTRIBUTION.md); these initial native packages have not been acceptance-tested on Windows or an Android device.
+NASA/JPL/USGS references and imagery retain their [source credits](public/assets/SOURCES.md). Dependency licenses are included in [THIRD_PARTY_NOTICES.txt](dist/THIRD_PARTY_NOTICES.txt). Generated cover artwork is documented separately from actual gameplay. No NASA affiliation or endorsement is implied. A new public license for the original game has not been selected; third-party license terms continue to apply.

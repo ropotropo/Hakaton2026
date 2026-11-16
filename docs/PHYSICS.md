@@ -1,4 +1,6 @@
-# Physical models in the first playable
+# Kinetic Core physical models
+
+> Current game: **v0.4.4**. The opening ascent/docking sections record the initial model; the **v0.4 continuous Moon mission** section below documents the connected Earth–Moon route. Read [Current version](CURRENT-VERSION.md) for the complete implemented scope and current verification boundaries.
 
 Game concept: Mykyta. Physics implementation and tests: AI-assisted development with Codex, November 14, 2026. This is an educational game model, not flight software or a NASA-certified simulator.
 

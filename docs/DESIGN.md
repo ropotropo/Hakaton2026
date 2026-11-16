@@ -12,6 +12,8 @@ author.
 Flight Deck is an interface revision. The Moon expedition, separate practice
 scenarios and exploration views retain their existing physical boundaries.
 Use Kinetic Core's own black identity; celestial bodies provide natural color.
+Do not import Malibu Wired's brass, TRD's dashboard components, a generic neon
+cockpit or a marketing-site hero.
 
 ## Shared tokens
 
