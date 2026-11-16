@@ -66,3 +66,51 @@
   .solar-view-tools { gap:12px; }
 }
 @media(prefers-reduced-motion:reduce) { .solar-info::backdrop { backdrop-filter:none; } }
+
+/* The native body select still owns selection; the shared image rail exposes it. */
+.solar-controls {grid-template-columns:minmax(180px,240px) auto;align-items:center;padding-top:8px;padding-bottom:8px;}
+.solar-controls label {display:flex;align-items:center;gap:9px;}
+.solar-controls label[hidden] {display:none!important;}
+.solar-controls select {flex:1;width:auto;}
+.solar-controls [data-land] {grid-column:auto;width:auto;}
+.solar-explorer>.solar-body-carousel {flex:0 0 auto;width:100%;min-width:0;margin:0;padding:0 max(16px,env(safe-area-inset-right)) 0 max(16px,env(safe-area-inset-left));border-bottom:1px solid #ffffff1e;background:#050506;}
+.solar-body-carousel .world-carousel-heading {height:44px;font-size:12px;}
+.solar-body-carousel .world-carousel-heading>div {gap:6px;}
+.solar-body-carousel .world-carousel-heading button {width:44px;height:44px;min-height:44px;border:0;background:transparent;}
+.solar-body-carousel .world-carousel-heading button:disabled {opacity:.25;cursor:default;}
+.solar-body-carousel .world-rail {gap:8px;padding:3px 4px 12px;touch-action:pan-x;}
+.solar-body-carousel .world-choice {flex-basis:104px;min-width:0;min-height:121px;padding:9px 5px 7px;border-radius:12px;}
+.solar-body-carousel .world-globe {width:62px;height:62px;flex-basis:62px;}
+.solar-body-carousel .world-choice strong {width:100%;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;line-height:1.3;margin-top:8px;}
+.solar-body-carousel .world-choice small {max-width:100%;font-size:9px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;}
+.solar-body-carousel .world-choice[data-landing-available="true"] small {color:#a8d8bd;}
+.solar-body-carousel .world-landings {right:-8px;bottom:-3px;font-size:10px;padding:3px 5px;}
+@media(max-width:600px) {
+  .solar-controls {grid-template-columns:minmax(0,1fr) auto;gap:9px;padding:8px max(12px,env(safe-area-inset-right)) 8px max(12px,env(safe-area-inset-left));}
+  .solar-controls label {font-size:0;gap:0;}
+  .solar-controls select {font-size:12px;min-height:44px;width:100%;padding-left:10px;}
+  .solar-controls [data-land] {grid-column:auto;min-height:44px;width:auto;justify-self:end;font-size:12px;padding:10px 12px;}
+  .solar-controls [data-land] .kc-icon {width:17px;height:17px;}
+  .solar-explorer>.solar-body-carousel {padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right));}
+  .solar-body-carousel .world-carousel-heading {font-size:11px;}
+  .solar-body-carousel .world-choice {flex-basis:96px;min-height:114px;padding-top:8px;}
+  .solar-body-carousel .world-globe {width:56px;height:56px;flex-basis:56px;}
+  .solar-body-carousel .world-choice strong {font-size:12px;margin-top:7px;}
+  .solar-body-carousel .world-rail {padding-bottom:9px;}
+}
+@media(max-height:500px) and (min-width:601px) {
+  /* Preserve the canvas height in a phone's short landscape viewport. */
+  .solar-explorer {display:grid;grid-template-columns:minmax(0,1fr) 270px;grid-template-rows:calc(56px + var(--solar-top)) minmax(0,1fr);}
+  .solar-explorer>header {grid-column:1/-1;grid-row:1;}
+  .solar-space {grid-column:1;grid-row:2;width:100%;height:100%;border-right:1px solid #ffffff1e;}
+  .solar-controls {grid-column:2;grid-row:2;align-self:start;grid-template-columns:minmax(0,1fr) auto;height:62px;padding:9px 10px;gap:7px;background:#050506;}
+  .solar-controls label {font-size:0;gap:0;}
+  .solar-controls select {font-size:11px;width:100%;padding:9px 24px 9px 8px;}
+  .solar-controls [data-land] {font-size:11px;padding:9px 10px;gap:5px;}
+  .solar-controls [data-land] .kc-icon {width:15px;height:15px;}
+  .solar-explorer>.solar-body-carousel {grid-column:2;grid-row:2;align-self:stretch;width:270px;margin-top:62px;padding:0 10px;border-bottom:0;overflow:hidden;}
+  .solar-body-carousel .world-carousel-heading {height:44px;font-size:11px;}
+  .solar-body-carousel .world-choice {flex-basis:100px;min-height:116px;padding-top:8px;}
+  .solar-body-carousel .world-globe {width:58px;height:58px;flex-basis:58px;}
+  .solar-body-carousel .world-rail {padding-top:5px;padding-bottom:10px;}
+}

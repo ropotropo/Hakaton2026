@@ -5,7 +5,8 @@ import { icon } from './ui-icons.js';
 export const AUTHOR_PORTRAIT_PATH = './assets/mykyta-portrait.jpg';
 let installation;
 
-// Author information belongs to Guide → More, not another navigation surface.
+// The guide exposes the creator directly; the full approved portrait remains
+// in its existing biography dialog and retains the same pause/focus contract.
 export function installSiteMenu({ onOpen = () => {}, onClose = () => {} } = {}) {
   if (installation) return installation;
   const guide = document.getElementById('guide-dialog');
@@ -17,7 +18,7 @@ export function installSiteMenu({ onOpen = () => {}, onClose = () => {} } = {}) 
   trigger.setAttribute('aria-haspopup', 'dialog');
   trigger.setAttribute('aria-label', 'About the author, Mykyta Borisov');
   trigger.innerHTML = `<span class="field-guide-author-photo" aria-hidden="true"><img src="${AUTHOR_PORTRAIT_PATH}" alt="" width="48" height="48" loading="lazy" decoding="async"></span><span class="field-guide-author-label"><strong>About the author</strong><small>Mykyta Borisov</small></span>${icon('chevron-right')}`;
-  more.append(trigger);
+  (guide.querySelector('[data-guide-author-entry]')||more).append(trigger);
 
   const biography = document.createElement('dialog');
   biography.className = 'site-biography'; biography.hidden = true;

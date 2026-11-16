@@ -27,19 +27,15 @@
 #viewport #paused-overlay{pointer-events:none;}
 #viewport #paused-overlay button{pointer-events:auto;}
 #viewport:has(#scene-inspection:not([hidden])) #paused-overlay{display:none;}
-/* The ready start action stays in place and quietly draws the eye. */
+/* Only a ready primary action or the next maneuver quietly draws the eye. */
 @keyframes mission-start-attention{
-  0%,100%{box-shadow:0 0 0 0 #f5f5f730,0 0 14px #f5f5f70a;}
-  55%{box-shadow:0 0 0 5px #f5f5f700,0 0 24px #f5f5f72c;}
+  0%,100%{box-shadow:0 6px 18px #f5f5f717,0 0 8px #f5f5f70a;}
+  55%{box-shadow:0 8px 32px #f5f5f733,0 0 18px #f5f5f71e;}
 }
-#launch-button:not(:disabled),
-.mission-control .mc-planner:not([hidden]) [data-action="start"]:not(:disabled),
-#landing-chooser[open] #landing-chooser-begin:not(:disabled){animation:mission-start-attention 2.8s ease-in-out infinite;}
-#launch-button:hover,#launch-button:focus-visible,
-.mission-control [data-action="start"]:is(:hover,:focus-visible),
-#landing-chooser-begin:is(:hover,:focus-visible){animation-play-state:paused;}
+:is(.mode-hub-dialog .mh-primary-actions [data-mode="moon-mission"],.guide-play,#launch-button,#start-landing,#landing-chooser-begin,.rocket-workshop [data-action="start"],.rocket-workshop [data-action="mobile-start"],.mission-control .mc-planner:not([hidden]) [data-action="start"],.mission-control .mc-coach [data-action="next"],.solar-explorer [data-land]):not(:disabled):not([hidden]){animation:mission-start-attention 3.4s ease-in-out infinite;}
+:is(.mode-hub-dialog .mh-primary-actions [data-mode="moon-mission"],.guide-play,#launch-button,#start-landing,#landing-chooser-begin,.rocket-workshop [data-action="start"],.rocket-workshop [data-action="mobile-start"],.mission-control [data-action="start"],.mission-control .mc-coach [data-action="next"],.solar-explorer [data-land]):is(:hover,:focus-visible){animation-play-state:paused;}
 @media(prefers-reduced-motion:reduce){
-  #launch-button:not(:disabled),.mission-control [data-action="start"],#landing-chooser-begin{animation:none!important;box-shadow:0 0 0 2px #f5f5f740;}
+  :is(.mode-hub-dialog .mh-primary-actions [data-mode="moon-mission"],.guide-play,#launch-button,#start-landing,#landing-chooser-begin,.rocket-workshop [data-action="start"],.rocket-workshop [data-action="mobile-start"],.mission-control [data-action="start"],.mission-control .mc-coach [data-action="next"],.solar-explorer [data-land]):not(:disabled){animation:none!important;box-shadow:0 6px 22px #f5f5f724;}
 }
 
 /* Brand navigation returns to the mission home without resetting a flight. */
@@ -67,3 +63,33 @@
 #destination-dialog .destination-actions button{min-height:44px;width:100%;}
 
 @media(max-width:650px){.game-shell[data-workspace="assembly"] .app-header{position:sticky;top:0;z-index:40;}}
+
+/* Wide headers balance the brand at left with a centered activity title. */
+@media(min-width:901px){
+ .rocket-workshop .rw-header{position:relative;}
+ .rocket-workshop .rw-header>div:first-child{position:absolute;left:50%;transform:translateX(-50%);text-align:center;max-width:calc(100% - 560px);pointer-events:none;}
+ .rocket-workshop .rw-header-actions{margin-left:auto;}
+ .game-shell .mission-nav>.mission-context{position:absolute;left:50%;transform:translateX(-50%);width:min(600px,calc(100% - 340px));text-align:center;align-items:center;}
+ .game-shell .mission-nav>.mission-context-actions{margin-left:auto;}
+ .game-shell .mission-context .landing-world-button{justify-content:center;}
+}
+
+.payload-control{display:grid;gap:8px;grid-column:1/-1;color:#a6a8af;font-size:11px;}
+.payload-control>select[hidden]{display:none!important;}
+.payload-options{display:grid;gap:6px;}
+.payload-options>button{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:52px;padding:12px;border:1px solid #ffffff26;border-radius:12px;background:#0a0a0b;color:#d5d6dc;text-align:left;}
+.payload-options>button[aria-pressed="true"]{border-color:#ffffff99;background:#ffffff0c;color:#f5f5f7;}
+.payload-options>button:hover{border-color:#ffffff80;}
+.payload-options>button:focus-visible{outline:2px solid #9bcaff;outline-offset:3px;}
+.payload-options strong{font-size:12px;font-weight:500;line-height:1.4;}
+.payload-options small{font-size:11px;color:#a6a8af;white-space:nowrap;}
+.payload-control>small{font-size:10px;line-height:1.5;color:#858994;}
+.extra-selects>label{align-content:start;grid-column:1/-1;}
+@media(max-width:650px){.payload-options{grid-template-columns:repeat(3,minmax(0,1fr));}.payload-options>button{flex-direction:column;align-items:flex-start;min-height:76px;gap:9px;padding:12px 10px;}.payload-options strong{font-size:11px;}.payload-options small{font-size:10px;}}
+@media(min-width:901px){
+ .solar-explorer>header,.earth-online>header,.rollout-header,.mission-control .mc-header{position:relative;}
+ .solar-explorer>header>div:first-child,.earth-online>header>div:first-child,.rollout-header>div:first-child{position:absolute;left:50%;transform:translateX(-50%);text-align:center;max-width:calc(100% - 400px);pointer-events:none;}
+ .solar-explorer>header>.mode-hub-header-actions,.earth-online>header>.mode-hub-header-actions,.rollout-header>.mode-hub-header-actions{margin-left:auto;}
+ .mission-control .mc-header .mc-brand{position:static;min-width:44px;}
+ .mission-control .mc-header .mc-brand>strong{position:absolute;left:50%;transform:translateX(-50%);max-width:calc(100% - 400px);text-align:center;pointer-events:none;}
+}

@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { sceneFrameAngle, inertialToRender, solarDirection, raySphereOccluded, solarGlareStrength, SURFACE_PARENT_BEARING } from './solar-direction.js';
 
 // These are explicit paths so the portable builder can embed every resource.
 // The maps are NASA display assets. They do not define gravity or landing DEMs.
@@ -116,11 +117,24 @@ function makeSkyDome(zenith=0x547f9c,horizon=0xc0ced2){
 }
 
 function makeSun(){
-  const root=new THREE.Group(),disk=new THREE.Mesh(new THREE.SphereGeometry(1,24,16),new THREE.MeshBasicMaterial({color:0xfff8e9,toneMapped:false}));root.add(disk);
+  const root=new THREE.Group(),disk=new THREE.Mesh(new THREE.CircleGeometry(1,64),new THREE.MeshBasicMaterial({color:0xfffbed,toneMapped:false}));root.add(disk);
   const canvas=document.createElement('canvas');canvas.width=canvas.height=128;const ctx=canvas.getContext('2d'),gradient=ctx.createRadialGradient(64,64,0,64,64,64);
-  gradient.addColorStop(0,'rgba(255,248,224,.9)');gradient.addColorStop(.12,'rgba(255,240,208,.48)');gradient.addColorStop(.4,'rgba(255,232,199,.08)');gradient.addColorStop(1,'rgba(255,232,199,0)');ctx.fillStyle=gradient;ctx.fillRect(0,0,128,128);
-  const map=textureFromCanvas(canvas),glow=new THREE.Sprite(new THREE.SpriteMaterial({map,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,toneMapped:false}));glow.scale.set(9,9,1);root.add(glow);
-  return {root,dispose(){disk.geometry.dispose();disk.material.dispose();glow.material.dispose();map.dispose();}};
+  gradient.addColorStop(0,'rgba(255,252,239,1)');gradient.addColorStop(.08,'rgba(255,247,220,.73)');gradient.addColorStop(.25,'rgba(255,237,206,.2)');gradient.addColorStop(.6,'rgba(255,230,190,.035)');gradient.addColorStop(1,'rgba(255,230,190,0)');ctx.fillStyle=gradient;ctx.fillRect(0,0,128,128);
+  const map=textureFromCanvas(canvas),glow=new THREE.Sprite(new THREE.SpriteMaterial({map,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,toneMapped:false}));glow.scale.set(28,28,1);root.add(glow);
+  const streakCanvas=document.createElement('canvas');streakCanvas.width=256;streakCanvas.height=64;const streakCtx=streakCanvas.getContext('2d');streakCtx.translate(128,32);streakCtx.scale(128,7);
+  const streakGradient=streakCtx.createRadialGradient(0,0,0,0,0,1);streakGradient.addColorStop(0,'rgba(255,250,235,.9)');streakGradient.addColorStop(.2,'rgba(242,236,218,.42)');streakGradient.addColorStop(.6,'rgba(209,220,234,.07)');streakGradient.addColorStop(1,'rgba(209,220,234,0)');streakCtx.fillStyle=streakGradient;streakCtx.fillRect(-1,-1,2,2);
+  const streakMap=textureFromCanvas(streakCanvas),streak=new THREE.Sprite(new THREE.SpriteMaterial({map:streakMap,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,toneMapped:false}));streak.scale.set(38,5,1);root.add(streak);
+  const labelCanvas=document.createElement('canvas');labelCanvas.width=64;labelCanvas.height=32;const labelCtx=labelCanvas.getContext('2d');labelCtx.font='500 24px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';labelCtx.textAlign='center';labelCtx.textBaseline='middle';labelCtx.shadowColor='#000';labelCtx.shadowBlur=5;labelCtx.fillStyle='#f5f5f7';labelCtx.fillText('Sun',32,17);
+  const labelMap=textureFromCanvas(labelCanvas),label=new THREE.Sprite(new THREE.SpriteMaterial({map:labelMap,transparent:true,depthWrite:false,toneMapped:false}));label.center.set(0,.5);root.add(label);
+  const projected=new THREE.Vector3();
+  function update(direction,camera,blocked=false,viewportHeight=650){
+    root.position.copy(direction).multiplyScalar(43000);root.scale.setScalar(200);root.visible=!blocked;disk.quaternion.copy(camera.quaternion);
+    projected.copy(root.position).project(camera);const strength=solarGlareStrength(projected.toArray(),blocked);
+    glow.material.opacity=strength*.85;streak.material.opacity=strength*strength*.4;
+    const pixel=2*43000*Math.tan(camera.fov*Math.PI/360)/Math.max(1,viewportHeight)/200;
+    label.scale.set(pixel*28,pixel*14,1);label.position.set(pixel*12,pixel*9,0).applyQuaternion(camera.quaternion);label.material.opacity=strength*.9;
+  }
+  return {root,update,dispose(){disk.geometry.dispose();disk.material.dispose();glow.material.dispose();map.dispose();streak.material.dispose();streakMap.dispose();label.material.dispose();labelMap.dispose();}};
 }
 
 export function createCelestials(renderer, options = {}) {
@@ -267,14 +281,12 @@ export function createFlightSky(celestials){
   const starGeometry=new THREE.BufferGeometry();starGeometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
   const stars=new THREE.Points(starGeometry,new THREE.PointsMaterial({color:0xc2d0dd,size:14,transparent:true,opacity:.65,depthWrite:false}));scene.add(stars);
   const projected=new THREE.Vector3(),D=20000;
-  function update(view,mainCamera){
+  function update(view,mainCamera,{isSunBlocked=()=>false,viewportHeight=650}={}){
     const p=Array.isArray(view.positionSI)?view.positionSI:[6371000+Math.max(0,view.altitude||(view.mode==='docking'?400000:0)),0];
     const mp=Array.isArray(view.moonPositionSI)?view.moonPositionSI:[384400000,0];
     const surface=['landing','finale'].includes(view.mode);
-    const vertical=surface?[p[0]-mp[0],p[1]-mp[1]]:p;
-    const angle=Number.isFinite(view.localFrameAngle)?view.localFrameAngle:Math.atan2(vertical[1],vertical[0]);
-    const co=Math.cos(angle),si=Math.sin(angle);
-    const local=(v)=>new THREE.Vector3(-si*v[0]+co*v[1],co*v[0]+si*v[1],v[2]||0);
+    const angle=sceneFrameAngle(view);
+    const local=(v)=>new THREE.Vector3(...inertialToRender(v,angle,view.mode==='docking'));
     camera.fov=mainCamera.fov;camera.aspect=mainCamera.aspect;camera.quaternion.copy(mainCamera.quaternion);camera.position.set(0,0,0);camera.updateProjectionMatrix();camera.updateMatrixWorld(true);
     const put=(object,vector,radius,baseRadius=1)=>{
       const length=Math.hypot(...vector);object.position.copy(local(vector).normalize().multiplyScalar(D));
@@ -295,12 +307,12 @@ export function createFlightSky(celestials){
     const spin=Number(view.effectiveRotation)||7.2921159e-5*Math.cos(latitude);
     earth.quaternion.setFromAxisAngle(new THREE.Vector3(0,0,1),angle-spin*(view.time||0)).multiply(new THREE.Quaternion().setFromRotationMatrix(basis));
     put(moon,[mp[0]-p[0],mp[1]-p[1],0],1737400);moon.visible=!surface;moon.rotation.set(.02,-.8,-angle);
-    const sunDirection=Array.isArray(view.sunDirectionSI)?local([...view.sunDirectionSI,.35]).normalize():new THREE.Vector3(0,0,-1).applyQuaternion(mainCamera.quaternion);
-    if(!Array.isArray(view.sunDirectionSI)){sunDirection.y=0;if(sunDirection.lengthSq()<.001)sunDirection.set(0,0,-1);sunDirection.normalize();const right=new THREE.Vector3().crossVectors(sunDirection,new THREE.Vector3(0,1,0));sunDirection.addScaledVector(right,.12).add(new THREE.Vector3(0,.13,0)).normalize();}
+    const sunDirection=new THREE.Vector3(...solarDirection(view));
     key.position.copy(sunDirection).multiplyScalar(50);
     earthMaterial.uniforms.sunDirection.value.copy(sunDirection);limbMaterial.uniforms.sunDirection.value.copy(sunDirection);
     celestials.setSunDirection(sunDirection);
-    sun.position.copy(sunDirection).multiplyScalar(43000);sun.scale.setScalar(200);
+    const eclipsed=raySphereOccluded([0,0,0],sunDirection.toArray(),earth.position.toArray(),1900*earth.scale.x,43000)||raySphereOccluded([0,0,0],sunDirection.toArray(),moon.position.toArray(),moon.scale.x,43000);
+    sunlightVisual.update(sunDirection,camera,eclipsed||isSunBlocked(sunDirection),viewportHeight);
     const atmospheric=['launch','rollout'].includes(view.mode)?1-THREE.MathUtils.smoothstep(view.altitude||0,7000,80000):0;
     scene.background.set(0x000000);sky.material.uniforms.strength.value=atmospheric;sky.visible=atmospheric>0;
     stars.material.opacity=atmospheric>.95?0:(1-atmospheric)*.65;
@@ -310,7 +322,7 @@ export function createFlightSky(celestials){
       body.object.scale.setScalar(body.id==='jupiter'?40:body.id==='saturn'?32:20);
       markers.push({...body,approximate:true});
     });
-    return markers.map(body=>{projected.copy(body.object.position).project(camera);return{id:body.id,name:body.name,x:(projected.x+1)/2,y:(1-projected.y)/2,visible:body.object.visible&&projected.z<1&&Math.abs(projected.x)<1&&Math.abs(projected.y)<1,approximate:body.approximate};});
+    return markers.map(body=>{projected.copy(body.object.position).project(camera);return{id:body.id,name:body.name,x:(projected.x+1)/2,y:(1-projected.y)/2,visible:body.object.visible&&projected.z>-1&&projected.z<1&&Math.abs(projected.x)<1&&Math.abs(projected.y)<1,approximate:body.approximate};});
   }
   function dispose(){earthMaterial.dispose();cloudMaterial.dispose();limbMaterial.dispose();moon.geometry.dispose();moon.material.dispose();sunlightVisual.dispose();sky.geometry.dispose();sky.material.dispose();starGeometry.dispose();stars.material.dispose();context.forEach(b=>{b.object.geometry.dispose();b.object.material.dispose();});}
   return {scene,camera,update,dispose};
@@ -325,16 +337,17 @@ export function createSurfaceSky(celestials){
   const parent=celestials.parentContext.clone(true),body=parent.children[0];body.material=body.material.clone();scene.add(parent);
   const light=new THREE.DirectionalLight(0xfff7e9,3.2);scene.add(light,new THREE.AmbientLight(0xb4bac1,.12));
   const sunlightVisual=makeSun(),sun=sunlightVisual.root;scene.add(sun);let current='';
-  const up=new THREE.Vector3(0,1,0),forward=new THREE.Vector3(),right=new THREE.Vector3(),sunDirection=new THREE.Vector3();
-  function update(id,mainCamera){
+  const sunDirection=new THREE.Vector3();
+  function update(id,mainCamera,{view={},isSunBlocked=()=>false,viewportHeight=650}={}){
     const profile=VISUAL_PROFILES[id]||VISUAL_PROFILES.moon,mars=id==='mars',titan=id==='titan';
     if(id!==current){current=id;body.material.map=profile.parent?celestials.getTexture(profile.parent):null;body.material.color.set(0xffffff);body.material.needsUpdate=true;parent.children[1].visible=profile.parent==='saturn';parent.rotation.set(.2,-.4,-.32);}
     camera.fov=mainCamera.fov;camera.aspect=mainCamera.aspect;camera.quaternion.copy(mainCamera.quaternion);camera.updateProjectionMatrix();camera.updateMatrixWorld(true);
-    forward.set(0,0,-1).applyQuaternion(mainCamera.quaternion);const lookingDown=forward.y<-.58;forward.y=0;if(forward.lengthSq()<.001)forward.set(0,0,-1);forward.normalize();right.crossVectors(forward,up).normalize();
-    parent.visible=!!profile.parent&&!titan&&!lookingDown;
-    parent.position.copy(forward).multiplyScalar(.97).addScaledVector(right,-.16).addScaledVector(up,.13).normalize().multiplyScalar(20000);
+    parent.visible=!!profile.parent&&!titan;
+    parent.position.fromArray(SURFACE_PARENT_BEARING).normalize().multiplyScalar(20000);
     parent.scale.setScalar(20000*THREE.MathUtils.clamp(profile.parentSize*.0035,.018,profile.parent==='saturn'?.03:.05));
-    sunDirection.copy(forward).multiplyScalar(.97).addScaledVector(right,.2).addScaledVector(up,.19).normalize();sun.position.copy(sunDirection).multiplyScalar(43000);sun.scale.setScalar(200);sun.visible=!titan&&!lookingDown;light.position.copy(sunDirection).multiplyScalar(50);
+    sunDirection.fromArray(solarDirection({...view,mode:view.mode||'landing',destination:id}));light.position.copy(sunDirection).multiplyScalar(50);celestials.setSunDirection(sunDirection);
+    const eclipsed=parent.visible&&raySphereOccluded([0,0,0],sunDirection.toArray(),parent.position.toArray(),parent.scale.x,43000);
+    sunlightVisual.update(sunDirection,camera,titan||eclipsed||isSunBlocked(sunDirection),viewportHeight);
     sky.visible=mars||titan;sky.material.uniforms.strength.value=titan?.68:mars?.5:0;sky.material.uniforms.zenith.value.set(titan?0x493b29:0x432c23);sky.material.uniforms.horizon.value.set(titan?0xb59a68:0xb38665);scene.background.set(titan?0x44382a:mars?0x1e100c:0x020407);
   }
   return {scene,camera,update,dispose(){body.material.dispose();sky.geometry.dispose();sky.material.dispose();sunlightVisual.dispose();}};

@@ -74,8 +74,8 @@ After a confirmed docking, the camera shows the joined spacecraft from outside.
 Choose **Inspect docked craft** to dismiss the debrief and orbit the result.
 Docking camera has a restrained sensor texture; its reticle and telemetry remain
 sharp. One-finger upward drag moves toward a top-down surface view; pinch zoom
-is separate from orbit. Ready Start actions use a subtle outline pulse, with a
-static outline when reduced motion is enabled.
+is separate from orbit. Ready primary actions use a soft shadow pulse, with a
+static soft shadow when reduced motion is enabled.
 
 
 In Rocket workshop, select a component to bring its editor above the attachment
@@ -89,3 +89,20 @@ and do not backfill earlier milestone badges.
 Destination survey hides launch-assembly settings. All new surface-practice
 entry points start with powered landing assist on; switch it off for manual
 engine control. Touchdown counters record new attempts, with no cloud sync.
+
+The small version beside Kinetic Core on mission home identifies the loaded
+build. A tab already open keeps its loaded code until you refresh; save a flight
+checkpoint before reloading. The initial Make it to the Moon screen and reopened
+Missions use the same slowly rotating 3D Moon. Reduced motion keeps it still.
+
+Standard Earth launch setup offers payload cards: Crew only adds 0 kg, Science
+package adds 2,000 kg and Outpost supplies adds 8,000 kg. This mass-budget choice
+updates launch mass, thrust-to-weight and ideal delta-v; select it before flight.
+
+The question-mark opens the fullscreen flight guide. About the author is next
+to Play above the lessons; it is no longer hidden in More. Play opens Missions
+with the current flight paused. Moon, Docking, Landing and More explain each
+mode, and returning to a flight still requires a deliberate Resume action.
+In Solar System, choose a system and use the globe rail to focus a body.
+Survey-only bodies keep Landing practice disabled; supported worlds start a
+separate local exercise, with no transfer implied.

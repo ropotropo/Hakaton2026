@@ -73,6 +73,10 @@ Preserve ground rollout and the real post-touchdown KC flag ceremony. Respect
 reduced motion without hiding state. Label illustrative terrain, procedural
 maps, fictional hardware and model approximations where they affect meaning.
 Keep image/tool provenance in source credits, without extra production captions.
+The fullscreen guide shares Missions' shell and gives the creator a direct
+entry above the lessons. Its Play action opens Missions with flight paused.
+Use only a soft shadow pulse for a ready primary or sole next-maneuver action;
+reduced motion gets a static shadow. Do not animate rings or secondary controls.
 
 Review mission home, workshop, planner, an active maneuver, success and failure
 at desktop, narrow portrait and short landscape sizes. Confirm readable

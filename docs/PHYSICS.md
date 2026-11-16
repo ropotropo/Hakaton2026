@@ -182,3 +182,17 @@ Moon/site references: [JPL satellite parameters](https://ssd.jpl.nasa.gov/sats/p
 [JPL astrodynamic parameters](https://ssd.jpl.nasa.gov/astro_par.html) and
 [NASA lunar landing sites](https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_sites.html).
 Map limits and processing are documented in [asset credits](../public/assets/SOURCES.md).
+
+
+## Flight-scene Sun presentation
+
+The flight scene uses a fixed illustrative scenario solar direction transformed
+into the same local Earth/Moon frame as the celestial background. Camera rotation
+changes its screen projection, not its world bearing. The visible disk, foreground
+key light and atmospheric shading share that direction. Optical glow and streaks
+are presentation effects and require a visible, unoccluded source.
+
+This is not a live solar ephemeris and does not model solar pressure, heating or
+additional gravitational forces. Local other-world practice uses a fixed local
+scenario bearing; its parent context remains an illustrative angular-size model.
+The independently lit rotating Moon on mission home is a decorative illustration.

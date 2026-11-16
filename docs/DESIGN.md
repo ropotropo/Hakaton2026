@@ -268,8 +268,10 @@ craft. These are implementation budgets, not measured mobile FPS claims.
 The author page pairs the existing project spacesuit portrait with the exact
 name **Mykyta Borisov**, Ukraine, and sole-author credit. Preserve the face and visible KC suit patch; keep provenance in the asset credits rather than visible captions.
 Use calm type, one authorship line and a visible close action. About the author
-lives under More in the field guide, without a separate burger or duplicate
-How to play entry. Use the approved short biography and 44 px touch targets.
+lives directly in the fullscreen field guide's creator hero, without a separate
+burger or a hidden More-only route. Use the approved short biography and 44 px
+touch targets. Keep the portrait contain-fit so the face and KC patch remain
+visible; the lesson tabs follow below in the same scroll area.
 
 ## Final branding
 
@@ -321,8 +323,10 @@ cockpit drift away from its physical pose.
 - Docking-camera sensor grain is confined to that feed. Do not distort alignment
   or place grain above the reticle/telemetry. Joined hardware is inspectable after
   actual capture. Port detailing must preserve its physical contact plane.
-- Ready Start actions alone receive a restrained glow/pulse; reduced motion uses
-  a static outline. This is the requested exception to the general no-pulse rule.
+- Ready primary actions and the single next-maneuver action receive a restrained
+  soft shadow pulse; reduced motion uses a static soft shadow. No animated rings,
+  scaling or attention effect on disabled/secondary controls. This is the
+  requested exception to the general no-pulse rule.
 - The author portrait is anchored right with room for the visible KC suit patch;
   the biography sits below it on a low black gradient, with readable safe areas.
 
@@ -338,3 +342,18 @@ The home Moon may use a slow decorative 3D rotation, with a lit near side,
 existing NASA maps and image fallback. Keep its canvas non-interactive, stop
 hidden/closed work and render reduced-motion static frames. A single reusable
 low-power context, modest mesh and capped DPR/draw rate bound the extra work.
+
+## v0.5.5 navigation finish
+
+How to play uses Missions' fullscreen black shell, a fixed safe-area header and
+one scrolling body. The creator hero offers Play and direct About the author;
+Moon, Docking, Landing and More retain their existing lesson and keyboard APIs.
+Play opens Missions with the current flight paused. Closing or reading a guide
+never starts a vehicle. Wide activity headings are centered between identity and
+navigation while narrow layouts preserve their reachable controls.
+
+The Solar System body selector shares the horizontal globe rail. Native select
+values remain the source for selection and 3D focus; only verified body/system
+pairs enable a separate local landing. Legacy launch payloads use three explicit
+mass-labelled cards and the existing flight-mass calculation. Assembly orbit,
+pan, zoom and smooth reset remain above the actual platform deck.

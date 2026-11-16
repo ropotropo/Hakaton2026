@@ -9,7 +9,7 @@ import { createScene } from './scene.js';
 import { installNavigation } from './navigation.js';
 import { createSolarView } from './solar-view.js';
 import { installLandingDirector } from './landing-director.js';
-import { installSiteMenu } from './site-menu.js';
+import { installSiteMenu, AUTHOR_PORTRAIT_PATH } from './site-menu.js';
 import { createOnlineEarth } from './earth-online.js';
 import { createRollout } from './rollout.js';
 import { createRocketWorkshop } from './rocket-workshop.js';
@@ -26,6 +26,7 @@ import { advanceToStageBoundary, needsStageRelease, getAscentGuidance, getFlight
 import { installDestinationCarousel } from './destination-carousel.js';
 import './icon-controls.css';
 import './docking-feed.css';
+import './flight-guide.css';
 
 const $ = id => document.getElementById(id);
 const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
@@ -81,7 +82,7 @@ document.getElementById('app').innerHTML = `
   </nav>
   <div class="workspace">
     <aside class="library" aria-label="Vehicle configuration and mission plan">
-      <div id="assembly-library"><div class="section-heading"><div><p class="eyebrow">Vehicle architecture</p><h1>Earth launch<br>setup.</h1></div><span class="outline-label">2 stages</span></div><p class="intro-copy">Choose your standard vehicle. Check the margins, then fly.</p><button class="destination-launcher" id="destination-button"><small>Surface destination</small><strong id="selected-destination">Moon</strong><span>Explore planets & moons</span></button><div id="module-slots" class="module-slots"></div><div class="extra-selects"><label>Mission payload<select id="cargo-select"></select></label><label>Launch site<select id="site-select"></select></label></div><p class="design-disclosure">Fictional training hardware. Performance is calculated from the selected design.</p></div>
+      <div id="assembly-library"><div class="section-heading"><div><p class="eyebrow">Vehicle architecture</p><h1>Earth launch<br>setup.</h1></div><span class="outline-label">2 stages</span></div><p class="intro-copy">Choose your standard vehicle. Check the margins, then fly.</p><button class="destination-launcher" id="destination-button"><small>Surface destination</small><strong id="selected-destination">Moon</strong><span>Explore planets & moons</span></button><div id="module-slots" class="module-slots"></div><div class="extra-selects"><div class="payload-control"><span id="payload-label">Mission payload</span><select id="cargo-select" hidden aria-labelledby="payload-label"></select><div id="payload-options" class="payload-options" role="group" aria-labelledby="payload-label" aria-describedby="payload-note"></div><small id="payload-note">Added mass affects flight performance.</small></div><label>Launch site<select id="site-select"></select></label></div><p class="design-disclosure">Fictional training hardware. Performance is calculated from the selected design.</p></div>
       <div id="flight-library" hidden><p class="eyebrow" id="plan-label">Launch operations</p><h1 id="flight-heading">From Earth.<br>To orbit.</h1><div id="flight-plan" class="flight-plan"></div><details class="flight-log"><summary>Flight log</summary><ol id="log-list"></ol></details><button id="return-builder" class="quiet-button full-width">Return to vehicle assembly</button></div>
     </aside>
     <section class="flight-center" aria-label="Interactive spacecraft view">
@@ -92,7 +93,7 @@ document.getElementById('app').innerHTML = `
     </section>
     <aside class="instruments" aria-label="Vehicle performance and flight instruments"><div class="instrument-heading"><span class="eyebrow" id="instrument-label">Design performance</span><span class="unit-system">SI</span></div><div id="instrument-values"></div><div id="readiness" class="readiness"></div><div class="checkpoint-section"><div><span class="checkpoint-dot"></span><span id="checkpoint-label">Checkpoints save locally</span></div><button id="save-button" class="secondary-button" disabled>Save checkpoint</button><button id="restore-button" class="quiet-button full-width" ${checkpoint ? '' : 'disabled'}>Restore checkpoint</button></div><div class="training-actions"><button id="practice-button" class="text-button">Docking practice</button><button id="landing-practice" class="text-button">Surface landing practice</button></div></aside>
   </div>
-  <footer class="app-footer"><span><span class="status-dot"></span> Mission laboratory <b>v0.5.4</b></span><span id="footer-hint">Design the vehicle. Fly the physics.</span><button id="model-button">Flight model &amp; credits</button></footer>
+  <footer class="app-footer"><span><span class="status-dot"></span> Mission laboratory <b>v0.5.5</b></span><span id="footer-hint">Design the vehicle. Fly the physics.</span><button id="model-button">Flight model &amp; credits</button></footer>
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 <dialog id="practice-details" class="practice-details"><div class="dialog-header"><div><p class="eyebrow">Current exercise</p><h2 id="practice-details-title">Flight details</h2></div><button id="close-practice-details" class="kc-tool" aria-label="Close flight details">${icon('close')}<span class="kc-sr">Close</span></button></div><div class="practice-detail-tabs" role="tablist" aria-label="Flight details"><button id="practice-tab-goal" role="tab" aria-selected="true" aria-controls="practice-panel-goal">Goal</button><button id="practice-tab-telemetry" role="tab" aria-selected="false" aria-controls="practice-panel-telemetry">Telemetry</button><button id="practice-tab-controls" role="tab" aria-selected="false" aria-controls="practice-panel-controls">Controls</button></div><div class="practice-detail-body"><section id="practice-panel-goal" role="tabpanel" aria-labelledby="practice-tab-goal"></section><section id="practice-panel-telemetry" role="tabpanel" aria-labelledby="practice-tab-telemetry" hidden></section><section id="practice-panel-controls" role="tabpanel" aria-labelledby="practice-tab-controls" hidden></section></div></dialog>
@@ -102,8 +103,15 @@ document.getElementById('app').innerHTML = `
   <div class="landing-chooser-body"><p>Local descent with a standard lander. Transfer skipped.</p><label for="landing-world-select">Landing world</label><select id="landing-world-select"></select><div class="landing-chooser-facts"><small>Surface gravity</small><strong id="landing-world-gravity">—</strong></div><div class="landing-chooser-challenge"><small>World challenge</small><p id="landing-world-challenge"></p></div><p class="landing-chooser-note">Environmental survival is not simulated. Landing assist starts on.</p></div>
   <div class="landing-chooser-actions"><button id="landing-chooser-cancel" class="secondary-button">Cancel</button><button id="landing-chooser-begin" class="primary-button">Begin landing</button></div>
 </dialog>
-<dialog id="guide-dialog" class="guide-dialog field-guide" aria-labelledby="field-guide-title">
-  <div class="dialog-header"><h2 id="field-guide-title">How to play</h2><button class="kc-tool" id="close-guide" aria-label="Close flight guide">${icon('close')}</button></div>
+<dialog id="guide-dialog" class="guide-dialog field-guide flight-guide" aria-labelledby="field-guide-title">
+  <header class="dialog-header guide-header"><div class="guide-brand"><span>${KC_MARKUP}</span><strong>Kinetic Core</strong></div><h2 id="field-guide-title">How to play</h2><button type="button" class="kc-tool" id="close-guide" aria-label="Close flight guide">${icon('close')}</button></header>
+  <div class="guide-scroll">
+    <section class="guide-creator" aria-labelledby="guide-creator-title">
+      <figure class="guide-creator-portrait"><img src="${AUTHOR_PORTRAIT_PATH}" alt="Mykyta Borisov in a spacesuit on an illustrative lunar surface" width="1024" height="1536" decoding="async"></figure>
+      <div class="guide-creator-copy"><p class="guide-eyebrow">Created by</p><h1 id="guide-creator-title">Mykyta<br>Borisov</h1><p class="guide-creator-intro">Build a spacecraft. Learn its controls.<br>Fly your next mission.</p><div class="guide-creator-actions"><button type="button" id="guide-play" class="primary-button guide-play">${icon('play')}<span>Play</span></button><div data-guide-author-entry></div></div><p class="guide-play-hint">Choose a mission or practice.</p></div>
+    </section>
+    <section class="guide-lessons" aria-labelledby="guide-lessons-title">
+      <div class="guide-lessons-heading"><div><p class="guide-eyebrow">Flight guide</p><h2 id="guide-lessons-title">How to play</h2></div><p>Choose a maneuver. Learn the next step.</p></div>
   <nav class="field-guide-tabs" role="tablist" aria-label="Choose a flight guide">
     <button id="guide-tab-moon" role="tab" aria-selected="true" aria-controls="guide-panel-moon">Moon</button>
     <button id="guide-tab-docking" role="tab" aria-selected="false" aria-controls="guide-panel-docking" tabindex="-1">Docking</button>
@@ -141,6 +149,8 @@ document.getElementById('app').innerHTML = `
         <p>Created by <strong>Mykyta Borisov</strong>, the sole game author. No NASA affiliation or endorsement is implied.</p><p>Earth imagery: NASA Earth Observatory / NASA Goddard, Blue Marble: Next Generation by Reto Stöckli. NASA/JPL maps provide globe imagery; local terrain and hardware are procedural reconstructions.</p>
         <ul class="source-links"><li><a href="https://github.com/nasa/NASA-3D-Resources" target="_blank" rel="noopener">NASA 3D visualization maps</a></li><li><a href="https://svs.gsfc.nasa.gov/4720/" target="_blank" rel="noopener">NASA SVS: Moon color and relief</a></li><li><a href="https://ssd.jpl.nasa.gov/sats/phys_par/sep.html" target="_blank" rel="noopener">JPL satellite physical parameters</a></li><li><a href="https://science.nasa.gov/earth/earth-observatory/blue-marble-next-generation/base-map/" target="_blank" rel="noopener">NASA Blue Marble base map</a></li><li><a href="https://www1.grc.nasa.gov/beginners-guide-to-aeronautics/ideal-rocket-equation/" target="_blank" rel="noopener">NASA Glenn: rocket equation</a></li><li><a href="https://www1.grc.nasa.gov/beginners-guide-to-aeronautics/specific-impulse/" target="_blank" rel="noopener">NASA Glenn: specific impulse</a></li><li><a href="https://www1.grc.nasa.gov/beginners-guide-to-aeronautics/earth-atmosphere-equation-metric/" target="_blank" rel="noopener">NASA Glenn: atmosphere model</a></li><li><a href="https://www.spaceappschallenge.org/2026/challenges/space-mission-design-game/" target="_blank" rel="noopener">NASA Space Apps challenge</a></li><li><a href="https://threejs.org/" target="_blank" rel="noopener">Three.js, MIT license</a></li></ul><p>Equations, tests and limitations are in <strong>docs/PHYSICS.md</strong> in the repository.</p>
       </details></section>
+    </section>
+  </div>
     </section>
   </div>
 </dialog>
@@ -253,8 +263,20 @@ function renderBuilder() {
   $('module-slots').innerHTML = categories.map((category, index) => `<section class="module-slot ${state.selectedSlot === category ? 'expanded' : ''}"><button class="slot-heading" data-slot="${category}" aria-expanded="${state.selectedSlot === category}"><span class="slot-number">${String(index + 1).padStart(2, '0')}</span><span><small>${labels[category]}</small><strong>${escape(parts[category].name)}</strong></span><span class="slot-chevron" aria-hidden="true">${state.selectedSlot === category ? '−' : '+'}</span></button><div class="part-options" ${state.selectedSlot === category ? '' : 'hidden'}>${CATALOG[category].map(part => `<button class="part-option ${part.id === state.config[category] ? 'selected' : ''}" data-category="${category}" data-part="${part.id}" aria-pressed="${part.id === state.config[category]}"><span><strong>${escape(part.name)}</strong><small>${escape(part.description)}</small></span><span class="selection-circle" aria-hidden="true"></span><span class="part-mass">${fmt((part.dryMass + (part.propellant ?? part.rcsFuel ?? 0)) / 1000, 1)} t</span></button>`).join('')}</div></section>`).join('');
   document.querySelectorAll('[data-slot]').forEach(b => b.onclick = () => { state.selectedSlot = state.selectedSlot === b.dataset.slot ? null : b.dataset.slot; renderBuilder(); });
   document.querySelectorAll('[data-part]').forEach(b => b.onclick = () => { state.config[b.dataset.category] = b.dataset.part; renderBuilder(); updateVehicle(); renderInstruments(); renderCommand(); });
-  for (const key of ['cargo', 'site']) { const select = $(`${key}-select`); select.innerHTML = CATALOG[key].map(p => `<option value="${p.id}">${escape(p.name)}</option>`).join(''); select.value = state.config[key]; select.onchange = () => { state.config[key] = select.value; updateVehicle(); renderInstruments(); renderCommand(); }; }
+  for (const key of ['cargo', 'site']) { const select = $(`${key}-select`); select.innerHTML = CATALOG[key].map(p => `<option value="${p.id}">${escape(p.name)}</option>`).join(''); select.value = state.config[key]; select.onchange = () => { state.config[key] = select.value; updateVehicle(); renderInstruments(); renderCommand(); if(key==='cargo')renderPayloadChoices(); }; }
+  renderPayloadChoices();
   setText('height-value', `${fmt(vehicle.height, 1)} m`); setText('view-subtitle', `${parts.capsule.name} / ${parts.core.name}`); setText('site-caption', parts.site.id === 'kennedy' ? 'Kennedy Space Center, Florida' : 'Wallops Flight Facility, Virginia');
+}
+function renderPayloadChoices() {
+  const holder=$('payload-options'),select=$('cargo-select');
+  holder.replaceChildren();
+  for(const payload of CATALOG.cargo){
+    const button=document.createElement('button');button.type='button';button.dataset.payload=payload.id;
+    button.setAttribute('aria-pressed',String(state.config.cargo===payload.id));
+    button.innerHTML=`<strong>${escape(payload.name)}</strong><small>+${fmt(payload.dryMass)} kg</small>`;
+    button.onclick=()=>{select.value=payload.id;select.dispatchEvent(new Event('change',{bubbles:true}));holder.querySelector(`[data-payload="${payload.id}"]`)?.focus({preventScroll:true});};
+    holder.append(button);
+  }
 }
 function updateVehicle() { const summary = evaluateVehicle(state.config); const signature = JSON.stringify(state.config); if (renderer && signature !== vehicleSignature) { renderer.setVehicle({ config: state.config, ...summary.parts, summary }); vehicleSignature = signature; } setText('vehicle-label', `${summary.parts.capsule.name} + ${summary.parts.service.name}`); setText('site-caption', summary.parts.site.id === 'kennedy' ? 'Kennedy Space Center, Florida' : 'Wallops Flight Facility, Virginia'); }
 const destination = () => DESTINATIONS.find(d => d.id === state.destination) ?? DESTINATIONS[0];
@@ -691,24 +713,32 @@ $('camera-button').onclick = () => {
   setText('camera-button', state.cameraMode === 'port' ? 'External camera' : 'Descent camera');
 };
 for (const button of document.querySelectorAll('[data-docking-view]')) button.onclick = () => selectDockingCamera(button.dataset.dockingView);
-let guideWasPaused = false;
+let guideWasPaused = false, guidePreviousFocus = null;
 const guideTabs = ['moon', 'docking', 'landing', 'more'];
-function selectGuideTab(name) {
+function selectGuideTab(name, scroll = false) {
   for (const tab of guideTabs) {
     const selected = tab === name;
     $('guide-tab-' + tab).setAttribute('aria-selected', String(selected));
     $('guide-tab-' + tab).tabIndex = selected ? 0 : -1;
     $('guide-panel-' + tab).hidden = !selected;
   }
-  document.querySelector('#guide-dialog .field-guide-body').scrollTop = 0;
+  if (scroll && $('guide-dialog').open) {
+    const scroller = document.querySelector('#guide-dialog .guide-scroll');
+    const tabs = document.querySelector('#guide-dialog .field-guide-tabs');
+    const panel = $('guide-panel-' + name);
+    // The sticky tab bar is already in view after a deep lesson scroll.
+    // Reveal the new panel through the actual scroll owner instead.
+    const top = scroller.scrollTop + panel.getBoundingClientRect().top - scroller.getBoundingClientRect().top - tabs.offsetHeight - 24;
+    scroller.scrollTo({ top: Math.max(0, top), behavior: 'instant' });
+  }
 }
-for (const name of guideTabs) $('guide-tab-' + name).onclick = () => selectGuideTab(name);
+for (const name of guideTabs) $('guide-tab-' + name).onclick = () => selectGuideTab(name, true);
 document.querySelector('.field-guide-tabs').addEventListener('keydown', event => {
   if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
   event.preventDefault();
   const index = guideTabs.findIndex(tab => $('guide-tab-' + tab) === document.activeElement);
   const next = event.key === 'Home' ? 0 : event.key === 'End' ? guideTabs.length - 1 : (index + (event.key === 'ArrowRight' ? 1 : guideTabs.length - 1)) % guideTabs.length;
-  selectGuideTab(guideTabs[next]); $('guide-tab-' + guideTabs[next]).focus();
+  selectGuideTab(guideTabs[next], true); $('guide-tab-' + guideTabs[next]).focus({ preventScroll: true });
 });
 function refreshGuideActions() {
   const expeditionOpen = Boolean(document.querySelector('.mission-control[open]'));
@@ -732,19 +762,32 @@ function refreshGuideActions() {
 for (const button of document.querySelectorAll('[data-guide-mode]')) button.onclick = () => {
   if (button.dataset.guideReturn === 'true') { $('guide-dialog').close(); return; }
   // A deliberate new mode starts paused according to its own entry contract.
-  guideWasPaused = true; $('guide-dialog').close();
+  guideWasPaused = true; guidePreviousFocus = null; $('guide-dialog').close();
   document.dispatchEvent(new CustomEvent('kc:open-mode', { detail: { id: button.dataset.guideMode } }));
 };
 function openGuide(model = false) {
+  if ($('guide-dialog').open) return;
+  guidePreviousFocus = document.activeElement;
   guideWasPaused = state.paused; clearInputs(); pause(true);
   const current = refreshGuideActions();
   selectGuideTab(model || current === 'earth-launch' ? 'more' : current === 'manual-docking' ? 'docking' : current === 'surface-landing' ? 'landing' : 'moon');
   if (!model && current === 'earth-launch') $('guide-earth-launch-detail').open = true;
   $('guide-dialog').showModal();
+  document.querySelector('#guide-dialog .guide-scroll').scrollTop = 0;
+  $('close-guide').focus({ preventScroll: true });
   if (model) { $('guide-model-detail').open = true; $('model-section').scrollIntoView({ block: 'start' }); }
 }
 $('guide-button').onclick = () => openGuide(false); $('model-button').onclick = () => openGuide(true); $('close-guide').onclick = () => $('guide-dialog').close();
-$('guide-dialog').addEventListener('close', () => { clearInputs(); pause(true); });
+$('guide-play').onclick = () => {
+  clearInputs(); pause(true); guideWasPaused = true; guidePreviousFocus = null;
+  $('guide-dialog').close(); document.dispatchEvent(new CustomEvent('kc:show-home'));
+};
+$('guide-dialog').addEventListener('close', () => {
+  clearInputs(); pause(true);
+  const target = guidePreviousFocus; guidePreviousFocus = null;
+  const topDialog = [...document.querySelectorAll('dialog[open]')].at(-1);
+  if (target?.isConnected && (!topDialog || topDialog.contains(target))) target.focus({ preventScroll: true });
+});
 
 
 try { renderer = createScene($('flight-canvas'), { onAssetWarning: message => notify(message) }); } catch (error) { $('view-error').hidden = false; console.error('3D initialization failed:', error); }

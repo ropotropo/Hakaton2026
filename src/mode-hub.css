@@ -55,3 +55,5 @@
 @media(prefers-reduced-motion:reduce){.mh-moon-fallback,.mh-moon-canvas{transition:none;}}
 
 @media(max-width:700px){.mh-moon{opacity:.72;}}
+
+.mh-brand .mh-build{color:#858993;font-size:10px;font-weight:400;letter-spacing:0;padding-left:9px;border-left:1px solid #ffffff24;white-space:nowrap;}

@@ -11,6 +11,8 @@ import { chaseDistance, atmosphericShake, easeLaunchPitch, aboveTerrain } from '
 import { canStartSeparationBeat, advanceSeparationClock, separationBeatWeight, separationEnvelope } from './separation-camera.js';
 import { createInspectionGestures } from './inspection-gestures.js';
 import { descentPlumeResponse } from './descent-plume.js';
+import { solarDirection, heightFieldOccluded, isSolarOccluder } from './solar-direction.js';
+import { assemblyOrbitPitch, constrainAssemblyView } from './assembly-camera.js';
 
 // Presentation only. SI simulation stays in physics.js; camera and celestial
 // background use a local origin so GPU float precision never drives the flight.
@@ -305,7 +307,8 @@ function makePad(materials) {
   box(pad,[26,1.3,24],[0,-.8,0],materials.concrete);
   box(pad,[12,.55,13],[0,.04,0],materials.deck);
   box(pad,[6.1,.6,6.1],[0,.56,0],materials.darkMetal);
-  box(pad,[5.0,.45,5.0],[0,.83,0],materials.grate);
+  const topDeck=box(pad,[5.0,.45,5.0],[0,.83,0],materials.grate);
+  pad.userData.surfaceY=topDeck.position.y+topDeck.geometry.parameters.height/2;
   // Service tower is intentionally off-axis so the vehicle silhouette stays clear.
   const tower=new THREE.Group();tower.position.set(-10,0,-5);pad.add(tower);
   const width=4.8;
@@ -694,7 +697,7 @@ function makeSurface(destination,materials) {
     const x=vertices.getX(i),z=vertices.getZ(i);vertices.setY(i,heightAt(x,z)-.035);
   }
   geometry.computeVertexNormals();
-  const ground=new THREE.Mesh(geometry,groundMaterial);ground.receiveShadow=true;group.add(ground);
+  const ground=new THREE.Mesh(geometry,groundMaterial);ground.receiveShadow=true;ground.userData.solarTerrain=true;group.add(ground);
   // The terminal state can still be tens of kilometres from its pad. Continue
   // the illustrative mean-radius surface beyond the detailed landing patch;
   // the target/beacons remain fixed at x=0 and never follow the spacecraft.
@@ -702,7 +705,7 @@ function makeSurface(destination,materials) {
     const outerGeometry=new THREE.RingGeometry(5500,Math.min(200000,meanRadius*.15),192,48);outerGeometry.rotateX(-Math.PI/2);
     const p=outerGeometry.attributes.position,uv=outerGeometry.attributes.uv;
     for(let i=0;i<p.count;i++){p.setY(i,heightAt(p.getX(i),p.getZ(i))-.15);uv.setXY(i,p.getX(i)/12000+.5,-p.getZ(i)/12000+.5);}outerGeometry.computeVertexNormals();
-    const horizon=new THREE.Mesh(outerGeometry,groundMaterial);horizon.receiveShadow=true;group.add(horizon);
+    const horizon=new THREE.Mesh(outerGeometry,groundMaterial);horizon.receiveShadow=true;horizon.userData.solarTerrain=true;group.add(horizon);
   }
   const rockGeometry=new THREE.DodecahedronGeometry(1,0),rockMaterial=new THREE.MeshStandardMaterial({color:profile.color,roughness:.97,metalness:0,envMapIntensity:0});
   const rockCount=destination.id==='moon'||mars?384:190;
@@ -837,10 +840,11 @@ export function createScene(canvas, options = {}) {
     if(x%30===0)box(assembly,[.42,78,.2],[x+2,47,-32.1],new THREE.MeshBasicMaterial({color:0x74888e}));
   }
   const assemblyPad=makePad(materials);assembly.add(assemblyPad);
+  const assemblyPlatformY=Math.max(floor.position.y,assemblyPad.userData.surfaceY);
   const launchPad=makePad(materials);launchPad.position.y=-1.1;launchEnvironment.add(launchPad);
   const launchTerrain=new THREE.PlaneGeometry(160000,160000,128,128);launchTerrain.rotateX(-Math.PI/2);
   const launchVertices=launchTerrain.attributes.position;for(let i=0;i<launchVertices.count;i++){const x=launchVertices.getX(i),z=launchVertices.getZ(i);launchVertices.setY(i,-1.6-(x*x+z*z)/(2*6371000));}launchTerrain.computeVertexNormals();
-  const launchGround=new THREE.Mesh(launchTerrain,new THREE.MeshStandardMaterial({map:textures.coastalGround,color:0xffffff,roughness:1,flatShading:false}));launchGround.receiveShadow=false;launchEnvironment.add(launchGround);
+  const launchGround=new THREE.Mesh(launchTerrain,new THREE.MeshStandardMaterial({map:textures.coastalGround,color:0xffffff,roughness:1,flatShading:false}));launchGround.receiveShadow=false;launchGround.userData.solarTerrain=true;launchEnvironment.add(launchGround);
   const localGroundMaterials=[launchGround.material];
   box(launchEnvironment,[34,.08,1900],[0,-1.42,1120],materials.grate);
   const waterTank=new THREE.Group();waterTank.position.set(-95,-1.6,-70);launchEnvironment.add(waterTank);
@@ -899,6 +903,7 @@ export function createScene(canvas, options = {}) {
   const look=new THREE.Vector3(0,26,0),desiredLook=new THREE.Vector3(),desiredCamera=new THREE.Vector3();
   const cameraPoint=new THREE.Vector3(),targetProjection=new THREE.Vector3();
   const trailEmitter=new THREE.Vector3();
+  const solarRay=new THREE.Raycaster(),solarHits=[],solarProjection=new THREE.Vector3();
   const debris=[];
   let wasOverview=false;
   let orbitYaw=0,orbitPitch=0,orbitZoom=1,freeOrbit=false,inspectionBaseRadius=38,inspectionMinZoom=.25,lastMountedPose=false;
@@ -923,6 +928,25 @@ export function createScene(canvas, options = {}) {
     inspectionGestures.clear();
   }
   camera.position.set(72,40,94);camera.lookAt(look);
+
+  function foregroundBlocksSun(direction){
+    // Evaluate only a potentially visible source, after the final inspection or
+    // mounted pose. Camera blockage changes glare, never global light power.
+    camera.updateMatrixWorld(true);solarProjection.copy(direction).multiplyScalar(43000).add(camera.position).project(camera);
+    if(solarProjection.z<=-1||solarProjection.z>=1||Math.abs(solarProjection.x)>1.1||Math.abs(solarProjection.y)>1.1)return false;
+    if(['landing','finale'].includes(mode)&&heightFieldOccluded(camera.position.toArray(),direction.toArray(),surface.userData.heightAt))return true;
+    if(['launch','rollout'].includes(mode)&&launchEnvironment.visible){
+      const ground=(x,z)=>launchEnvironment.position.y-1.6-((x-launchEnvironment.position.x)**2+(z-launchEnvironment.position.z)**2)/(2*6371000);
+      if(heightFieldOccluded(camera.position.toArray(),direction.toArray(),ground))return true;
+    }
+    const roots=mode==='docking'?[station,craftAttitude,dockingCockpit.root]:['landing','finale'].includes(mode)?[surface,lander,rocketRoot,finale.root]:[rocketRoot,launchEnvironment,crawler,...debris.map(body=>body.object)];
+    scene.updateMatrixWorld(true);solarRay.set(camera.position,direction);solarRay.near=.08;solarRay.far=250000;
+    for(const root of roots){
+      if(!root.visible)continue;const meshes=[];root.traverseVisible(object=>{if(isSolarOccluder(object)){if(!object.geometry.boundingBox)object.geometry.computeBoundingBox();meshes.push(object);}});
+      for(const mesh of meshes){solarHits.length=0;solarRay.intersectObject(mesh,false,solarHits);if(solarHits.length)return true;}
+    }
+    return false;
+  }
 
   function resetOutcomeVisuals(){
     dockedEnvelope=null;
@@ -1279,7 +1303,13 @@ export function createScene(canvas, options = {}) {
         camera.position.copy(desiredCamera);look.copy(desiredLook);camera.up.set(0,1,0);camera.lookAt(look);
       }
     }
-    celestials.setSunDirection(new THREE.Vector3().subVectors(key.position,key.target.position));
+    const solarView={...view,mode,destination:selectedDestination};
+    if(['rollout','launch','transfer','docking','landing','finale'].includes(mode)){
+      const direction=new THREE.Vector3(...solarDirection(solarView));
+      key.target.position.copy(mode==='docking'?craftAttitude.position:['landing','finale'].includes(mode)?lander.position:rocketRoot.position);
+      key.position.copy(key.target.position).addScaledVector(direction,100);
+      celestials.setSunDirection(direction);
+    }else celestials.setSunDirection(new THREE.Vector3().subVectors(key.position,key.target.position));
     effects.update(frameDt);
     const showOverview=!view.customMission&&shouldShowOrbitOverview({...view,mode});
     if(showOverview)separationBeat=null;
@@ -1313,6 +1343,9 @@ export function createScene(canvas, options = {}) {
     }
     if(freeOrbit){
       const center=inspectionFrame.center,radius=inspectionBaseRadius*orbitZoom;
+      // Constrain the orbit angle before placing the camera, retaining its
+      // distance and responsive drag direction at the assembly floor boundary.
+      if(mode==='assembly')orbitPitch=assemblyOrbitPitch(orbitPitch,radius,center.y,assemblyPlatformY);
       camera.up.set(0,1,0);
       camera.position.set(center.x+radius*Math.cos(orbitPitch)*Math.sin(orbitYaw),center.y+radius*Math.sin(orbitPitch),center.z+radius*Math.cos(orbitPitch)*Math.cos(orbitYaw));
       if(['landing','finale'].includes(mode))camera.position.y=aboveTerrain(camera.position.y,surface.userData.heightAt(camera.position.x,camera.position.z));
@@ -1334,6 +1367,12 @@ export function createScene(canvas, options = {}) {
         camera.lookAt(look);if(weight===1)inspectionReturn=null;
       }
     }
+    if(mode==='assembly'){
+      // Final bound also covers zoom, target changes and the smooth reset path.
+      const target=freeOrbit?inspectionFocus:look;
+      const constrained=constrainAssemblyView(camera.position.toArray(),target.toArray(),assemblyPlatformY);
+      camera.position.fromArray(constrained.position);target.fromArray(constrained.target);camera.lookAt(target);
+    }
     orbitOverview.update(view,debris);
     if(showOverview){
       rocketRoot.visible=launchEnvironment.visible=earth.visible=earthAtmosphere.visible=false;
@@ -1346,16 +1385,16 @@ export function createScene(canvas, options = {}) {
       const stage=clamp(Number(view.stageIndex??view.activeStageIndex)||0,0,2),hasFlame=launchTrailEmitter(rocket,stage,trailEmitter);
       atmosphericTrail.update(frameDt,hasFlame?view:{...view,throttle:0},trailEmitter,camera);
     }else atmosphericTrail.clear();
-    const useFlightSky=!showOverview&&(['launch','rollout','transfer','docking'].includes(mode)||(view.customMission&&selectedDestination==='moon'&&['landing','finale'].includes(mode)));
+    const useFlightSky=!showOverview&&(['launch','rollout','transfer','docking'].includes(mode)||(view.customMission&&selectedDestination==='moon'&&Array.isArray(view.positionSI)&&Array.isArray(view.moonPositionSI)&&['landing','finale'].includes(mode)));
     const useSurfaceSky=!showOverview&&!useFlightSky&&['landing','finale'].includes(mode);
     let celestialMarkers=[];
     if(useFlightSky){
       earth.visible=earthAtmosphere.visible=stars.visible=false;
-      celestialMarkers=flightSky.update({...view,mode},camera);
+      celestialMarkers=flightSky.update(solarView,camera,{isSunBlocked:foregroundBlocksSun,viewportHeight:canvas.clientHeight});
       const background=scene.background;scene.background=null;renderer.autoClear=false;renderer.clear(true,true,true);
       renderer.render(flightSky.scene,flightSky.camera);renderer.clearDepth();renderer.render(scene,camera);renderer.autoClear=true;scene.background=background;
     }else if(useSurfaceSky){
-      surfaceSky.update(selectedDestination,camera);const background=scene.background;scene.background=null;renderer.autoClear=false;renderer.clear(true,true,true);renderer.render(surfaceSky.scene,surfaceSky.camera);renderer.clearDepth();renderer.render(scene,camera);renderer.autoClear=true;scene.background=background;
+      surfaceSky.update(selectedDestination,camera,{view:solarView,isSunBlocked:foregroundBlocksSun,viewportHeight:canvas.clientHeight});const background=scene.background;scene.background=null;renderer.autoClear=false;renderer.clear(true,true,true);renderer.render(surfaceSky.scene,surfaceSky.camera);renderer.clearDepth();renderer.render(scene,camera);renderer.autoClear=true;scene.background=background;
     }else renderer.render(scene,camera);
     targetProjection.set(0,0,0).project(camera);
     return {targetX:(targetProjection.x+1)/2,targetY:(1-targetProjection.y)/2,targetVisible:Math.abs(targetProjection.x)<=1&&Math.abs(targetProjection.y)<=1&&targetProjection.z>=-1&&targetProjection.z<=1,celestialMarkers};
