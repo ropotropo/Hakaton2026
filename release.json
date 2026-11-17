@@ -1,5 +1,6 @@
 {
-  "version": "0.5.0",
-  "sourceCommit": "e4ae4582f470f1a20fd9f34a7b0c9ae7fce78f35",
-  "author": "Mykyta Borisov"
+  "version": "0.5.6",
+  "author": "Mykyta Borisov",
+  "release": "https://github.com/ropotropo/Hakaton2026/releases/tag/v0.5.6",
+  "sourceCommit": "8db271f864359f16a39083edfe2ac734f4f18417"
 }
